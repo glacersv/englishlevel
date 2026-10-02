@@ -31,7 +31,7 @@ export default function Sidebar({
                   {title}
                 </span>
                 <span className="text-[10px] text-on-surface-variant font-medium truncate">
-                  {subtitle}
+                  Colegio Salesiano San José
                 </span>
               </div>
             </div>

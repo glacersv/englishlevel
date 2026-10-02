@@ -1,0 +1,776 @@
+[
+  {
+    "level": "A1",
+    "topic": "Simple Present",
+    "number": "1",
+    "question": "What do you do every morning when you wake up?"
+  },
+  {
+    "level": "A1",
+    "topic": "Simple Present",
+    "number": "2",
+    "question": "Do you like ice cream?"
+  },
+  {
+    "level": "A1",
+    "topic": "Simple Present",
+    "number": "3",
+    "question": "Where do you live?"
+  },
+  {
+    "level": "A1",
+    "topic": "Verb \"To Be\"",
+    "number": "4",
+    "question": "Are you a student?"
+  },
+  {
+    "level": "A1",
+    "topic": "Verb \"To Be\"",
+    "number": "5",
+    "question": "Is she your friend?"
+  },
+  {
+    "level": "A1",
+    "topic": "Verb \"To Be\"",
+    "number": "6",
+    "question": "Is it cold today?"
+  },
+  {
+    "level": "A1",
+    "topic": "Wh-Questions",
+    "number": "7",
+    "question": "Where do you live?"
+  },
+  {
+    "level": "A1",
+    "topic": "Wh-Questions",
+    "number": "8",
+    "question": "What is your favorite color?"
+  },
+  {
+    "level": "A1",
+    "topic": "Wh-Questions",
+    "number": "9",
+    "question": "When do you usually eat lunch?"
+  },
+  {
+    "level": "A1",
+    "topic": "Possessive Adjectives",
+    "number": "10",
+    "question": "Is this your book?"
+  },
+  {
+    "level": "A1",
+    "topic": "Possessive Adjectives",
+    "number": "11",
+    "question": "Are those her shoes?"
+  },
+  {
+    "level": "A1",
+    "topic": "Possessive Adjectives",
+    "number": "12",
+    "question": "Whose phone is this?"
+  },
+  {
+    "level": "A1",
+    "topic": "Leisure Activities",
+    "number": "13",
+    "question": "Do you like swimming?"
+  },
+  {
+    "level": "A1",
+    "topic": "Leisure Activities",
+    "number": "14",
+    "question": "What games do you enjoy playing?"
+  },
+  {
+    "level": "A1",
+    "topic": "Leisure Activities",
+    "number": "15",
+    "question": "How do you spend your free time?"
+  },
+  {
+    "level": "A1",
+    "topic": "Present Simple",
+    "number": "16",
+    "question": "She usually reads books. What does she usually do?"
+  },
+  {
+    "level": "A1",
+    "topic": "Present Simple",
+    "number": "17",
+    "question": "They travel to Europe every summer. Where do they travel every summer?"
+  },
+  {
+    "level": "A1",
+    "topic": "Present Simple",
+    "number": "18",
+    "question": "I eat lunch at 12:30. When do you eat lunch?"
+  },
+  {
+    "level": "A1",
+    "topic": "Daily Activities",
+    "number": "19",
+    "question": "What do you do after work or school?"
+  },
+  {
+    "level": "A1",
+    "topic": "Daily Activities",
+    "number": "20",
+    "question": "How often do you exercise during the week?"
+  },
+  {
+    "level": "A1",
+    "topic": "Daily Activities",
+    "number": "21",
+    "question": "Do you have a specific routine before going to bed?"
+  },
+  {
+    "level": "A1",
+    "topic": "Adverbs of Frequency",
+    "number": "22",
+    "question": "How often do you go to the gym?"
+  },
+  {
+    "level": "A1",
+    "topic": "Adverbs of Frequency",
+    "number": "23",
+    "question": "How frequently do you see your family?"
+  },
+  {
+    "level": "A1",
+    "topic": "Adverbs of Frequency",
+    "number": "24",
+    "question": "Does she visit the museum regularly?"
+  },
+  {
+    "level": "A1",
+    "topic": "Time Expressions",
+    "number": "25",
+    "question": "What time does your favorite TV show start?"
+  },
+  {
+    "level": "A1",
+    "topic": "Time Expressions",
+    "number": "26",
+    "question": "What time do you arrive at work/school?"
+  },
+  {
+    "level": "A1",
+    "topic": "Time Expressions",
+    "number": "27",
+    "question": "When do you usually have breakfast?"
+  },
+  {
+    "level": "A1",
+    "topic": "Hobbies and Interests",
+    "number": "28",
+    "question": "What kind of music do you enjoy?"
+  },
+  {
+    "level": "A1",
+    "topic": "Hobbies and Interests",
+    "number": "29",
+    "question": "Have you ever tried any extreme sports?"
+  },
+  {
+    "level": "A1",
+    "topic": "Hobbies and Interests",
+    "number": "30",
+    "question": "What hobbies do you enjoy in your free time?"
+  },
+  {
+    "level": "A1",
+    "topic": "Family Vocabulary",
+    "number": "31",
+    "question": "How many people are there in your family?"
+  },
+  {
+    "level": "A1",
+    "topic": "Family Vocabulary",
+    "number": "32",
+    "question": "Who is your best friend? Describe them."
+  },
+  {
+    "level": "A1",
+    "topic": "Family Vocabulary",
+    "number": "33",
+    "question": "Do you have any pets? What are their names?"
+  },
+  {
+    "level": "A1",
+    "topic": "Descriptive Adjectives",
+    "number": "34",
+    "question": "Can you describe a typical day in your life?"
+  },
+  {
+    "level": "A1",
+    "topic": "Descriptive Adjectives",
+    "number": "35",
+    "question": "How do you manage your study time?"
+  },
+  {
+    "level": "A1",
+    "topic": "Descriptive Adjectives",
+    "number": "36",
+    "question": "How does your daily routine differ on weekdays versus weekends?"
+  },
+  {
+    "level": "A1",
+    "topic": "Pets and Descriptions",
+    "number": "37",
+    "question": "Do you have any pets? Describe them."
+  },
+  {
+    "level": "A1",
+    "topic": "Pets and Descriptions",
+    "number": "38",
+    "question": "What is the most interesting place you have visited with your pet?"
+  },
+  {
+    "level": "A1",
+    "topic": "Pets and Descriptions",
+    "number": "39",
+    "question": "How often do you play with your pets?"
+  },
+  {
+    "level": "A1",
+    "topic": "Frequency Adverbs",
+    "number": "40",
+    "question": "How often do you see your relatives?"
+  },
+  {
+    "level": "A1",
+    "topic": "Frequency Adverbs",
+    "number": "41",
+    "question": "What do you like to do with your friends?"
+  },
+  {
+    "level": "A1",
+    "topic": "Frequency Adverbs",
+    "number": "42",
+    "question": "How often do you go shopping?"
+  },
+  {
+    "level": "A2",
+    "topic": "Social Activities",
+    "number": "43",
+    "question": "What do you like to do with your friends?"
+  },
+  {
+    "level": "A2",
+    "topic": "Social Activities",
+    "number": "44",
+    "question": "Have you ever experienced any culture shock while traveling?"
+  },
+  {
+    "level": "A2",
+    "topic": "Social Activities",
+    "number": "45",
+    "question": "How do you manage your study time?"
+  },
+  {
+    "level": "A2",
+    "topic": "Talking About Hobbies",
+    "number": "46",
+    "question": "Have you ever attended a music concert?"
+  },
+  {
+    "level": "A2",
+    "topic": "Talking About Hobbies",
+    "number": "47",
+    "question": "Do you prefer reading books or watching movies? Why?"
+  },
+  {
+    "level": "A2",
+    "topic": "Talking About Hobbies",
+    "number": "48",
+    "question": "What hobbies do you enjoy in your free time?"
+  },
+  {
+    "level": "A2",
+    "topic": "Past Simple for Experiences",
+    "number": "49",
+    "question": "How often did you go on family vacations as a child?"
+  },
+  {
+    "level": "A2",
+    "topic": "Past Simple for Experiences",
+    "number": "50",
+    "question": "Did you ever meet a famous person?"
+  },
+  {
+    "level": "A2",
+    "topic": "Past Simple for Experiences",
+    "number": "51",
+    "question": "Have you ever tried scuba diving?"
+  },
+  {
+    "level": "A2",
+    "topic": "Expressing Preferences",
+    "number": "52",
+    "question": "Do you prefer to travel alone or with others? Why?"
+  },
+  {
+    "level": "A2",
+    "topic": "Expressing Preferences",
+    "number": "53",
+    "question": "What is your favorite way to relax after a long day?"
+  },
+  {
+    "level": "A2",
+    "topic": "Expressing Preferences",
+    "number": "54",
+    "question": "Do you prefer living in a city or a rural area? Why?"
+  },
+  {
+    "level": "A2",
+    "topic": "Comparing and Contrasting",
+    "number": "55",
+    "question": "What is the most interesting place you have visited, and how does it compare to your hometown?"
+  },
+  {
+    "level": "A2",
+    "topic": "Comparing and Contrasting",
+    "number": "56",
+    "question": "Compare the advantages and disadvantages of working from home."
+  },
+  {
+    "level": "A2",
+    "topic": "Comparing and Contrasting",
+    "number": "57",
+    "question": "Compare traditional education to online learning."
+  },
+  {
+    "level": "A2",
+    "topic": "Describing Places",
+    "number": "58",
+    "question": "What was your favorite holiday destination, and why?"
+  },
+  {
+    "level": "A2",
+    "topic": "Describing Places",
+    "number": "59",
+    "question": "Describe a place you have never visited but would like to go."
+  },
+  {
+    "level": "A2",
+    "topic": "Describing Places",
+    "number": "60",
+    "question": "Describe a memorable vacation experience."
+  },
+  {
+    "level": "B1",
+    "topic": "Travel Preferences",
+    "number": "61",
+    "question": "How do you plan your holidays or trips?"
+  },
+  {
+    "level": "B1",
+    "topic": "Travel Preferences",
+    "number": "62",
+    "question": "Share a memorable experience from one of your trips or holidays."
+  },
+  {
+    "level": "B1",
+    "topic": "Travel Preferences",
+    "number": "63",
+    "question": "What challenges might someone face while traveling to a new country?"
+  },
+  {
+    "level": "B1",
+    "topic": "Comparatives and Superlatives",
+    "number": "64",
+    "question": "How do you see data analysis evolving in the future?"
+  },
+  {
+    "level": "B1",
+    "topic": "Comparatives and Superlatives",
+    "number": "65",
+    "question": "In what ways does data analysis play a role in addressing global challenges?"
+  },
+  {
+    "level": "B1",
+    "topic": "Comparatives and Superlatives",
+    "number": "66",
+    "question": "How can data analysis help us better understand complex systems like climate change or epidemiology?"
+  },
+  {
+    "level": "B1",
+    "topic": "Future Plans",
+    "number": "67",
+    "question": "What are your future career plans?"
+  },
+  {
+    "level": "B1",
+    "topic": "Future Plans",
+    "number": "68",
+    "question": "How do you think artificial intelligence will impact our future?"
+  },
+  {
+    "level": "B1",
+    "topic": "Future Plans",
+    "number": "69",
+    "question": "How can individuals contribute to their community?"
+  },
+  {
+    "level": "B1",
+    "topic": "Cultural Experiences",
+    "number": "70",
+    "question": "What do you think are the biggest social issues in our society today?"
+  },
+  {
+    "level": "B1",
+    "topic": "Cultural Experiences",
+    "number": "71",
+    "question": "How can technology aid or disrupt daily routines?"
+  },
+  {
+    "level": "B1",
+    "topic": "Cultural Experiences",
+    "number": "72",
+    "question": "How do societal expectations influence individuals' daily routines?"
+  },
+  {
+    "level": "B1",
+    "topic": "School Subjects and Preferences",
+    "number": "73",
+    "question": "What is your favorite subject at school? Why?"
+  },
+  {
+    "level": "B1",
+    "topic": "School Subjects and Preferences",
+    "number": "74",
+    "question": "Have you ever had a memorable teacher? Describe them."
+  },
+  {
+    "level": "B1",
+    "topic": "School Subjects and Preferences",
+    "number": "75",
+    "question": "What are the key elements in fostering a culture of innovation?"
+  },
+  {
+    "level": "B1",
+    "topic": "Career Aspirations",
+    "number": "76",
+    "question": "How can individuals contribute to their community?"
+  },
+  {
+    "level": "B1",
+    "topic": "Career Aspirations",
+    "number": "77",
+    "question": "How might someone's career influence their daily routine, and vice versa?"
+  },
+  {
+    "level": "B1",
+    "topic": "Career Aspirations",
+    "number": "78",
+    "question": "How do you interpret statistical data in your work?"
+  },
+  {
+    "level": "B1",
+    "topic": "Time Management",
+    "number": "79",
+    "question": "How do you balance work and personal life?"
+  },
+  {
+    "level": "B1",
+    "topic": "Time Management",
+    "number": "80",
+    "question": "What kind of decisions benefit from data analysis?"
+  },
+  {
+    "level": "B1",
+    "topic": "Time Management",
+    "number": "81",
+    "question": "How has the availability of data influenced business decision-making?"
+  },
+  {
+    "level": "B1",
+    "topic": "Part-Time Jobs and Job Descriptions",
+    "number": "82",
+    "question": "How do you balance work and personal life?"
+  },
+  {
+    "level": "B1",
+    "topic": "Part-Time Jobs and Job Descriptions",
+    "number": "83",
+    "question": "How do cultural differences influence daily routines in different countries?"
+  },
+  {
+    "level": "B1",
+    "topic": "Part-Time Jobs and Job Descriptions",
+    "number": "84",
+    "question": "How do you see data analysis evolving in the future?"
+  },
+  {
+    "level": "B2",
+    "topic": "Social Issues and Opinions",
+    "number": "85",
+    "question": "What do you think are the biggest social issues in our society today?"
+  },
+  {
+    "level": "B2",
+    "topic": "Social Issues and Opinions",
+    "number": "86",
+    "question": "What is the significance of diplomacy in resolving international conflicts?"
+  },
+  {
+    "level": "B2",
+    "topic": "Social Issues and Opinions",
+    "number": "87",
+    "question": "How might global crises impact the travel industry?"
+  },
+  {
+    "level": "B2",
+    "topic": "Technology's Impact on Society",
+    "number": "88",
+    "question": "How do you think technology has changed society?"
+  },
+  {
+    "level": "B2",
+    "topic": "Technology's Impact on Society",
+    "number": "89",
+    "question": "What role do entrepreneurs play in shaping the future?"
+  },
+  {
+    "level": "B2",
+    "topic": "Technology's Impact on Society",
+    "number": "90",
+    "question": "In what ways can global trends and shifts affect the notion of a daily routine?"
+  },
+  {
+    "level": "B2",
+    "topic": "Cultural Traditions and Values",
+    "number": "91",
+    "question": "What cultural traditions are important in your country?"
+  },
+  {
+    "level": "B2",
+    "topic": "Cultural Traditions and Values",
+    "number": "92",
+    "question": "What are your thoughts on the future of renewable energy?"
+  },
+  {
+    "level": "B2",
+    "topic": "Cultural Traditions and Values",
+    "number": "93",
+    "question": "What role does adaptability play in maintaining a consistent daily routine?"
+  },
+  {
+    "level": "B2",
+    "topic": "Social Media Effects",
+    "number": "94",
+    "question": "Do you think social media has more positive or negative effects?"
+  },
+  {
+    "level": "B2",
+    "topic": "Social Media Effects",
+    "number": "95",
+    "question": "How can ethical principles impact political decision-making?"
+  },
+  {
+    "level": "B2",
+    "topic": "Social Media Effects",
+    "number": "96",
+    "question": "How might space tourism change the future of travel and holidays?"
+  },
+  {
+    "level": "B2",
+    "topic": "Community Involvement",
+    "number": "97",
+    "question": "How can individuals contribute to their community?"
+  },
+  {
+    "level": "B2",
+    "topic": "Community Involvement",
+    "number": "98",
+    "question": "How do you think artificial intelligence will impact our future?"
+  },
+  {
+    "level": "B2",
+    "topic": "Community Involvement",
+    "number": "99",
+    "question": "What is the role of ethics in the field of scientific research?"
+  },
+  {
+    "level": "B2",
+    "topic": "Technological Predictions",
+    "number": "100",
+    "question": "What technological advancements do you think will change the world in the next 10 years?"
+  },
+  {
+    "level": "B2",
+    "topic": "Technological Predictions",
+    "number": "101",
+    "question": "How can ethical principles impact political decision-making?"
+  },
+  {
+    "level": "B2",
+    "topic": "Technological Predictions",
+    "number": "102",
+    "question": "How can technology aid or disrupt daily routines?"
+  },
+  {
+    "level": "C1",
+    "topic": "Artificial Intelligence",
+    "number": "103",
+    "question": "How do you think artificial intelligence will impact our future?"
+  },
+  {
+    "level": "C1",
+    "topic": "Artificial Intelligence",
+    "number": "104",
+    "question": "How might someone's career influence their daily routine, and vice versa?"
+  },
+  {
+    "level": "C1",
+    "topic": "Artificial Intelligence",
+    "number": "105",
+    "question": "How do you think technology has changed society?"
+  },
+  {
+    "level": "C1",
+    "topic": "Future Possibilities",
+    "number": "106",
+    "question": "Would you like to live on another planet if given the opportunity?"
+  },
+  {
+    "level": "C1",
+    "topic": "Future Possibilities",
+    "number": "107",
+    "question": "How might global crises impact the travel industry?"
+  },
+  {
+    "level": "C1",
+    "topic": "Future Possibilities",
+    "number": "108",
+    "question": "How do societal expectations influence individuals' daily routines?"
+  },
+  {
+    "level": "C1",
+    "topic": "Job Market Changes",
+    "number": "109",
+    "question": "How will the job market change with advancing technology?"
+  },
+  {
+    "level": "C1",
+    "topic": "Job Market Changes",
+    "number": "110",
+    "question": "In what ways can global trends and shifts affect the notion of a daily routine?"
+  },
+  {
+    "level": "C1",
+    "topic": "Job Market Changes",
+    "number": "111",
+    "question": "What is the significance of diplomacy in resolving international conflicts?"
+  },
+  {
+    "level": "C1",
+    "topic": "Renewable Energy",
+    "number": "112",
+    "question": "What are your thoughts on the future of renewable energy?"
+  },
+  {
+    "level": "C1",
+    "topic": "Renewable Energy",
+    "number": "113",
+    "question": "How can adaptability play a role in maintaining a consistent daily routine?"
+  },
+  {
+    "level": "C1",
+    "topic": "Renewable Energy",
+    "number": "114",
+    "question": "How can technology aid or disrupt daily routines?"
+  },
+  {
+    "level": "C1",
+    "topic": "Environmental Actions",
+    "number": "115",
+    "question": "What measures do you think individuals can take to protect the environment?"
+  },
+  {
+    "level": "C1",
+    "topic": "Environmental Actions",
+    "number": "116",
+    "question": "How can ethical principles impact political decision-making?"
+  },
+  {
+    "level": "C1",
+    "topic": "Environmental Actions",
+    "number": "117",
+    "question": "What role does adaptability play in maintaining a consistent daily routine?"
+  },
+  {
+    "level": "C1",
+    "topic": "Global Environmental Issues",
+    "number": "118",
+    "question": "What are the most pressing environmental issues globally?"
+  },
+  {
+    "level": "C1",
+    "topic": "Global Environmental Issues",
+    "number": "119",
+    "question": "How can technology aid or disrupt daily routines?"
+  },
+  {
+    "level": "C1",
+    "topic": "Global Environmental Issues",
+    "number": "120",
+    "question": "How might space tourism change the future of travel and holidays?"
+  },
+  {
+    "level": "C1",
+    "topic": "Eco-Friendly Practices",
+    "number": "121",
+    "question": "Do you follow any eco-friendly practices in your daily life?"
+  },
+  {
+    "level": "C1",
+    "topic": "Eco-Friendly Practices",
+    "number": "122",
+    "question": "How might someone's career influence their daily routine, and vice versa?"
+  },
+  {
+    "level": "C1",
+    "topic": "Eco-Friendly Practices",
+    "number": "123",
+    "question": "How can individuals contribute to their community?"
+  },
+  {
+    "level": "C1",
+    "topic": "Business and Sustainability",
+    "number": "124",
+    "question": "How can businesses contribute to a more sustainable world?"
+  },
+  {
+    "level": "C1",
+    "topic": "Business and Sustainability",
+    "number": "125",
+    "question": "What is the significance of diplomacy in resolving international conflicts?"
+  },
+  {
+    "level": "C1",
+    "topic": "Business and Sustainability",
+    "number": "126",
+    "question": "How do you see data analysis evolving in the future?"
+  },
+  {
+    "level": "C1",
+    "topic": "Environmental Policies",
+    "number": "127",
+    "question": "What changes would you like to see in environmental policies?"
+  },
+  {
+    "level": "C1",
+    "topic": "Environmental Policies",
+    "number": "128",
+    "question": "What is the role of ethics in the field of scientific research?"
+  },
+  {
+    "level": "C1",
+    "topic": "Environmental Policies",
+    "number": "129",
+    "question": "How do societal expectations influence individuals' daily routines?"
+  }
+]

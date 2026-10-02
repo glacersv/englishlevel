@@ -1,288 +1,193 @@
-import React, { useEffect, useState } from 'react'
-import { LEVELS } from '../../modules/registry'
-import { getExams, saveResult, classify } from '../../lib/dataService'
-import QuestionPlayer from './QuestionPlayer'
+import React, { useState } from 'react'
+import { saveStudentSelfLevel } from '../../lib/dataService'
 
 export default function StudentGamifiedExam({ student, onLogout }) {
-  const [levelIdx, setLevelIdx] = useState(0)
-  const [exam, setExam] = useState(null)
-  const [qIdx, setQIdx] = useState(0)
-  const [correct, setCorrect] = useState(0)
-  const [attempts, setAttempts] = useState([])
-  const [phase, setPhase] = useState('loading') // 'loading' | 'quiz' | 'levelDone' | 'finished' | 'empty'
-  const [xp, setXp] = useState(450)
-  const [streakDays] = useState(4)
+  const hasAssignedLevel = Boolean(student.assignedLevel)
+  const [selectedSelfLevel, setSelectedSelfLevel] = useState(student.selfReportedLevel || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const [saved, setSaved] = useState(Boolean(student.selfReportedLevel))
 
-  const currentLevel = LEVELS[levelIdx]
-
-  useEffect(() => {
-    loadExam()
-  }, [levelIdx])
-
-  async function loadExam() {
-    setPhase('loading')
-    const exams = await getExams(currentLevel.id, student.grade)
-    if (!exams.length) {
-      setExam(null)
-      setPhase('empty')
-      return
-    }
-    setExam(exams[0])
-    setQIdx(0)
-    setCorrect(0)
-    setPhase('quiz')
-  }
-
-  const onResult = (ok) => {
-    if (ok) {
-      setCorrect((c) => c + 1)
-      setXp((x) => x + 10)
+  const handleSelectLevel = async (lvl) => {
+    setSelectedSelfLevel(lvl)
+    setIsSaving(true)
+    try {
+      await saveStudentSelfLevel(student.email, lvl)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      console.error('Error guardando auto-nivel:', err)
+    } finally {
+      setIsSaving(false)
     }
   }
-
-  const handleNextQuestion = () => {
-    if (qIdx + 1 < exam.questions.length) {
-      setQIdx(qIdx + 1)
-    } else {
-      finishCurrentLevel()
-    }
-  }
-
-  const finishCurrentLevel = async () => {
-    const passed = correct >= currentLevel.minCorrect
-    const newAttempts = [
-      ...attempts,
-      { level: currentLevel.id, correct, total: exam.questions.length, passed }
-    ]
-    setAttempts(newAttempts)
-    setPhase('levelDone')
-
-    if (!passed || levelIdx === LEVELS.length - 1) {
-      const id = `${student.name}_${student.grade}`.replace(/\s+/g, '_').toLowerCase()
-      await saveResult({
-        id,
-        studentName: student.name,
-        grade: student.grade,
-        section: student.section,
-        attempts: newAttempts,
-        assignedLevel: classify(newAttempts),
-        date: new Date().toISOString()
-      })
-    }
-  }
-
-  const handleContinueAfterLevel = () => {
-    const lastAttempt = attempts[attempts.length - 1]
-    if (lastAttempt?.passed && levelIdx + 1 < LEVELS.length) {
-      setLevelIdx(levelIdx + 1)
-    } else {
-      setPhase('finished')
-    }
-  }
-
-  const finalLevel = classify(attempts)
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col font-sans">
-      {/* Top Gamified Bar */}
-      <header className="bg-surface-container-lowest border-b border-outline-variant/30 sticky top-0 z-30 px-4 lg:px-8 py-3 flex items-center justify-between shadow-sm">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-between font-sans">
+      
+      {/* Top Navbar Institucional */}
+      <header className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-white shadow-md font-bold">
-            {student.name.substring(0, 2).toUpperCase()}
+          <div className="w-9 h-9 rounded-xl bg-[#2528b7] text-white flex items-center justify-center font-extrabold text-xs shadow-md shadow-indigo-600/20">
+            N+
           </div>
           <div>
-            <h2 className="font-heading font-bold text-base md:text-lg text-on-surface leading-tight">
-              ¡Hola, {student.name}!
-            </h2>
-            <span className="text-xs text-on-surface-variant font-medium">
-              {student.grade} de Secundaria · Sec. {student.section || 'A'}
+            <span className="font-heading font-extrabold text-sm text-gray-900 block leading-tight">
+              Portal del Estudiante
+            </span>
+            <span className="text-[10px] text-gray-500 font-semibold uppercase">
+              Colegio Salesiano San José
             </span>
           </div>
         </div>
 
-        {/* Gamification Pills (Streak & XP) */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-tertiary shadow-sm">
-            <span className="material-symbols-outlined text-[18px] text-tertiary fill">
-              local_fire_department
-            </span>
-            <div className="flex flex-col">
-              <span className="text-[9px] uppercase tracking-wider text-on-surface-variant leading-none font-bold">
-                Racha
-              </span>
-              <span className="text-xs font-extrabold text-on-surface leading-tight">
-                {streakDays} días
-              </span>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block text-right">
+            <span className="text-xs font-bold text-gray-800 block leading-tight">{student.name}</span>
+            <span className="text-[10px] text-gray-500 font-mono">Carnet: {student.carnet || 'N/A'}</span>
           </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-primary shadow-sm">
-            <span className="material-symbols-outlined text-[18px] text-primary fill">
-              stars
-            </span>
-            <div className="flex flex-col">
-              <span className="text-[9px] uppercase tracking-wider text-on-surface-variant leading-none font-bold">
-                Puntaje
-              </span>
-              <span className="text-xs font-extrabold text-on-surface leading-tight">
-                {xp} XP
-              </span>
-            </div>
-          </div>
-
           <button
             onClick={onLogout}
-            title="Salir"
-            className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all ml-1"
+            className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-all flex items-center gap-1"
           >
-            <span className="material-symbols-outlined text-[20px]">logout</span>
+            <span className="material-symbols-outlined text-[16px]">logout</span>
+            <span>Salir</span>
           </button>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-3xl w-full mx-auto p-4 md:p-8 flex flex-col justify-center">
-        {/* Fase: Cargando */}
-        {phase === 'loading' && (
-          <div className="text-center py-16 space-y-3">
-            <span className="inline-block w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin"></span>
-            <p className="text-sm font-semibold text-on-surface-variant">Cargando instrumento de nivelación...</p>
-          </div>
-        )}
-
-        {/* Fase: Sin exámenes disponibles */}
-        {phase === 'empty' && (
-          <div className="bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/30 shadow-sm space-y-4">
-            <span className="material-symbols-outlined text-5xl text-outline">assignment_late</span>
-            <h3 className="font-heading font-bold text-xl text-on-surface">No hay exámenes activos para tu grado</h3>
-            <p className="text-sm text-on-surface-variant max-w-md mx-auto">
-              Tu docente de inglés aún no ha publicado el examen para {student.grade} de Secundaria. Por favor consulta con tu profesor.
-            </p>
-          </div>
-        )}
-
-        {/* Fase: Quiz Activo */}
-        {phase === 'quiz' && exam && (
-          <div className="space-y-4">
-            {/* Barra de progreso interactiva */}
-            <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex items-center gap-4">
-              <div className="flex-1">
-                <div className="flex justify-between items-center text-xs font-bold text-on-surface-variant mb-1.5">
-                  <span className="text-primary font-heading uppercase tracking-wider">
-                    {currentLevel.name}
-                  </span>
-                  <span>
-                    Pregunta {qIdx + 1} de {exam.questions.length}
-                  </span>
-                </div>
-                <div className="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full transition-all duration-300"
-                    style={{ width: `${((qIdx + 1) / exam.questions.length) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
+      {/* Contenido Central */}
+      <main className="max-w-2xl w-full mx-auto p-6 md:p-10 my-auto text-center">
+        {hasAssignedLevel ? (
+          /* Caso 1: El docente ya completó la entrevista y asignó el nivel */
+          <div className="bg-white rounded-[32px] p-8 md:p-12 border border-gray-200 shadow-xl space-y-6 animate-fadeIn">
+            <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center shadow-inner">
+              <span className="material-symbols-outlined text-5xl">verified</span>
             </div>
-
-            {/* Componente del Ejercicio */}
-            <QuestionPlayer
-              key={`${levelIdx}_${qIdx}`}
-              question={exam.questions[qIdx]}
-              onResult={onResult}
-            />
-
-            {/* Botón Siguiente */}
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={handleNextQuestion}
-                className="py-3 px-6 rounded-xl bg-primary text-white font-heading font-bold text-sm tracking-wide shadow-md hover:bg-primary-container flex items-center gap-1.5 transition-all"
-              >
-                <span>{qIdx + 1 === exam.questions.length ? 'Finalizar Nivel' : 'Siguiente Ejercicio'}</span>
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Fase: Nivel Completado */}
-        {phase === 'levelDone' && (
-          <div className="bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/30 shadow-xl space-y-5 animate-fadeIn">
-            {attempts[attempts.length - 1]?.passed ? (
-              <>
-                <div className="w-16 h-16 rounded-full bg-secondary-container/40 text-secondary mx-auto flex items-center justify-center">
-                  <span className="material-symbols-outlined text-4xl fill">military_tech</span>
-                </div>
-                <h2 className="font-heading font-extrabold text-2xl text-on-surface">
-                  ¡Nivel {currentLevel.name} Aprobado!
-                </h2>
-                <p className="text-sm text-on-surface-variant">
-                  Obtuviste <strong className="text-secondary font-bold">{correct} de {exam.questions.length}</strong> aciertos mínimos requeridos ({currentLevel.minCorrect}).
-                </p>
-                <button
-                  type="button"
-                  onClick={handleContinueAfterLevel}
-                  className="py-3 px-8 rounded-xl bg-secondary text-white font-heading font-bold text-sm shadow-md hover:bg-secondary/90 transition-all inline-flex items-center gap-2"
-                >
-                  <span>Continuar al Siguiente Nivel</span>
-                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="w-16 h-16 rounded-full bg-tertiary-fixed text-tertiary mx-auto flex items-center justify-center">
-                  <span className="material-symbols-outlined text-4xl">flag</span>
-                </div>
-                <h2 className="font-heading font-extrabold text-2xl text-on-surface">
-                  Completaste tu diagnóstico
-                </h2>
-                <p className="text-sm text-on-surface-variant">
-                  Obtuviste {correct} de {exam.questions.length} aciertos. Se ha registrado tu nivelación.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleContinueAfterLevel}
-                  className="py-3 px-8 rounded-xl bg-primary text-white font-heading font-bold text-sm shadow-md hover:bg-primary-container transition-all"
-                >
-                  Ver Resultado Final
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Fase: Resultado Final Asignado */}
-        {phase === 'finished' && (
-          <div className="bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/30 shadow-xl space-y-6">
-            <span className="material-symbols-outlined text-6xl text-primary fill">workspace_premium</span>
-            <div className="space-y-1">
-              <h2 className="font-heading font-extrabold text-2xl text-on-surface">
-                ¡Evaluación de Ubicación Concluida!
+            
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold tracking-wider uppercase">
+                Diagnóstico Concluido
+              </span>
+              <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
+                ¡Tu Nivel de Inglés ha sido Asignado!
               </h2>
-              <p className="text-xs text-on-surface-variant">
-                Tu nivel asignado para el ciclo escolar 2026 es:
+              <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
+                Tu entrevista de ubicación oral ha sido registrada exitosamente por tu docente evaluador.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-surface-container-high/60 max-w-sm mx-auto border border-outline-variant/40">
-              <span className="text-xs uppercase font-bold text-primary tracking-wider">Nivel Oficial</span>
-              <h3 className="font-heading font-extrabold text-3xl text-on-surface mt-1 capitalize">
-                {finalLevel.replace('_', ' ')}
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 max-w-sm mx-auto border border-indigo-100 shadow-inner">
+              <span className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">
+                Nivel Obtenido (MCER)
+              </span>
+              <h3 className="font-heading font-black text-4xl md:text-5xl text-[#2528b7] mt-1">
+                {student.assignedLevel}
               </h3>
+              <span className="text-xs text-indigo-700 font-semibold mt-2 block">
+                {student.grade} - Sección {student.section}
+              </span>
             </div>
 
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={onLogout}
-                className="py-2.5 px-6 rounded-xl border border-outline-variant/60 text-xs font-semibold text-on-surface-variant hover:bg-surface-container"
-              >
-                Cerrar sesión
-              </button>
+            <p className="text-xs text-gray-400">
+              Pronto tu docente te indicará el salón y material de nivelación correspondiente.
+            </p>
+          </div>
+        ) : (
+          /* Caso 2: El alumno está en espera de ser llamado por el profesor */
+          <div className="bg-white rounded-[32px] p-8 md:p-12 border border-gray-200 shadow-xl space-y-6 animate-fadeIn">
+            <div className="w-20 h-20 rounded-full bg-indigo-50 text-[#2528b7] mx-auto flex items-center justify-center relative shadow-inner">
+              <span className="material-symbols-outlined text-4xl animate-pulse">hearing</span>
+              <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white absolute top-1 right-1"></span>
+            </div>
+
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-800 text-xs font-bold tracking-wider uppercase border border-indigo-100">
+                Entrevista Oral en Curso
+              </span>
+              <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
+                Evaluación con tu Docente
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                Hola <strong className="text-gray-900">{student.name}</strong>. Esta prueba de ubicación es <strong>oral y auditiva</strong>. Tu profesor te hará preguntas verbalmente y registrará tus respuestas en la rúbrica oficial.
+              </p>
+            </div>
+
+            {/* Campo / Selector Interactivo: Autopercepción de Nivel de Inglés */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-3 max-w-md mx-auto">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px] text-[#2528b7]">psychology</span>
+                  ¿Cuál consideras que es tu nivel de inglés actual?
+                </label>
+                {saved && (
+                  <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 animate-fadeIn">
+                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    Guardado
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-500 leading-tight">
+                Selecciona la opción con la que más te identifiques. Tu profesor verá esta referencia antes de tu entrevista.
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                {[
+                  { id: 'A1', label: 'A1 - Principiante', desc: 'Frases muy básicas' },
+                  { id: 'A2', label: 'A2 - Básico', desc: 'Conversaciones simples' },
+                  { id: 'B1', label: 'B1 - Intermedio', desc: 'Me desenvuelvo bien' },
+                  { id: 'B2', label: 'B2 - Intermedio Alto', desc: 'Fluidez y vocabulario' },
+                  { id: 'C1', label: 'C1 - Avanzado', desc: 'Casi bilingüe' },
+                  { id: 'Desconocido', label: 'No estoy seguro', desc: 'Prefiero evaluarme' },
+                ].map((item) => {
+                  const isSelected = selectedSelfLevel === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => handleSelectLevel(item.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-[#2528b7] bg-indigo-50/80 ring-2 ring-[#2528b7]/30 shadow-xs'
+                          : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-slate-50/50'
+                      }`}
+                    >
+                      <div className={`text-xs font-extrabold ${isSelected ? 'text-[#2528b7]' : 'text-gray-800'}`}>
+                        {item.label}
+                      </div>
+                      <div className="text-[10px] text-gray-500 line-clamp-1">
+                        {item.desc}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-left text-xs text-amber-900 space-y-1.5 max-w-md mx-auto">
+              <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                <span className="material-symbols-outlined text-[16px]">info</span>
+                Instrucciones para la entrevista:
+              </div>
+              <ul className="list-disc list-inside text-amber-700 space-y-1 pl-1">
+                <li>Presta atención a cada pregunta verbal que formule tu docente.</li>
+                <li>Responde en inglés con claridad, usando oraciones completas.</li>
+                <li>Al finalizar la entrevista, tu nivel oficial validado por el docente aparecerá aquí en pantalla.</li>
+              </ul>
+            </div>
+
+            <div className="pt-2 flex items-center justify-center gap-2 text-xs text-gray-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>Esperando que el docente concluya la calificación oficial...</span>
             </div>
           </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="py-4 text-center text-[11px] text-gray-400 border-t border-gray-100">
+        © 2026 Colegio Salesiano San José · Sistema de Diagnóstico y Nivelación de Inglés
+      </footer>
     </div>
   )
 }

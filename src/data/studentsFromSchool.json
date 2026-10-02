@@ -1,0 +1,4672 @@
+[
+  {
+    "carnet": "20131401",
+    "name": "AGUILAR RAMIREZ, MIGUEL EDUARDO",
+    "email": "miguel.aguilar@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251007",
+    "name": "ALVAREZ FLORES, NICOLLE ESTEFANYA",
+    "email": "nicolle.alvarez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160101",
+    "name": "ARANA ALAS, RODRIGO RICARDO",
+    "email": "rodrigo.arana@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160102",
+    "name": "ARGUETA ALVARENGA, ANDREA FERNANDA",
+    "email": "andrea.argueta@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160103",
+    "name": "ARGUMEDO BOLAÑOS, ALEJANDRA MARÍA",
+    "email": "alejandra.argumedo@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151601",
+    "name": "AVILA GALLEGOS, ANGEL DAVID",
+    "email": "angel.avila@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160109",
+    "name": "BAÑOS MEJÍA, FRANCISCO DANIEL",
+    "email": "francisco.mejia@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160111",
+    "name": "BARRIENTOS AQUINO, AMILCAR RODRIGO",
+    "email": "amilcar.barrientos@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251010",
+    "name": "CASTILLO DELGADO, MONSERRAT ABIGAIL",
+    "email": "monserrat.castillo@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160131",
+    "name": "CASTRO CABRERA, DYLAN GABRIEL",
+    "email": "dylan.castro@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251002",
+    "name": "CRUZ SANABRIA, LEDIS YAMILETH",
+    "email": "ledis.cruz@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160123",
+    "name": "CUELLAR BARRIENTOS, VALERIA PATRICIA",
+    "email": "valeria.cuellar@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170204",
+    "name": "DOMINGUEZ FLORES, EMILIA ALEJANDRA",
+    "email": "amilia.dominguez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220701",
+    "name": "FLORES DUARTE, EBERT JOSE",
+    "email": "ebert.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251008",
+    "name": "FLORES GARAY, KIMBERLI NICOLLE",
+    "email": "kimberli.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160126",
+    "name": "FRANCIA VILLEDA, DOUGLAS VLADIMIR",
+    "email": "douglas.francia@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160128",
+    "name": "GARCÍA LÓPEZ, LUIS ALEJANDRO",
+    "email": "luis.lopez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180301",
+    "name": "GONZALEZ CORLETO, MARÍA FERNANDA",
+    "email": "maria.corleto@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160144",
+    "name": "GRANADOS LUNA, ANGELO ADRIAN",
+    "email": "angelo.granados@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160136",
+    "name": "HERNANDEZ GONZALEZ, CARLOS ALEJANDRO",
+    "email": "carlos.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200503",
+    "name": "LÓPEZ MARTÍNEZ, LUIS MARIO",
+    "email": "luis.garcia@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141504",
+    "name": "MARTINEZ ACUÑA, DIEGO RENE",
+    "email": "diego.acuna@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160106",
+    "name": "MARTINEZ GOMEZ, MIGUEL EDUARDO",
+    "email": "miguel.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251001",
+    "name": "MAZARIEGO AREVALO, PAOLA ARLETTE",
+    "email": "paola.mazariego@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160107",
+    "name": "MEDINA CORTEZ, MARIANA FERNANDA",
+    "email": "mariana.medina@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251005",
+    "name": "MENDOZA MEJIA, ELIZABETH ALEJANDRA",
+    "email": "elizabeth.mendoza@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160112",
+    "name": "MENÉNDEZ MARTINEZ, JUAN FRANCISCO",
+    "email": "juan.menendez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160115",
+    "name": "MONTES REYES, CAMILA RENÉE",
+    "email": "camila.montes@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160113",
+    "name": "MORALES LÓPEZ, DIEGO ADALBERTO",
+    "email": "adalberto.morales@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180305",
+    "name": "PÉREZ CASTRO, ADRIANA ALEJANDRA",
+    "email": "adriana.perez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251011",
+    "name": "PIMENTEL AGUILAR, ALLISON NAYELI",
+    "email": "allison.pimentel@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200501",
+    "name": "RIVAS ALFÉREZ, ALISSON GABRIELA",
+    "email": "alisson.rivas@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160139",
+    "name": "RODRIGUEZ SOSA, MARIANA ROSELL",
+    "email": "mariana.rosell@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160142",
+    "name": "SALAZAR REBOLLO, MILENA ABIGAIL",
+    "email": "milena.salazar@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160124",
+    "name": "TECUN GARCÍA, CHRISTOPHER HARVEY",
+    "email": "christopher.tecun@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141501",
+    "name": "AGUILERA MAGAÑA, HECTOR GERARDO",
+    "email": "hector.aguilera@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20131402",
+    "name": "ALFARO AGUILAR, DIEGO ALEJANDRO",
+    "email": "alejandro.aguilar@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20131404",
+    "name": "ANAYA HERNANDEZ, RICARDO JOSE",
+    "email": "ricardo.anaya@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20131405",
+    "name": "ARANA GRIJALVA, ALEXIS ARTURO",
+    "email": "alexis.arana@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210602",
+    "name": "BERNAL BARAHONA, CARLOS DANIEL",
+    "email": "carlos.barahona@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230801",
+    "name": "CARBALLO ESTRADA, GABRIELA ELIZABETH",
+    "email": "gabriela.carballo@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251009",
+    "name": "CARRILLO ALEMAN, MEGAN ESTEPHANIA",
+    "email": "megan.carillo@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160116",
+    "name": "CARRILLO ZALDAÑA, WILFREDO JOSE",
+    "email": "wilfredo.carrillo@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160118",
+    "name": "CEA RIVAS, NATALY STEPHANY",
+    "email": "nataly.cea@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190402",
+    "name": "CHACON ARRIOLA, GENESIS ABIGAIL",
+    "email": "genesis.chacon@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151602",
+    "name": "CUELLAR CHAVEZ, ANDRES FELIPE",
+    "email": "andres.cuellar@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190404",
+    "name": "DUARTE SALGUERO, EMILIO JOSÉ",
+    "email": "emilio.duarte@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251014",
+    "name": "HERNANDEZ SALINAS, AUGUSTO ALEJANDRO",
+    "email": "augusto.hernadez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160130",
+    "name": "HERRERA LINARES, DIEGO ALEXANDER",
+    "email": "diego.linares@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190403",
+    "name": "JUAREZ CALDERON, SANTIAGO DAVID",
+    "email": "santiago.juarez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160104",
+    "name": "LÓPEZ MENDOZA, CAMILA AURELIA",
+    "email": "camila.mendoza@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251017",
+    "name": "MAIRENA GUADAMUZ, JOHAN JAIR",
+    "email": "johan.mairena@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20131407",
+    "name": "MARTINEZ MAGAÑA, GERARDO ANDREE",
+    "email": "gerardo.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160108",
+    "name": "MEDINA GUERRA, ALLISON ESTEPHANY",
+    "email": "allison.medina@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160110",
+    "name": "MEJÍA TOVAR, FRED ALESSANDRO",
+    "email": "fred.mejia@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251006",
+    "name": "MENDEZ BARILLAS, DIANA CAMILA",
+    "email": "diana.mendez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20131408",
+    "name": "MORALES MONGE, HUGO ALEJANDRO",
+    "email": "hugo.monge@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20131409",
+    "name": "MURCIA LINARES, EMILIO ADRIAN",
+    "email": "emilio.murcia@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220705",
+    "name": "NÚÑEZ MORENO, HUGO ALDAIR",
+    "email": "hugo.moreno@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220703",
+    "name": "OSEGUEDA HERNANDEZ, RAFAEL ERNESTO",
+    "email": "rafael.osegueda@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210601",
+    "name": "PACHECO ALVAREZ, MARIA VALENTINA",
+    "email": "maria.alvarez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210604",
+    "name": "PACHECO RAMÍREZ, HUGO RAFAEL",
+    "email": "hugo.ramirez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160146",
+    "name": "PALACIOS VANEGAS, ANGIE DANIELA",
+    "email": "angie.palacios@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160117",
+    "name": "RAMÍREZ COTO, ESWIN ALEJANDRO",
+    "email": "eswin.ramirez@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251012",
+    "name": "REINA SALAZAR, ERNESTO JOSUE",
+    "email": "ernesto.reyna@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151609",
+    "name": "RIVERA GUEVARA, KEVIN ALEXANDER",
+    "email": "kevin.rivera@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160119",
+    "name": "RIVERA MARTÍNEZ, FRANCISCO JAVIER",
+    "email": "francisco.rivera@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160121",
+    "name": "RODAS CERON, KEVIN ERNESTO",
+    "email": "kevin.rodas@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20251004",
+    "name": "SORTO CENTENO, ALEJANDRA ABIGAIL",
+    "email": "alejandra.sorto@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160145",
+    "name": "VEGA QUINTANA, TANIA MARÍA",
+    "email": "tania.vega@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210605",
+    "name": "ZALDIVAR GRANDE, MELANIE FERNANDA",
+    "email": "melanie.grande@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200502",
+    "name": "ZAVALETA GONZÁLEZ, FÁTIMA DANIELA",
+    "email": "fatima.zavaleta@salesianosanjose.edu.sv",
+    "codigoGrado": "11",
+    "grade": "2° Bachillerato (11°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190308",
+    "name": "ALVARADO RUFFATTI, JUAN DIEGO",
+    "email": "juan.alvarado@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261012",
+    "name": "ARAGÓN MARTÍNEZ, ELSA MARÍA",
+    "email": "elsa.aragon@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141402",
+    "name": "AREVALO CASTRO, CHRISTOPHER ALESSANDRO",
+    "email": "christopher.arevalo@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230707",
+    "name": "BARBERENA GUERRA, GRACIELA MARIA",
+    "email": "graciela.barberena@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170106",
+    "name": "CASTANEDA DUARTE, ALEJANDRA MARIA",
+    "email": "alejandra.castaneda@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261020",
+    "name": "CONTRERAS BAÑOS, CAMILA NICOLLE",
+    "email": "camila.contreras@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261019",
+    "name": "CONTRERAS BAÑOS, SOFIA VALERIA",
+    "email": "sofia.contreras@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250901",
+    "name": "CRUZ QUINTEROS, VALERY FABIOLA",
+    "email": "valery.cruz@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161604",
+    "name": "CUELLAR BARRIENTOS, ALEJANDRO JOSE",
+    "email": "alejandro.cuellar@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230704",
+    "name": "DUARTE RODRIGUEZ, ROBERTO CARLOS",
+    "email": "roberto.duarte@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141404",
+    "name": "ECHEVERRIA SOTO, DIEGO LEONARDO",
+    "email": "diego.echeverria@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170108",
+    "name": "ESTRADA RODRIGUEZ, ADRIANA CAROLINA",
+    "email": "adriana.estrada@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141406",
+    "name": "FUNES MARTINEZ, HENRY ALEJANDRO",
+    "email": "henry.funes@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190306",
+    "name": "GALDAMEZ CHAVEZ, VALERIA MARIE",
+    "email": "valeria.galdamez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170131",
+    "name": "GONZALEZ ZAVALETA, DOUGLAS ALEJANDRO",
+    "email": "douglas.ganzalez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141408",
+    "name": "LARA BELLOSO, FERNANDO MARCELO",
+    "email": "fernando.lara@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161613",
+    "name": "LINARES CASTRO, SAVANNAH MONTSERRAT",
+    "email": "savannah.linares@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240806",
+    "name": "MACAL CASTILLO, LISBETH BERENICE",
+    "email": "lisbeth.castillo@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161602",
+    "name": "MARTINEZ FLORES, ARNULFO ERNESTO",
+    "email": "arnulfo.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261001",
+    "name": "MENDOZA PALACIOS, JIMENA PAOLA",
+    "email": "jimena.mendoza@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261018",
+    "name": "MONROY PACHECO, JEFFREY GIANCARLO",
+    "email": "jeffrey.monroy@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161609",
+    "name": "MONTES REYES, MARIA JIMENA",
+    "email": "maria.montes@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170132",
+    "name": "ORELLANA MENENDEZ, OSCAR MAURICIO",
+    "email": "oscar.orellana@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261017",
+    "name": "PARADA BATRES, LILIANA CAROLINA",
+    "email": "liliana.parada@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170136",
+    "name": "REBOLLO MARTINEZ, PEDRO ANDRES",
+    "email": "pedro.rebollo@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261010",
+    "name": "REYES MARTINEZ, CALEB ALEXANDER",
+    "email": "caleb.reyes@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170122",
+    "name": "SALINAS MINEROS, CARLOS EDUARDO",
+    "email": "carlos.salinas@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261007",
+    "name": "SERVANDO CHAVEZ, DANIELA DE LOS ANGELES",
+    "email": "daniela.servando@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250902",
+    "name": "ZALDIVAR VANEGAS, ANDREA NICOLLE",
+    "email": "andrea.zaldivar@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261014",
+    "name": "AGUILERA ACOSTA, ALFREDO ISAAC",
+    "email": "alfredo.aguilera@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170101",
+    "name": "AMAYA GALAN, WILBER RICARDO",
+    "email": "wilber.amaya@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190302",
+    "name": "ANGULO COELLO, ELENA MARIA",
+    "email": "elena.angulo@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190303",
+    "name": "ARIAS CHINCHILLA, SARA CAMILA",
+    "email": "sara.arias@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200402",
+    "name": "AVILÉS REINA, KAREN ANGÉLICA",
+    "email": "karen.aviles@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170103",
+    "name": "CAMPOS REYES, JOSE ENRIQUE",
+    "email": "jose.campos@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141403",
+    "name": "COLINDRES TORRES, EDUARDO DAVID",
+    "email": "eduardo.colindres@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261009",
+    "name": "CUELLAR DONADO, DANIEL ENRIQUE",
+    "email": "daniel.cuellar@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200403",
+    "name": "DUEÑAS DARDÓN, CAMILA MARIANA",
+    "email": "camila.duenas@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170109",
+    "name": "FIGUEROA BARRERA, REINA MICHELLE",
+    "email": "reina.figueroa@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151501",
+    "name": "FLORES RIVERA, JAVIER ALESSANDRO",
+    "email": "javier.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250903",
+    "name": "GIRON PEREZ, LENIN ALEJANDRO",
+    "email": "lenin.giron@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170110",
+    "name": "GODINEZ GIRON, DIEGO ALEXANDER",
+    "email": "diego.godinez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161605",
+    "name": "GRANADOS LUNA, ALEXIA MONSERRAT",
+    "email": "alexia.granados@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261008",
+    "name": "GUZMAN CARRANZA, ROCIO MICHELLE",
+    "email": "rocio.guzman@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230703",
+    "name": "JIMENEZ LOPEZ, ANDERSON CALEB",
+    "email": "anderson.jimenez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170117",
+    "name": "LINARES FIGUEROA, GUILLERMO EMILIANO",
+    "email": "guillermo.linares@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240805",
+    "name": "LÓPEZ ZAMORA, HEYMI MARISSA",
+    "email": "heymy.lopez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261011",
+    "name": "MANCIA MARTINEZ, MARVIN GEOVANNI",
+    "email": "marvin.mancia@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261025",
+    "name": "MARROQUIN CORNEJO, MARIA XIMENA",
+    "email": "20261025@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261023",
+    "name": "MARTÍNEZ CASTILLO, JUAN ALBERTO",
+    "email": "juan.castillo@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261024",
+    "name": "MENDEZ ABREGO, SOFIA ALEJANDRA",
+    "email": "sofia.mendez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161615",
+    "name": "MORÁN MÁRQUEZ, RAFAEL EDGARDO",
+    "email": "rafael.moran@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200404",
+    "name": "ORTIZ JIMENEZ, MARTHA LUCIA",
+    "email": "martha.ortiz@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170119",
+    "name": "ORTIZ LEMUS, GABRIEL ALEJANDRO",
+    "email": "gabriel.ortiz@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261004",
+    "name": "RAMOS MATA, ANGIE PATRICIA",
+    "email": "angie.ramos@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230702",
+    "name": "RECINOS VALENCIA, DIEGO GERARDO",
+    "email": "diego.recinos@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240807",
+    "name": "SALINAS ZECEÑA, ZAIRA ALEXANDRA",
+    "email": "zaira.salinas@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170125",
+    "name": "VARGAS AVENDAÑO, ANDREA SOFIA",
+    "email": "andrea.vargas@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261002",
+    "name": "ALVARADO BAÑOS, JULIANA SARAHI",
+    "email": "juliana.alvarado@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220601",
+    "name": "BERNAL BARAHONA, LEONOR ALEJANDRA",
+    "email": "leonor.bernal@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161616",
+    "name": "BOLAÑOS MARÍA, DIEGO ANTONIO",
+    "email": "diego.bolanos@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161611",
+    "name": "BONILLA PÉREZ, VALERIA MONTSERRAT",
+    "email": "valeria.bonilla@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230706",
+    "name": "CACERES PEREZ, PABLO SALVADOR",
+    "email": "pablo.caceres@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170105",
+    "name": "CARRANZA RAMOS, PEDRO MIGUEL",
+    "email": "pedro.carranza@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210502",
+    "name": "CORTEZ SANABRIA, GABRIELA ELIANE",
+    "email": "gabriela.sanabria@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170124",
+    "name": "DELGADO MENDOZA, CARLOS ALEXANDER",
+    "email": "carlos.delgado@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170107",
+    "name": "ECHEVERRIA ALDANA, GERARDO ANTONIO",
+    "email": "gerardo.echeverria@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141405",
+    "name": "FLORES ALAS, WILLIAN DANIEL",
+    "email": "william.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261013",
+    "name": "GUERRA HERNANDEZ, RODRIGO ALEXANDER",
+    "email": "rodrigo.guerra@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20141407",
+    "name": "HERRERA MAGAÑA, GABRIEL ENRIQUE",
+    "email": "gabriel.herrera@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161610",
+    "name": "HURTADO CUBAS, MARÍA MONTSERRAT",
+    "email": "maria.hurtado@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170137",
+    "name": "INTERIANO VANEGAS, JONATHAN EDUARDO",
+    "email": "jonathan.interiano@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240802",
+    "name": "MARTINEZ CASTRO, NATHALY ALESSANDRA",
+    "email": "nathaly.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151504",
+    "name": "MENENDEZ VEGA, CARLOS RODRIGO",
+    "email": "carlos.menendez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240803",
+    "name": "MOREIRA HERNANDEZ, MELANIE RAQUEL",
+    "email": "melanie.moreira@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261005",
+    "name": "ORELLANA CASTANEDA, ALEJANDRA DENISSE",
+    "email": "alejandra.orellana@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170115",
+    "name": "ORELLANA LARIN, ALESSANDRO JAVIER",
+    "email": "alessandro.orellana@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261003",
+    "name": "PEREZ LOPEZ, ISABEL MICHELLE",
+    "email": "isabel.perez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261015",
+    "name": "PORTILLO MENDOZA, FATIMA STEPHANNIE",
+    "email": "fatima.portillo@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151507",
+    "name": "QUINTANILLA FLORES, ALEXANDER ANDERSON",
+    "email": "alexander.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240804",
+    "name": "RAMOS MUNDO, VALERIA MARGARITA",
+    "email": "valeria.ramos@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261006",
+    "name": "RIVAS POCASANGRE, GABRIELA MICHELLE",
+    "email": "gabriela.rivas@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170127",
+    "name": "SIGUENZA ZALDAÑA, ANDERSON MATEO",
+    "email": "anderson.zaldana@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170128",
+    "name": "SIGUENZA ZALDAÑA, DANILO ARTURO",
+    "email": "danilo.zaldana@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20261022",
+    "name": "URQUILLA SALAZAR, KATHERINNE NICOLLE",
+    "email": "katherinne.urquilla@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170129",
+    "name": "VELASQUEZ VEGA, ANGEL MAURICIO",
+    "email": "angel.velasquez@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20170130",
+    "name": "ZELAYA HERNANDEZ, DIEGO ALEJANDRO",
+    "email": "diego.zelaya@salesianosanjose.edu.sv",
+    "codigoGrado": "10",
+    "grade": "1° Bachillerato (10°)",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230603",
+    "name": "AREVALO HERRERA, BRIANA ALEJANDRA",
+    "email": "briana.arevalo@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240709",
+    "name": "BARRAZA MADRID, DIEGO ALEJANDRO",
+    "email": "diego.barraza@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171622",
+    "name": "BELTRÁN MARTÍNEZ, FERNANDO JOSUÉ",
+    "email": "fernando.beltran@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180102",
+    "name": "BLANCO ALVAREZ, DOMINIC GIOVANNI",
+    "email": "dominic.blanco@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260901",
+    "name": "CARDONA GARCIA, MELANY SOFIA",
+    "email": "melany.cardona@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151402",
+    "name": "CARRANZA MORALES, LUIS FERNANDO",
+    "email": "luis.carranza@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220503",
+    "name": "CONSTANZA RAMIREZ, GIULIA IZEL",
+    "email": "giulia.constanza@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180122",
+    "name": "CUELLAR LINARES, ELVIN JOSÉ",
+    "email": "elvin.cuellar@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260911",
+    "name": "DURAN ROSALES, DANIELA ALEJANDRA",
+    "email": "daniela.duran@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260912",
+    "name": "ECHEVERRIA CORADO, LUCAS SANTIAGO",
+    "email": "lucas.echeverria@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161518",
+    "name": "ERAZO RAMÍREZ, EDGAR JOSÉ",
+    "email": "edgar.erazo@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171603",
+    "name": "ESPAÑA TOBAR, JAVIER ALESSANDRO",
+    "email": "javier.espana@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240703",
+    "name": "LEIVA CARDONA, VALERY MARIANA",
+    "email": "valery.leiva@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240702",
+    "name": "LINARES PADILLA, JUAN FERNANDO",
+    "email": "juan.linares@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260906",
+    "name": "LINARES RAMIREZ, GENESIS VALERIA",
+    "email": "genesis.linares@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171610",
+    "name": "LUNA PORTILLO, MARIA BELEN",
+    "email": "maria.luna@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151408",
+    "name": "MATAMOROS GONZALEZ, NICOLAS BENJAMIN",
+    "email": "nicolas.matamoros@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230601",
+    "name": "MIRA CHAVEZ, LUISANA MICHELLE",
+    "email": "luisana.mira@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151412",
+    "name": "MORALES HERRERA, SANTIAGO ALEJANDRO",
+    "email": "santiago.morales@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171606",
+    "name": "MOREIRA TOBAR, MATEO DAVID",
+    "email": "mateo.moreira@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171620",
+    "name": "MUNGUIA GUEVARA, VICTOR MANUEL",
+    "email": "victor.munguia@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220507",
+    "name": "PALENCIA RIVAS, CAMILA RENEE",
+    "email": "camila.palencia@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151414",
+    "name": "RIVERA ORDOÑEZ, LUIS ALESSANDRO",
+    "email": "luis.rivera@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180115",
+    "name": "SALINAS RETANA, JAIME ALEJANDRO",
+    "email": "jaime.salinas@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240706",
+    "name": "ALVARADO MEJIA, MARIO ANDERSON",
+    "email": "mario.mejia@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240701",
+    "name": "AREVALO RODRIGUEZ, CHRISTOPHER JOSE",
+    "email": "jose.rodriguez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260904",
+    "name": "AVILA GALLEGOS, JORGE MIGUEL",
+    "email": "miguel.avila@salesiansanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161506",
+    "name": "AYALA JUÁREZ, CARLOS EDUARDO",
+    "email": "carlos.ayala@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240705",
+    "name": "CASTANEDA GARCIA, JAVIER EDUARDO",
+    "email": "javier.castaneda@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180103",
+    "name": "CHICAS CASTRO, KEVIN MATEO",
+    "email": "kevin.chicas@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190204",
+    "name": "DELGADO QUINTANA, LUIS MATEO",
+    "email": "luis.delgado@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190208",
+    "name": "GALLARDO AGREDA, OVIDIO ANTONIO",
+    "email": "ovidio.gallardo@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161501",
+    "name": "GARCÍA LÓPEZ, MARIEL ISABELLA",
+    "email": "mariel.garcia@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210403",
+    "name": "GONZALEZ HERNANDEZ, ASHLEY CHANEL",
+    "email": "ashley.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190209",
+    "name": "HENRIQUEZ HERNANDEZ, MIGUEL ANTONIO",
+    "email": "miguel.henriquez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161508",
+    "name": "LIMA OLIVA, GRACIA MARÍA",
+    "email": "gracia.lima@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220505",
+    "name": "LINARES AGUILAR, GABRIELA MARIA",
+    "email": "gabriela.linares@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260908",
+    "name": "LÓPEZ LÓPEZ, MARIANA MICHELLE",
+    "email": "michelle.lopez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180111",
+    "name": "LOPEZ ZUNIGA, JORGE EMMANUEL",
+    "email": "jorge.lopez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151407",
+    "name": "MARROQUIN ALARCON, JORGE MIGUEL",
+    "email": "jorge.marroquin@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180108",
+    "name": "OCHOA EDUARDO, FRANCISCO JAVIER",
+    "email": "francisco.ochoa@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171617",
+    "name": "QUINTANILLA GOMEZ, VALERIA RAQUEL",
+    "email": "raquel.quintanilla@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260909",
+    "name": "RAMÍREZ HERNANDEZ, MATÍAS GABRIEL",
+    "email": "matias.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180113",
+    "name": "RENDEROS MOJICA, IVANNA NICOLLE",
+    "email": "ivanna.renderos@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190205",
+    "name": "SANDOVAL GUZMAN, MONICA RENEE",
+    "email": "monica.sandoval@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240704",
+    "name": "SANTOS CANO, PAOLA MICHELL",
+    "email": "paola.santos@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151417",
+    "name": "TOLEDO MATA, JOSE GUILLERMO",
+    "email": "jose.toledo@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171607",
+    "name": "VANEGAS VIDES, MAXIMO MATEO",
+    "email": "maximo.vanegas@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171621",
+    "name": "VASQUEZ HERRERA, CHRISTOPHER EFRAIN",
+    "email": "christopher.herrera@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180118",
+    "name": "ZALDAÑA DOMINGUEZ, PAOLA NINETH",
+    "email": "paola.dominguez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171601",
+    "name": "AVILA CALDERON, KARLA MARCELA",
+    "email": "karla.avila@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171619",
+    "name": "BARRIENTOS CISNEROS, DAVID ALEJANDRO",
+    "email": "david.barrientos@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171616",
+    "name": "BOLAÑOS QUINTANILLA, WILFREDO ANTONIO",
+    "email": "wilfredo.bolanos@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161513",
+    "name": "BONILLA GALICIA, MATIAS EDUARDO",
+    "email": "matias.bonilla@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260913",
+    "name": "CENTENO GONZALEZ, CAMILA DAYANARA",
+    "email": "camila.centeno@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180128",
+    "name": "CUELLAR CHAVEZ, BENJAMIN ESTEBAN",
+    "email": "benjamin.cuellar@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180105",
+    "name": "DIAZ HERRERA, DYLAN GIANCARLO",
+    "email": "dylan.diaz@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171604",
+    "name": "DIAZ MONSALVE, GABRIEL ERNESTO",
+    "email": "gabriel.diaz@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171618",
+    "name": "ESTRADA DOMINGUEZ, DIEGO ANDRE",
+    "email": "diego.estrada@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210402",
+    "name": "FIGUEROA AZENON, FERNANDA JULISSA",
+    "email": "fernanda.azenon@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171614",
+    "name": "FUENTES AVENDAÑO, FIORELLA MONTSERRAT",
+    "email": "fiorella.fuentes@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180134",
+    "name": "GALDAMEZ CHAVEZ, ADRIAN ALEJANDRO",
+    "email": "adrian.galdamez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180110",
+    "name": "GRANDE MENDOZA, ALEXA IVONNE",
+    "email": "alexa.grande@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161517",
+    "name": "HERNANDEZ ESCOBAR, ANA CAMILA",
+    "email": "ana.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260902",
+    "name": "HERNANDEZ MORAN, XIMENA MARIA",
+    "email": "ximena.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220506",
+    "name": "JIMENEZ TRUJILLO, DANIELA ELIZABETH",
+    "email": "daniela.jimenez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180133",
+    "name": "LINARES AQUINO, EFRAIN ANTONIO",
+    "email": "efrain.linares@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161515",
+    "name": "MADRID MORÁN, REBECA VALENTINA",
+    "email": "rebeca.madrid@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260905",
+    "name": "MEZQUITA GUERRA, YULIANA MAITE",
+    "email": "yuliana.mezquita@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260903",
+    "name": "MORALES ALCANTARA, NELSON FERNANDO",
+    "email": "nelson.morales@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161519",
+    "name": "OLIVA RODRIGUEZ, GABRIELA NICOLLE",
+    "email": "gabriela.oliva@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250801",
+    "name": "REINA SALAZAR, GABRIELA VALENTINA",
+    "email": "gabriela.reina@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161514",
+    "name": "RIVAS MONROY, ADRIANA GUADALUPE",
+    "email": "adriana.rivas@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180114",
+    "name": "RODRIGUEZ SOLORZANO, RICARDO ALEJANDRO",
+    "email": "ricardo.rodriguez@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260910",
+    "name": "ROMERO GONZALEZ, ROSELYN ELISA",
+    "email": "roselyn.romero@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20151415",
+    "name": "SALAZAR FLORES, ETHAN RICARDO",
+    "email": "ethan.salazar@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240708",
+    "name": "SAYES CRUZ, JOSSELYN MICHELLE",
+    "email": "josselyn.cruz@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180119",
+    "name": "ZARCEÑO CENTENO, VALERIA BELEN",
+    "email": "valeria.centeno@salesianosanjose.edu.sv",
+    "codigoGrado": "09",
+    "grade": "9° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20160122",
+    "name": "CONTRERAS FLORES, JOYCE DENISSE",
+    "email": "joyce.contreras@salesianosanjose.edu.sv",
+    "codigoGrado": "32",
+    "grade": "3° Bachillerato Técnico (12°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20253108",
+    "name": "GONZALEZ RAMOS, LUIS ALFONSO",
+    "email": "luis.gonzalez@salesianosanjose.edu.sv",
+    "codigoGrado": "32",
+    "grade": "3° Bachillerato Técnico (12°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220702",
+    "name": "HENRIQUEZ LUCHA, FRANCISCO DAVID",
+    "email": "francisco.henriquez@salesianosanjose.edu.sv",
+    "codigoGrado": "32",
+    "grade": "3° Bachillerato Técnico (12°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20253105",
+    "name": "HERNANDEZ ZELADA, GENESIS NATALIA",
+    "email": "genesis.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "32",
+    "grade": "3° Bachillerato Técnico (12°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240901",
+    "name": "MELARA FLORES, ANTHONY STANLEY",
+    "email": "anthony.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "32",
+    "grade": "3° Bachillerato Técnico (12°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20253103",
+    "name": "OSORIO MORAN, JUAN PABLO",
+    "email": "juan.osorio@salesianosanjose.edu.sv",
+    "codigoGrado": "32",
+    "grade": "3° Bachillerato Técnico (12°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20253106",
+    "name": "PEREZ ESCOBAR, DANIELA ALEJANDRA",
+    "email": "daniela.perez@salesianosanjose.edu.sv",
+    "codigoGrado": "32",
+    "grade": "3° Bachillerato Técnico (12°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20253101",
+    "name": "RAMIREZ, JENIFFER LARISSA",
+    "email": "jeniffer.ramirez@salesianosanjose.edu.sv",
+    "codigoGrado": "32",
+    "grade": "3° Bachillerato Técnico (12°)",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230503",
+    "name": "ACEVEDO SALAZAR, GABRIEL EDUARDO",
+    "email": "gabriel.acevedo@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190108",
+    "name": "AGUILAR PERAZA, RAUL WILFREDO",
+    "email": "raul.aguilar@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200202",
+    "name": "AGUIRRE GÁLVEZ, ENZO EMILIANO",
+    "email": "enzo.aguirre@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161429",
+    "name": "ALVARADO HERNANDEZ, ARIANNA SARAI",
+    "email": "arianna.alvarado@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161402",
+    "name": "ARGUETA ALVARENGA, MANUEL ESTEBAN",
+    "email": "manuel.argueta@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161412",
+    "name": "BELTRAN PÉREZ, ANDREA MICHELLE",
+    "email": "andrea.beltran@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250711",
+    "name": "CABALLERO TOBAR, HANIEL MATEO",
+    "email": "haniel.caballero@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161416",
+    "name": "CASTANEDA GRANADOS, JOSE ANTONIO",
+    "email": "jose.granados@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190116",
+    "name": "CHACON MORALES, NAHOMY ALEXANDRA",
+    "email": "nahomy.chacon@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161438",
+    "name": "CHOTO CHAVEZ, JUAN RICARDO",
+    "email": "juan.choto@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161441",
+    "name": "FLORES VELASQUEZ, SEBASTIAN ALEJANDRO",
+    "email": "sebastian.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250713",
+    "name": "GARCIA AVILA, FERNANDO ANDRÉ",
+    "email": "fernando.garcia@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161418",
+    "name": "GIL MORENO, SEBASTIAN ERNESTO",
+    "email": "sebastian.gil@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190110",
+    "name": "GONZALEZ LOPEZ, CARLOS ERNESTO",
+    "email": "carlos.gonzalez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260802",
+    "name": "HERNÁNDEZ CRUZ, DIEGO NICOLÁS",
+    "email": "diego.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171510",
+    "name": "MARTINEZ MORAN, MATTEW MELQUISEDEC",
+    "email": "mattew.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250715",
+    "name": "MARTINEZ RAMIREZ, JOSUE ISAAC",
+    "email": "josue.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161408",
+    "name": "MATAMOROS GONZALEZ, OSCAR AGUSTIN",
+    "email": "oscar.matamoros@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161419",
+    "name": "MAYORGA LOPEZ, MANUEL ANTONIO",
+    "email": "manuel.mayorga@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190119",
+    "name": "MEJIA MEJIA, DAVID ALEXANDER",
+    "email": "david.mejia@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240602",
+    "name": "MOREIRA HERNANDEZ, IMMER EDGARDO",
+    "email": "edgardo.moreira@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250709",
+    "name": "PINEDA VALLE, ADRIANA ABIGAIL",
+    "email": "adriana.pineda@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250716",
+    "name": "QUINTANA AREVALO, VALENTINA ISABELLA",
+    "email": "valentina.quintana@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161422",
+    "name": "ROMERO AREVALO, ALEJANDRO JOSE",
+    "email": "alejandro.romero@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190111",
+    "name": "ROMERO GONZALEZ, JOSE RICARDO",
+    "email": "jose.romero@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250714",
+    "name": "ROMUALDO VILLALTA, SARAH CHARLOTTE",
+    "email": "sarah.romualdo@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250718",
+    "name": "TOBAR ALVARADO, AMY DANIELA",
+    "email": "amy.tobar@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161405",
+    "name": "TRUJILLO AGUIRRE, NESTOR JAVIER",
+    "email": "nestor.trujillo@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161413",
+    "name": "ARTEAGA CARDONA, JOEL ALEJANDRO",
+    "email": "joel.arteaga@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161406",
+    "name": "AVALOS NUÑEZ, HOWARD ALEJANDRO",
+    "email": "howard.avalos@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260805",
+    "name": "CARDONA PACHECO, ZAIRA ALESSANDRA",
+    "email": "zaira.cardona@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240605",
+    "name": "CONTRERAS ERAZO, ALISSON MARCELA",
+    "email": "allison.contreras@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161407",
+    "name": "CRUZ GARCIA, LUIS FELIPE",
+    "email": "luis.cruz@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250707",
+    "name": "ELIAS DEL CID, KEIRY ALEJANDRA",
+    "email": "keiry.elias@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210304",
+    "name": "FLORES GARCÍA, MATIAS ALEJANDRO",
+    "email": "matias.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20180120",
+    "name": "FUNES ARAGON, FRANCISCO ALBERTO",
+    "email": "francisco.funes@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190104",
+    "name": "GARCIA HIDALGO, ELISA VALENTINA",
+    "email": "elisa.garcia@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250701",
+    "name": "HERNANDEZ AGUILAR, DYLAN ALEJANDRO",
+    "email": "dylan.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181603",
+    "name": "HERRERA MARTÍNEZ, DIEGO ALEJANDRO",
+    "email": "diego.herrera@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220402",
+    "name": "LADINO RETANA, ROBERTO ITZEL",
+    "email": "roberto.ladino@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190106",
+    "name": "MARTINEZ GALDAMEZ, GABRIELA MONSERRAT",
+    "email": "gabriela.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200203",
+    "name": "MEDINA VÁSQUEZ, ANDERSON ENRIQUE",
+    "email": "anderson.medina@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250704",
+    "name": "MENDOZA PALACIOS, VALERIA MARIELL",
+    "email": "valeria.mendoza@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161414",
+    "name": "MEZQUITA CASTILLO, ALLEGRA CECILIA",
+    "email": "allegra.mezquita@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250710",
+    "name": "MORAN MATA, ANDERSON CALEB",
+    "email": "anderson.moran@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181608",
+    "name": "ORTIZ JIMENEZ, JAIME EDUARDO",
+    "email": "jaime.ortiz@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240604",
+    "name": "ORTIZ MARTINEZ, ANGEL MATEO",
+    "email": "angel.ortiz@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260803",
+    "name": "PALACIOS CISNEROS, GEOVANNI ALEJANDRO",
+    "email": "geovanni.palacios@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190102",
+    "name": "QUIJANO RODRIGUEZ, OSCAR ERNESTO",
+    "email": "oscar.quijano@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171508",
+    "name": "QUINTANILLA GOMEZ, ALEJANDRA VALENTINA",
+    "email": "alejandra.quintanilla@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250712",
+    "name": "RIVAS SALGUERO, MAITE FERNANDA",
+    "email": "maite.rivas@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190114",
+    "name": "SAGASTUME CÁRCAMO, SAMANTHA MICHELLE",
+    "email": "samantha.sagastume@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190120",
+    "name": "SANCHEZ ALVAREZ, MATEO ALEJANDRO",
+    "email": "mateo.sanchez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250702",
+    "name": "TORRES CAMPOS, DANIELA ALEJANDRA",
+    "email": "daniela.torres@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161430",
+    "name": "VIDES RAMIREZ, CARLOS DANIEL",
+    "email": "carlos.vides@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240606",
+    "name": "ANDINO DUBÓN, JENNIFER LIZBETH",
+    "email": "jennifer.andino@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190115",
+    "name": "AZAHAR MORALES, OLIVER MATEO",
+    "email": "oliver.azahar@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171513",
+    "name": "BOLAÑOS CASTRO, GABRIEL ALEXANDER",
+    "email": "gabriel.castro@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220401",
+    "name": "CONTRERAS REYES, LUIS ENRIQUE",
+    "email": "luis.contreras@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161420",
+    "name": "DIAZ FLORES, FERNANDO ALEXANDER",
+    "email": "fernando.diaz@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171505",
+    "name": "EGUIZABAL MAGAÑA, DIEGO FRANCISCO",
+    "email": "digo.eguizabal@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240603",
+    "name": "FIGUEROA VARGAS, GRACIA BELEN",
+    "email": "gracia.vargas@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240601",
+    "name": "FLORES MARTINEZ, ANGELO ALESSIO",
+    "email": "angelo.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181607",
+    "name": "GALAN ARRAZOLA, SEBASTIAN ALBERTO",
+    "email": "sebastian.galan@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190117",
+    "name": "GONZALEZ CORONADO, BRYAN ERNESTO",
+    "email": "bryan.gonzalez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250717",
+    "name": "GUERRA PERAZA, JUAN CARLOS",
+    "email": "juan.guerra@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161424",
+    "name": "HENRIQUEZ LEMUS, SEBASTIAN ERNESTO",
+    "email": "sebastian.lemus@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171506",
+    "name": "MAGAÑA MORAN, FATIMA PAOLA",
+    "email": "fatima.moran@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161409",
+    "name": "MARTINEZ LINARES, ALEJANDRO ALBERTO",
+    "email": "alejandro.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161431",
+    "name": "PALMA HERRADOR, EMILIO JOSE",
+    "email": "emilio.palma@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190107",
+    "name": "QUINTANA MENENDEZ, MELANNIE SOPHIA",
+    "email": "melannie.quintana@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250706",
+    "name": "QUINTANILLA OLIVAR, AMY ALESSANDRA",
+    "email": "amy.quintanilla@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210307",
+    "name": "RAMIREZ FUENTES, MARIO ALEJANDRO",
+    "email": "mario.ramirez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161439",
+    "name": "TECUN GARCIA, CHRISTIAN ALEJANDRO",
+    "email": "christian.tecun@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250705",
+    "name": "TORRES LEAL, ALESSANDRA MICHELLE",
+    "email": "alessandra.torres@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20190109",
+    "name": "VELASQUEZ VEGA, SANTIAGO GABRIEL",
+    "email": "santiago.velasquez@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20161425",
+    "name": "ZALDAÑA CANESSA, AXEL FROILAN",
+    "email": "axel.canessa@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250708",
+    "name": "ZEPEDA IBAÑEZ, ANGELICA VIRGINIA",
+    "email": "angelica.zepeda@salesianosanjose.edu.sv",
+    "codigoGrado": "08",
+    "grade": "8° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191614",
+    "name": "ALVARADO RUFFATTI, ISABELLA MARIA",
+    "email": "isabella.alvarado@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191603",
+    "name": "ANGULO COELLO, LUIS MARIO",
+    "email": "luis.angulo@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171404",
+    "name": "AVILA CALDERON, MATEO JULIAN",
+    "email": "mateo.avila@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200103",
+    "name": "AYALA GARCÍA, GÉNESIS MELISSA",
+    "email": "genesis.garcia@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171429",
+    "name": "BELTRAN PEREZ, LEYRE ABIGAIL",
+    "email": "leyre.beltran@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191608",
+    "name": "CASTRO MARTINEZ, RODRIGO JOSUE",
+    "email": "rodrigo.castro@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181509",
+    "name": "CUELLAR CHAVEZ, TOMAS JOSE",
+    "email": "tomas.cuellar@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171422",
+    "name": "FLORES MOLINA, DIEGO ALEJANDRO",
+    "email": "diego.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260701",
+    "name": "FUENTES MUÑOZ, STEVEN VLADIMIR",
+    "email": "stiven.fuentes@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181504",
+    "name": "GOMEZ ARAGON, ELTON JOSE",
+    "email": "elton.gomez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171419",
+    "name": "GONZALEZ CORDERO, DIEGO ALESSANDRO",
+    "email": "diego.cordero@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171431",
+    "name": "GUEVARA CORTEZ, RICARDO ANDREE",
+    "email": "ricardo.guevara@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171436",
+    "name": "GUZMAN ARRIOLA, VALERIE CECILIA",
+    "email": "valerie.guzman@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171405",
+    "name": "HERNANDEZ FERNANDEZ, ALVARO ADONAY",
+    "email": "alvaro.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181505",
+    "name": "LOPEZ MOREIRA, FABIOLA VALENTINA",
+    "email": "fabiola.lopez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171411",
+    "name": "MORALES PACHECO, NICOLAS MATEO",
+    "email": "nicolas.morales@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260705",
+    "name": "MORAN ARGUETA, KEYLI GUADALUPE",
+    "email": "keyli.moran@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200116",
+    "name": "MUÑOZ TRIGUEROS, MELVIN JAVIER",
+    "email": "melvin.trigueros@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200120",
+    "name": "ORELLANA GUARDADO, DANIEL ORLANDO",
+    "email": "daniel.orellana@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210204",
+    "name": "PACHECO RAMÍREZ, ISIS MONTSERRAT",
+    "email": "isis.ramirez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181511",
+    "name": "QUIJANO HERNÁNDEZ, VALERIA MARISOL",
+    "email": "valeria.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171423",
+    "name": "RIVERA SALINAS, ANDERSON MATEO",
+    "email": "anderson.rivera@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171401",
+    "name": "SANABRIA MEDRANO, ALBERTO ENRIQUE",
+    "email": "alberto.sanabria@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200113",
+    "name": "SÁNCHEZ SÁNCHEZ, ANDREA ALEJANDRA",
+    "email": "andrea.sanchez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171417",
+    "name": "SANDOVAL SANCHEZ, RODRIGO JOSE",
+    "email": "rodrigo.sandoval@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191602",
+    "name": "AMAYA CARRANZA, DANIELA SOFIA",
+    "email": "daniela.amaya@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200105",
+    "name": "CASTAÑEDA CAÑAS, VÍCTOR SANTIAGO",
+    "email": "victor.castaneda@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200117",
+    "name": "CASTAÑEDA PEÑA, ALVARO ALESSANDRO",
+    "email": "alvaro.pena@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191605",
+    "name": "DELGADO QUINTANA, RICARDO JOSÉ",
+    "email": "ricardo.delgado@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171424",
+    "name": "DIAZ GONZALEZ, ANDERSSON GAEL",
+    "email": "andersson.diaz@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260706",
+    "name": "DUEÑAS MONTECINOS, VICTORIA ARACELI",
+    "email": "victoria.montecinos@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240502",
+    "name": "FERNANDEZ CASTRO, CARLOS SEBASTIAN",
+    "email": "carlos.castro@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240505",
+    "name": "GUZMÁN JIMÉNEZ, JIMENA MARÍA",
+    "email": "jimena.guzman@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181508",
+    "name": "LATÍN MAGAÑA, DANIEL EDUARDO",
+    "email": "daniel.latin@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250601",
+    "name": "LEON DIAZ, CAMILA MONSERRAT",
+    "email": "camila.leon@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260702",
+    "name": "LOPEZ PINEDA, MARIA BELEN",
+    "email": "maria.lopez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210201",
+    "name": "MÁRQUEZ CASTANEDA, MÓNICA MARIEL",
+    "email": "monica.castaneda@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171430",
+    "name": "MARTINEZ MAGAÑA, THOMAS ADRIAN",
+    "email": "thomas.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171403",
+    "name": "MELGAR BARRIENTOS, MATEO EDGARDO",
+    "email": "mateo.melgar@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171435",
+    "name": "MONTOYA PAYES, XIMENA ALESSANDRA",
+    "email": "ximena.montoya@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220302",
+    "name": "PALOMO GALLARDO, CARLOS SANTIAGO",
+    "email": "carlos.palomo@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240501",
+    "name": "QUINTANA NERIO, NAOMY NICOLE",
+    "email": "naomy.nerio@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260703",
+    "name": "RODRIGUEZ ROQUE, FERNANDO SANTIAGO",
+    "email": "fernando.roque@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181507",
+    "name": "ROSALES ALEMAN, RONAL MATEO",
+    "email": "ronald.rosales@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260704",
+    "name": "RUIZ POLANCO, JAIRO ALEXIS",
+    "email": "jairo.ruiz@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171428",
+    "name": "SANDOVAL ALVAREZ, GABRIEL ANTONIO",
+    "email": "gabriel.sandoval@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210206",
+    "name": "TORRES MAGAÑA, MARIA FERNANDA",
+    "email": "maria.torres@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200112",
+    "name": "VELADO AGREDA, RONNY ALESSANDRO",
+    "email": "ronny.agreda@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "C",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200101",
+    "name": "AGUILAR MEJÍA, ANGELLO ROMEO",
+    "email": "angello.aguilar@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200104",
+    "name": "ALBEÑO RIVERA, DIEGO ANDRÉ",
+    "email": "diego.rivera@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191604",
+    "name": "ALVAREZ BATRES, LUIS ALEJANDRO",
+    "email": "luis.alvarez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171407",
+    "name": "BAÑOS MEJIA, FERNANDO JOSE",
+    "email": "fernando.mejia@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171416",
+    "name": "BATRES TRUJILLO, SOFIA GIULIANA",
+    "email": "sofia.batres@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200106",
+    "name": "CASTILLO SALAZAR, RONALD ENRIQUE",
+    "email": "ronald.salazar@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171418",
+    "name": "CATOTA TOVAR, EDWIN ALEXANDER",
+    "email": "edwin.catota@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191612",
+    "name": "CHACÓN ARRIOLA, ERIC NAJIB",
+    "email": "eric.chacon@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171409",
+    "name": "CUELLAR SIFONTES, PAOLO DAVID",
+    "email": "paolo.cuellar@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210202",
+    "name": "GIRÓN FLORES, MARIA FERNANDA",
+    "email": "maria.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200108",
+    "name": "GUARDADO LÓPEZ, AXEL STEVEN",
+    "email": "axel.guardado@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171427",
+    "name": "GUEVARA VENTURA, FERNANDO ENRIQUE",
+    "email": "fernando.guevara@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200115",
+    "name": "GUINEA RODRÍGUEZ, AMY VALENTINA",
+    "email": "amy.guinea@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230401",
+    "name": "GUZMAN RAMIREZ, LEANDRO JOSE",
+    "email": "leandro.guzman@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171438",
+    "name": "JIMENEZ GIACOMAN, RAFAEL EDUARDO",
+    "email": "rafael.jimenez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171413",
+    "name": "LARA BERGANZA, MATEO MAURICIO",
+    "email": "mateo.lara@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200109",
+    "name": "LARÍN GUERRERO, CAMILA SOFÍA",
+    "email": "camila.larin@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240504",
+    "name": "LÓPEZ ZAMORA, SAMUEL JOSÉ",
+    "email": "samuel.zamora@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171415",
+    "name": "LUCERO BAÑOS, DAVID ALEXANDER",
+    "email": "david.lucero@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230402",
+    "name": "MENDOZA RIVERA, ANDREA JOSE",
+    "email": "andrea.mendoza@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200110",
+    "name": "MENJÍVAR SALGUERO, RICARDO ANDRÉS",
+    "email": "ricardo.salguero@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171412",
+    "name": "MORALES ALCANTARA, ANTHONY RODRIGO",
+    "email": "anthony.morales@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191613",
+    "name": "OSEGUEDA TORRES, HUGO ANDRES",
+    "email": "hugo.osegueda@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20269999",
+    "name": "PRUEBA SISTEMA, PRUEBA",
+    "email": "20269999@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200121",
+    "name": "REGALADO RAMOS, ADRIANA VALENTINA",
+    "email": "adriana.ramos@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191611",
+    "name": "SANCHEZ LUNA, MARIA RENATA",
+    "email": "maria.sanchez@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20200122",
+    "name": "VALDES MOLINA, MARIA GABRIELA",
+    "email": "maria.molina@salesianosanjose.edu.sv",
+    "codigoGrado": "07",
+    "grade": "7° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201601",
+    "name": "ACOSTA LÓPEZ, XAVIER ERNESTO",
+    "email": "xavier.acosta@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210102",
+    "name": "ALVAREZ RODRIGUEZ, ANA PAULA",
+    "email": "ana.rodriguez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181425",
+    "name": "ARIAS CHINCHILLA, GILBERTO ANTONIO",
+    "email": "gilberto.arias@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201607",
+    "name": "BARRERA GONZÁLEZ, CHRISTOPHER JOSÉ",
+    "email": "christopher.barrera@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230303",
+    "name": "BLANCO OLIVARES, DANNA SOFIA",
+    "email": "danna.blanco@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181430",
+    "name": "BOLAÑOS ALVARENGA, GABRIEL EDUARDO",
+    "email": "gabriel.alvarenga@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260603",
+    "name": "CABALLERO RAMOS, FRIDA MONTSERRAT",
+    "email": "frida.caballero@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230305",
+    "name": "CACERES PEREZ, EMMANUEL FRANCISCO",
+    "email": "emmanuel.caceres@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191509",
+    "name": "CASTRO MARTINEZ, JEREMY ALEJANDRO",
+    "email": "jeremy.castro@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210106",
+    "name": "CATOTA HERNANDEZ, JUAN ANDRES",
+    "email": "juan.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181404",
+    "name": "CHAVEZ CABRERA, NATHALIE VALERIA",
+    "email": "nathalie.chavez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260601",
+    "name": "COBOS PEREZ, SOPHIA CAROLINA",
+    "email": "sophia.cobos@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181412",
+    "name": "COTO GALVEZ, MATEO ERNESTO",
+    "email": "mateo.coto@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240402",
+    "name": "FLORES MARTINEZ, ANGIE NOEMY",
+    "email": "angie.flores@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220201",
+    "name": "GALAN MENENDEZ, DAVID FELIPE",
+    "email": "david.galan@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191511",
+    "name": "GONZALEZ LOPEZ, JOAQUIN EDUARDO",
+    "email": "joaquin.gonzalez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240409",
+    "name": "GONZALEZ MARTINEZ, BENJAMIN OLIVERIO",
+    "email": "benjamin.gonzalez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181401",
+    "name": "HERRERA AVILES, LUIS ANDRE",
+    "email": "luis.herrera@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240411",
+    "name": "MACAL CASTILLO, CARLOS ANDRÉS",
+    "email": "carlos.macal@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181438",
+    "name": "MARTÍNEZ OLIVA, XIMENA ALEJANDRA",
+    "email": "ximena.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20260602",
+    "name": "MARTINEZ RAMOS, WILLIAM JOSE",
+    "email": "william.ramos@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201605",
+    "name": "MELENDEZ SORIANO, GERARDO ENRIQUE",
+    "email": "gerardo.melendez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201610",
+    "name": "MORALES NÚÑEZ, MATIAS ADOLFO",
+    "email": "matias.morales@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201609",
+    "name": "MORATAYA SAGASTUME, ANA CAMILA",
+    "email": "ana.morataya@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220206",
+    "name": "MORENO HERNANDEZ, FERNANDA SOPHIA",
+    "email": "fernanda.moreno@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181403",
+    "name": "MOYA CASTANEDA, EVA PATRICIA",
+    "email": "eva.moya@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220207",
+    "name": "NÚÑEZ MORENO, GABRIELA KRISTINE",
+    "email": "gabriela.moreno@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240405",
+    "name": "PAULA ACUÑA, JOSE ARMANDO",
+    "email": "jose.paula@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181419",
+    "name": "RAMIREZ OLIVARES, EDUARDO JOSUE",
+    "email": "eduardo.ramirez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220202",
+    "name": "SALINAS RETANA, DIEGO ALBERTO",
+    "email": "diego.salinas@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20171420",
+    "name": "SANDOVAL GUERRA, JOSE ALEJANDRO",
+    "email": "jose.sandoval@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250504",
+    "name": "SOTO LINARES, MARVIN ALEXIS",
+    "email": "marvin.soto@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181420",
+    "name": "UMAÑA COTO, JORGE FERNANDO",
+    "email": "jorge.umana@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201603",
+    "name": "ZAVALETA GONZÁLEZ, ANA LUCÍA",
+    "email": "ana.zavaleta@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201604",
+    "name": "ZELAYA HERNÁNDEZ, AINHOA ALEJANDRA",
+    "email": "ainhoa.zelaya@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "A",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201611",
+    "name": "ALBEÑO MENDOZA, CLARA SOFIA",
+    "email": "clara.mendoza@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191501",
+    "name": "ALVARADO GOMEZ, OSCAR DANIEL",
+    "email": "oscar.alvarado@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240406",
+    "name": "ÁLVAREZ DUARTE, ISIS CELESTE",
+    "email": "isis.alvarez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181436",
+    "name": "AMAYA RODRIGUEZ, FERNANDA VALENTINA",
+    "email": "fernanda.amaya@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250501",
+    "name": "ARIAS DOMINGUEZ, GUILLERMO ANDRES",
+    "email": "guillermo.arias@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20201608",
+    "name": "ARRAZOLA CHAVEZ, SANTIAGO ALEJANDRO",
+    "email": "santiago.arrazola@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181431",
+    "name": "AVELAR PEREZ, FATIMA PAOLA",
+    "email": "fatima.avelar@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191502",
+    "name": "BERNAL BARRERA, MATIAS FERNANDO",
+    "email": "matias.bernal@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181402",
+    "name": "BEZA QUINTEROS, SANTIAGO ANDREE",
+    "email": "santiago.beza@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210105",
+    "name": "COLOCHO VENTURA, ELIAN ENRIQUE",
+    "email": "elian.ventura@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181421",
+    "name": "ERAZO RAMIREZ, DANIEL ENRIQUE",
+    "email": "daniel.erazo@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191503",
+    "name": "GARCIA ACUÑA, MATIAS DAGOBERTO",
+    "email": "matias.garcia@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181407",
+    "name": "GODOY AVILES, PAOLA ALESSANDRA",
+    "email": "paola.godoy@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181433",
+    "name": "GONZALEZ HERNANDEZ, CHRISTOPHER ROBERTO",
+    "email": "christopher.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181429",
+    "name": "GUEVARA CORTEZ, GABRIEL ALEXANDER",
+    "email": "gabriel.guevara@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240401",
+    "name": "HERNANDEZ PEREZ, ANDREA SOFIA",
+    "email": "andrea.perez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181424",
+    "name": "HERNANDEZ RODAS, JONATHAN ALEXANDER",
+    "email": "jonathan.hernandez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181406",
+    "name": "LOPEZ ABARCA, DIEGO EDGARDO",
+    "email": "diego.lopez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240407",
+    "name": "MARROQUIN TOVAR, NIXON ALESSANDRO",
+    "email": "nixon.tovar@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240404",
+    "name": "MARTINEZ CASTRO, HENRY WALDEMAR",
+    "email": "henry.castro@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20230307",
+    "name": "MARTINEZ HERRERA, NICOLE ALESSANDRA",
+    "email": "nicolle.martinez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220203",
+    "name": "MENJIVAR ESTRADA, LUIS EDUARDO",
+    "email": "luis.menjivar@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20220204",
+    "name": "MUÑOZ ESCOBAR, MANUEL ALESSANDRO",
+    "email": "manuel.escobar@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210107",
+    "name": "PANIAGUA PÉREZ, ARIANA ALESSANDRA",
+    "email": "ariana.perez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181418",
+    "name": "POLANCO RUANO, FERNANDO JOSE",
+    "email": "fernando.polanco@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181409",
+    "name": "RAMIREZ CORTEZ, VICENTE ANDRE",
+    "email": "vicente.ramirez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181432",
+    "name": "RAMIREZ GUIROLA, RAUL ALESSANDRO",
+    "email": "raul.ramirez@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250503",
+    "name": "RAMOS GONZALEZ, EDWIN EDUARDO",
+    "email": "edwin.ramos@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20181413",
+    "name": "RAMOS RODRIGUEZ, HUGO ALEJANDRO",
+    "email": "hugo.ramos@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20240412",
+    "name": "RAMOS ROMUALDO, CÉSAR MARCELO",
+    "email": "cesar.ramos@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20250502",
+    "name": "RIVAS SALGUERO, CAMILA BELEN",
+    "email": "camila.salguero@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20191505",
+    "name": "ROSALES MONTANO, NATHALIA MARIA",
+    "email": "nathalia.montano@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210110",
+    "name": "SALAZAR REBOLLO, HECTOR FELIPE",
+    "email": "hector.rebollo@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  },
+  {
+    "carnet": "20210101",
+    "name": "SANABRIA TOVAR, ADRIANA VALENTINA",
+    "email": "adriana.tovar@salesianosanjose.edu.sv",
+    "codigoGrado": "06",
+    "grade": "6° Grado",
+    "section": "B",
+    "status": "pending",
+    "role": "student"
+  }
+]
