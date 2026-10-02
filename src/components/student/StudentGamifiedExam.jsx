@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { LEVELS } from '../modules/registry'
-import { getExams, saveResult, classify } from '../lib/dataService'
+import { LEVELS } from '../../modules/registry'
+import { getExams, saveResult, classify } from '../../lib/dataService'
 import QuestionPlayer from './QuestionPlayer'
 
 export default function StudentGamifiedExam({ student, onLogout }) {

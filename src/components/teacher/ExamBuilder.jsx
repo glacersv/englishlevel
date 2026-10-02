@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { MODULES, moduleCatalog, LEVELS } from '../modules/registry'
-import { saveExam } from '../lib/dataService'
+import { MODULES, moduleCatalog, LEVELS } from '../../modules/registry'
+import { saveExam } from '../../lib/dataService'
 
 export default function ExamBuilder({ onPublished }) {
   const [step, setStep] = useState(1)
