@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Exámenes: lectura pública (los alumnos los necesitan), escritura solo docente autenticado
+    match /exams/{examId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.teacher == true;
+    }
+    // Resultados: cada alumno escribe el suyo; los docentes pueden leer todos
+    match /results/{resultId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
