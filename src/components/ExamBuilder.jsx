@@ -2,19 +2,15 @@ import React, { useState } from 'react'
 import { MODULES, moduleCatalog, LEVELS } from '../modules/registry'
 import { saveExam } from '../lib/dataService'
 
-// ============================================================
-// WIZARD DEL DOCENTE (3 pasos)
-// Paso 1: datos del examen (grado, nivel, título)
-// Paso 2: elegir módulo del catálogo → formulario dinámico
-// Paso 3: revisar y publicar (guarda en Firestore)
-// ============================================================
 export default function ExamBuilder({ onPublished }) {
   const [step, setStep] = useState(1)
-  const [meta, setMeta] = useState({ title: '', grade: '', level: 'basico' })
+  const [meta, setMeta] = useState({ title: '', grade: '3°', level: 'basico' })
   const [questions, setQuestions] = useState([])
   const [saving, setSaving] = useState(false)
 
-  const addQuestion = q => { setQuestions([...questions, q]); setStep(2.5) }
+  const addQuestion = q => { 
+    setQuestions([...questions, q])
+  }
   const removeQuestion = i => setQuestions(questions.filter((_, x) => x !== i))
 
   const publish = async () => {
@@ -27,79 +23,205 @@ export default function ExamBuilder({ onPublished }) {
       createdAt: new Date().toISOString(),
     })
     setSaving(false)
-    alert('✅ Examen publicado en Firebase')
+    alert('✅ Examen publicado y sincronizado con éxito')
     onPublished?.()
   }
 
   return (
-    <div className="builder">
-      {/* Progreso del wizard */}
-      <div className="wizard-steps">
-        {['Datos', 'Preguntas', 'Publicar'].map((s, i) => (
-          <div key={i} className={`wstep ${step > i ? 'active' : ''}`}>
-            <span className="dot">{i + 1}</span> {s}
+    <div className="space-y-6">
+      {/* Wizard Step Indicator */}
+      <div className="flex items-center justify-between max-w-xl mx-auto mb-6">
+        {[
+          { num: 1, label: 'Parámetros' },
+          { num: 2, label: 'Módulos & Reactivos' },
+          { num: 3, label: 'Confirmación' }
+        ].map((s, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                step >= s.num
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-surface-container-high text-on-surface-variant'
+              }`}
+            >
+              {s.num}
+            </div>
+            <span className={`text-xs font-semibold ${step >= s.num ? 'text-on-surface' : 'text-outline'}`}>
+              {s.label}
+            </span>
+            {i < 2 && <div className="w-12 h-0.5 bg-outline-variant/40 hidden sm:block mx-2"></div>}
           </div>
         ))}
       </div>
 
+      {/* Paso 1: Configuración General */}
       {step === 1 && (
-        <div className="panel">
-          <h3>📋 Datos del examen</h3>
-          <label>Título
-            <input value={meta.title} placeholder="Ej: Nivelación Grado 7 - Semestre 1"
-              onChange={e => setMeta({ ...meta, title: e.target.value })} />
-          </label>
-          <label>Grado
-            <input value={meta.grade} placeholder="Ej: 7° / 8° / 9°"
-              onChange={e => setMeta({ ...meta, grade: e.target.value })} />
-          </label>
-          <label>Nivel a evaluar
-            <select value={meta.level} onChange={e => setMeta({ ...meta, level: e.target.value })}>
-              {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-          </label>
-          <button className="btn-green w-full" disabled={!meta.title || !meta.grade}
-            onClick={() => setStep(2)}>Continuar →</button>
+        <div className="max-w-xl mx-auto space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-on-surface-variant mb-1">
+              Título del Examen
+            </label>
+            <input
+              type="text"
+              value={meta.title}
+              placeholder="Ej: Evaluación de Nivelación - 3° Secundaria Ciclo 2025"
+              onChange={e => setMeta({ ...meta, title: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
+                Grado Asignado
+              </label>
+              <select
+                value={meta.grade}
+                onChange={e => setMeta({ ...meta, grade: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                <option value="1°">1° de Secundaria</option>
+                <option value="2°">2° de Secundaria</option>
+                <option value="3°">3° de Secundaria</option>
+                <option value="4°">4° de Secundaria</option>
+                <option value="5°">5° de Secundaria</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
+                Nivel Inicial
+              </label>
+              <select
+                value={meta.level}
+                onChange={e => setMeta({ ...meta, level: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                {LEVELS.map(l => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-4 flex justify-end">
+            <button
+              disabled={!meta.title}
+              onClick={() => setStep(2)}
+              className="py-2.5 px-6 rounded-xl bg-primary text-white font-bold text-xs tracking-wide shadow-sm hover:bg-primary-container disabled:opacity-50 transition-all flex items-center gap-1.5"
+            >
+              <span>Continuar al Catálogo</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+          </div>
         </div>
       )}
 
-      {(step === 2 || step === 2.5) && (
-        <div className="panel">
-          <h3>🧱 Agregar preguntas desde el catálogo</h3>
-          <p className="muted small">Elige un tipo de interactividad; se abre su editor con ejemplo listo.</p>
-          <div className="catalog-grid">
+      {/* Paso 2: Catálogo de Módulos */}
+      {step === 2 && (
+        <div className="space-y-6">
+          <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between">
+            <div>
+              <h4 className="font-heading font-bold text-sm text-on-surface">Catálogo de Reactivos Interactivos</h4>
+              <p className="text-xs text-on-surface-variant">Selecciona un tipo de pregunta para configurar sus opciones y agregarla.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-xs font-bold">
+              {questions.length} preguntas en este examen
+            </span>
+          </div>
+
+          {/* Grid de módulos */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {moduleCatalog().map(m => (
-              <ModulePicker key={m.id} mod={m} onAdd={q => { addQuestion(q); }} />
+              <ModulePicker key={m.id} mod={m} onAdd={q => addQuestion(q)} />
             ))}
           </div>
 
-          <h4>Agregadas ({questions.length})</h4>
-          <ul className="q-list">
-            {questions.map((q, i) => (
-              <li key={i}>
-                <span>{MODULES[q.type].icon} {q.prompt.slice(0, 60)}</span>
-                <button className="link-bad" onClick={() => removeQuestion(i)}>✕</button>
-              </li>
-            ))}
-          </ul>
-          <div className="row">
-            <button className="btn-ghost" onClick={() => setStep(1)}>← Atrás</button>
-            <button className="btn-green" disabled={questions.length === 0}
-              onClick={() => setStep(3)}>Publicar →</button>
+          {/* Lista de preguntas agregadas */}
+          {questions.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Preguntas creadas:</h5>
+              <div className="divide-y divide-outline-variant/20 rounded-xl border border-outline-variant/40 bg-surface-container-lowest overflow-hidden">
+                {questions.map((q, i) => (
+                  <div key={i} className="p-3 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-primary">#{i + 1}</span>
+                      <span className="px-2 py-0.5 rounded bg-surface-container text-on-surface font-semibold">
+                        {MODULES[q.type]?.name || q.type}
+                      </span>
+                      <span className="text-on-surface font-medium truncate max-w-md">{q.prompt}</span>
+                    </div>
+                    <button
+                      onClick={() => removeQuestion(i)}
+                      className="p-1 rounded text-error hover:bg-error-container/30 transition-all"
+                      title="Eliminar"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-4 border-t border-outline-variant/20">
+            <button
+              onClick={() => setStep(1)}
+              className="py-2.5 px-4 rounded-xl border border-outline-variant/60 text-xs font-semibold text-on-surface-variant hover:bg-surface-container"
+            >
+              ← Modificar Parámetros
+            </button>
+            <button
+              disabled={questions.length === 0}
+              onClick={() => setStep(3)}
+              className="py-2.5 px-6 rounded-xl bg-primary text-white font-bold text-xs shadow-sm hover:bg-primary-container disabled:opacity-50 transition-all flex items-center gap-1.5"
+            >
+              <span>Revisar y Publicar</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
           </div>
         </div>
       )}
 
+      {/* Paso 3: Resumen y Publicación */}
       {step === 3 && (
-        <div className="panel center">
-          <h3>🚀 Publicar examen</h3>
-          <p><b>{meta.title}</b> — Grado {meta.grade} — Nivel {meta.level}</p>
-          <p>{questions.length} preguntas. Mínimo de aciertos requerido:{' '}
-            <b>{LEVELS.find(l => l.id === meta.level).minCorrect}</b></p>
-          <div className="row">
-            <button className="btn-ghost" onClick={() => setStep(2)}>← Editar</button>
-            <button className="btn-green" disabled={saving} onClick={publish}>
-              {saving ? 'Guardando…' : '✅ Publicar en Firebase'}
+        <div className="max-w-xl mx-auto bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/40 shadow-sm text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-secondary-fixed text-on-secondary-fixed mx-auto flex items-center justify-center">
+            <span className="material-symbols-outlined text-[28px]">check_circle</span>
+          </div>
+          <h3 className="font-heading font-bold text-xl text-on-surface">Resumen de la Evaluación</h3>
+          <div className="p-4 rounded-xl bg-surface-container-low text-xs text-left space-y-2 border border-outline-variant/30">
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">Título:</span>
+              <span className="font-bold text-on-surface">{meta.title}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">Grado:</span>
+              <span className="font-bold text-on-surface">{meta.grade} de Secundaria</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">Nivel inicial:</span>
+              <span className="font-bold text-primary uppercase">{meta.level}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">Total reactivos:</span>
+              <span className="font-bold text-on-surface">{questions.length} ejercicios</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center gap-3 pt-2">
+            <button
+              onClick={() => setStep(2)}
+              className="py-2.5 px-4 rounded-xl border border-outline-variant/60 text-xs font-semibold text-on-surface-variant hover:bg-surface-container"
+            >
+              Añadir más reactivos
+            </button>
+            <button
+              disabled={saving}
+              onClick={publish}
+              className="py-2.5 px-6 rounded-xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary-container disabled:opacity-50 transition-all flex items-center gap-1.5"
+            >
+              {saving ? 'Publicando...' : 'Confirmar y Publicar Examen'}
             </button>
           </div>
         </div>
@@ -108,126 +230,71 @@ export default function ExamBuilder({ onPublished }) {
   )
 }
 
-// ---------- Selector + editor dinámico por módulo ----------
 function ModulePicker({ mod, onAdd }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(mod.makeEmpty())
 
   if (!open) {
     return (
-      <button className="catalog-card" onClick={() => setOpen(true)}>
-        <span className="big">{mod.icon}</span>
-        <b>{mod.name}</b>
-        <small>{mod.desc}</small>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="p-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest hover:border-primary/60 hover:bg-surface-container-low transition-all text-left flex flex-col justify-between h-28 shadow-sm group"
+      >
+        <span className="text-2xl group-hover:scale-110 transition-transform">{mod.icon}</span>
+        <div>
+          <b className="block text-xs text-on-surface font-bold leading-tight">{mod.name}</b>
+          <span className="text-[10px] text-on-surface-variant line-clamp-1">{mod.desc}</span>
+        </div>
       </button>
     )
   }
 
-  const set = patch => setDraft({ ...draft, ...patch })
+  const handleSaveDraft = () => {
+    onAdd(draft)
+    setOpen(false)
+    setDraft(mod.makeEmpty())
+  }
 
   return (
-    <div className="editor-card">
-      <h4>{mod.icon} {mod.name}</h4>
-      <Field label="Enunciado" value={draft.prompt} onChange={v => set({ prompt: v })} />
-
-      {draft.type === 'multipleChoice' && (
-        <>
-          <OptionsEditor options={draft.options}
-            correctIndex={draft.correctIndex}
-            onChange={(options, correctIndex) => set({ options, correctIndex })} />
-        </>
-      )}
-
-      {draft.type === 'orderSentence' && (
-        <>
-          <Field label="Palabras en orden correcto (separadas por espacio)"
-            value={draft.words.join(' ')}
-            onChange={v => set({ words: v.trim().split(/\s+/) })} />
-          <Field label="Pista en español (opcional)" value={draft.translation ?? ''}
-            onChange={v => set({ translation: v })} />
-        </>
-      )}
-
-      {draft.type === 'fillParagraph' && (
-        <>
-          <Field label="Texto (marca huecos como ___0___ , ___1___ …)"
-            value={draft.text} onChange={v => set({ text: v })} />
-          <label className="field">Huecos (respuesta | opciones separadas por coma)
-            <textarea rows={draft.blanks.length + 1}
-              defaultValue={draft.blanks.map(b => `${b.answer} | ${b.options.join(', ')}`).join('\n')}
-              onBlur={e => set({
-                blanks: e.target.value.split('\n').filter(Boolean).map(line => {
-                  const [ans, opts] = line.split('|')
-                  return { answer: ans.trim(), options: opts.split(',').map(s => s.trim()) }
-                })
-              })} />
-          </label>
-        </>
-      )}
-
-      {draft.type === 'listening' && (
-        <>
-          <Field label="Texto que dirá la voz (o sube audio aparte)"
-            value={draft.ttsText} onChange={v => set({ ttsText: v })} />
-          <Field label="URL de audio (opcional, Firebase Storage)"
-            value={draft.audioUrl} onChange={v => set({ audioUrl: v })} />
-          <Field label="Pregunta" value={draft.question} onChange={v => set({ question: v })} />
-          <OptionsEditor options={draft.options} correctIndex={draft.correctIndex}
-            onChange={(options, correctIndex) => set({ options, correctIndex })} />
-        </>
-      )}
-
-      {draft.type === 'speaking' && (
-        <>
-          <Field label="Frase objetivo (lo que debe decir el alumno)"
-            value={draft.targetText} onChange={v => set({ targetText: v })} />
-          <Field label="Tolerancia 0-1 (ej. 0.7 = 70% palabras)"
-            value={String(draft.tolerance)} onChange={v => set({ tolerance: parseFloat(v) || 0.7 })} />
-        </>
-      )}
-
-      {draft.type === 'writing' && (
-        <>
-          <Field label="Audio/texto a dictar" value={draft.ttsText} onChange={v => set({ ttsText: v })} />
-          <Field label="Respuestas aceptadas (una por línea)"
-            value={draft.acceptedAnswers.join('\n')}
-            onChange={v => set({ acceptedAnswers: v.split('\n').filter(Boolean) })} />
-        </>
-      )}
-
-      <div className="row">
-        <button className="btn-ghost" onClick={() => setOpen(false)}>Cancelar</button>
-        <button className="btn-green" onClick={() => { onAdd(JSON.parse(JSON.stringify(draft))); setOpen(false) }}>
-          ➕ Agregar
+    <div className="col-span-full bg-surface-container-lowest rounded-2xl p-5 border-2 border-primary/40 shadow-lg space-y-4">
+      <div className="flex items-center justify-between pb-2 border-b border-outline-variant/30">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">{mod.icon}</span>
+          <h4 className="font-heading font-bold text-sm text-on-surface">Configurar: {mod.name}</h4>
+        </div>
+        <button
+          onClick={() => setOpen(false)}
+          className="p-1 rounded text-on-surface-variant hover:bg-surface-container"
+        >
+          <span className="material-symbols-outlined text-[18px]">close</span>
         </button>
       </div>
-    </div>
-  )
-}
 
-function Field({ label, value, onChange }) {
-  return (
-    <label className="field">{label}
-      <input value={value} onChange={e => onChange(e.target.value)} />
-    </label>
-  )
-}
+      <div>
+        <label className="block text-xs font-semibold text-on-surface-variant mb-1">Instrucción / Enunciado</label>
+        <input
+          type="text"
+          value={draft.prompt}
+          onChange={e => setDraft({ ...draft, prompt: e.target.value })}
+          className="w-full px-3 py-2 rounded-xl border border-outline-variant/60 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+        />
+      </div>
 
-function OptionsEditor({ options, correctIndex, onChange }) {
-  const upd = (i, v) => { const o = [...options]; o[i] = v; onChange(o, correctIndex) }
-  const mark = i => onChange(options, i)
-  return (
-    <div className="field">
-      Opciones (marca ✓ la correcta)
-      {options.map((o, i) => (
-        <div key={i} className="opt-row">
-          <button className={correctIndex === i ? 'check ok' : 'check'} onClick={() => mark(i)}>✓</button>
-          <input value={o} onChange={e => upd(i, e.target.value)} />
-          <button className="link-bad" onClick={() =>
-            options.length > 2 && onChange(options.filter((_, x) => x !== i), 0)}>✕</button>
-        </div>
-      ))}
-      <button className="btn-ghost small" onClick={() => onChange([...options, ''] )}>+ opción</button>
+      <div className="flex justify-end gap-2 pt-2">
+        <button
+          onClick={() => setOpen(false)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-on-surface-variant hover:bg-surface-container"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleSaveDraft}
+          className="px-4 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-container shadow-sm"
+        >
+          Guardar Pregunta
+        </button>
+      </div>
     </div>
   )
 }
