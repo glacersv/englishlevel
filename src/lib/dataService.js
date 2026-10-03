@@ -151,23 +151,43 @@ export async function deleteUser(email) {
 }
 
 export async function getAllUsers() {
+  const localMap = new Map()
+
+  // 1. Cargar alumnos base del colegio
+  for (let s of defaultSchoolStudents) {
+    if (s.email) localMap.set(s.email.toLowerCase(), { ...s })
+  }
+
+  // 2. Sobrescribir con lo guardado en LocalStorage
+  const savedLS = readLS(LS_USERS)
+  if (Array.isArray(savedLS)) {
+    for (let u of savedLS) {
+      if (u.email) {
+        const key = u.email.toLowerCase()
+        localMap.set(key, { ...(localMap.get(key) || {}), ...u })
+      }
+    }
+  }
+
+  // 3. Sobrescribir con lo guardado en Firestore si está disponible
   if (isFirebaseConfigured()) {
     try {
       const snap = await getDocs(collection(db, 'users'))
       if (!snap.empty) {
-        return snap.docs.map(d => d.data())
+        for (let d of snap.docs) {
+          const u = d.data()
+          if (u.email) {
+            const key = u.email.toLowerCase()
+            localMap.set(key, { ...(localMap.get(key) || {}), ...u })
+          }
+        }
       }
     } catch (err) {
       console.warn('Error obteniendo usuarios de Firestore:', err)
     }
   }
 
-  let local = readLS(LS_USERS)
-  if (!local || local.length === 0) {
-    local = defaultSchoolStudents
-    writeLS(LS_USERS, local)
-  }
-  return local
+  return Array.from(localMap.values())
 }
 
 export async function updateUserStatus(email, newStatus, validatedByEmail) {
@@ -189,11 +209,15 @@ export async function updateUserStatus(email, newStatus, validatedByEmail) {
   }
 
   const all = readLS(LS_USERS)
-  const idx = all.findIndex(u => u.email.toLowerCase() === cleanEmail)
+  const idx = all.findIndex(u => u.email?.toLowerCase() === cleanEmail)
   if (idx >= 0) {
     all[idx] = { ...all[idx], ...update }
-    writeLS(LS_USERS, all)
+  } else {
+    // Buscar en la lista base del colegio para armar el registro completo
+    const base = defaultSchoolStudents.find(s => s.email?.toLowerCase() === cleanEmail) || {}
+    all.push({ ...base, email: cleanEmail, ...update })
   }
+  writeLS(LS_USERS, all)
   return update
 }
 
@@ -308,4 +332,85 @@ export async function getOralEvaluations() {
     }
   }
   return readLS(LS_ORAL_EVALS)
+}
+
+// Resetear evaluación de un estudiante individual
+export async function resetStudentEvaluation(studentEmail) {
+  const cleanEmail = (studentEmail || '').trim().toLowerCase()
+  if (!cleanEmail) return
+
+  // 1. Quitar assignedLevel en Firestore y en local
+  if (isFirebaseConfigured()) {
+    try {
+      await setDoc(doc(db, 'users', sanitizeDocId(cleanEmail)), {
+        assignedLevel: null,
+        evaluationCompleted: false,
+        lastEvaluatedAt: null,
+        evaluatedByTeacher: null
+      }, { merge: true })
+
+      // Eliminar sus registros en oralEvaluations
+      const snap = await getDocs(collection(db, 'oralEvaluations'))
+      for (let d of snap.docs) {
+        const data = d.data()
+        if (data.studentEmail?.toLowerCase() === cleanEmail) {
+          await deleteDoc(d.ref)
+        }
+      }
+    } catch (err) {
+      console.warn('Error al resetear evaluación en Firestore:', err)
+    }
+  }
+
+  // 2. Limpiar en LocalStorage
+  const users = readLS(LS_USERS)
+  const userIdx = users.findIndex(u => u.email?.toLowerCase() === cleanEmail)
+  if (userIdx >= 0) {
+    users[userIdx].assignedLevel = null
+    users[userIdx].evaluationCompleted = false
+    delete users[userIdx].lastEvaluatedAt
+    delete users[userIdx].evaluatedByTeacher
+    writeLS(LS_USERS, users)
+  }
+
+  const evals = readLS(LS_ORAL_EVALS).filter(e => e.studentEmail?.toLowerCase() !== cleanEmail)
+  writeLS(LS_ORAL_EVALS, evals)
+}
+
+// Resetear TODAS las evaluaciones de alumnos (modo pruebas)
+export async function resetAllEvaluations() {
+  if (isFirebaseConfigured()) {
+    try {
+      const evalsSnap = await getDocs(collection(db, 'oralEvaluations'))
+      for (let d of evalsSnap.docs) {
+        await deleteDoc(d.ref)
+      }
+
+      const usersSnap = await getDocs(collection(db, 'users'))
+      for (let d of usersSnap.docs) {
+        const u = d.data()
+        if (u.assignedLevel) {
+          await setDoc(d.ref, {
+            assignedLevel: null,
+            evaluationCompleted: false,
+            lastEvaluatedAt: null,
+            evaluatedByTeacher: null
+          }, { merge: true })
+        }
+      }
+    } catch (err) {
+      console.warn('Error al resetear todas las evaluaciones en Firestore:', err)
+    }
+  }
+
+  // LocalStorage
+  const users = readLS(LS_USERS).map(u => ({
+    ...u,
+    assignedLevel: null,
+    evaluationCompleted: false,
+    lastEvaluatedAt: null,
+    evaluatedByTeacher: null
+  }))
+  writeLS(LS_USERS, users)
+  writeLS(LS_ORAL_EVALS, [])
 }

@@ -1,16 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Usuarios / Roles / Validaciones (acceso abierto para lectura autenticada y gestión)
-    match /users/{userId} {
-      allow read, write: if true;
-    }
-    // Exámenes: lectura para alumnos, edición para docentes/coordinación/admin
-    match /exams/{examId} {
-      allow read, write: if true;
-    }
-    // Resultados de alumnos
-    match /results/{resultId} {
+    match /{document=**} {
       allow read, write: if true;
     }
   }

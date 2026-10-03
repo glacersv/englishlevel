@@ -6,7 +6,7 @@ const tenantId = import.meta.env.VITE_AZURE_TENANT_ID || '0b23624a-5d0f-4c23-a84
 const msalConfig = {
   auth: {
     clientId: clientId,
-    authority: `https://login.microsoftonline.com/${tenantId}`,
+    authority: 'https://login.microsoftonline.com/organizations',
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
     navigateToLoginRequestUrl: false,
@@ -18,12 +18,16 @@ const msalConfig = {
 }
 
 let msalInstance = null
+let initializePromise = null
 
 export async function getMsalInstance() {
   if (!msalInstance) {
     msalInstance = new PublicClientApplication(msalConfig)
-    await msalInstance.initialize()
   }
+  if (!initializePromise) {
+    initializePromise = msalInstance.initialize()
+  }
+  await initializePromise
   return msalInstance
 }
 

@@ -1,4 +1,5 @@
 import React from 'react'
+import nextPlusLogo from '../../assets/logo_next_plus.png'
 
 export default function Sidebar({
   title,
@@ -20,24 +21,30 @@ export default function Sidebar({
     >
       {/* Encabezado del Sidebar */}
       <div>
-        <div className="h-16 px-4 border-b border-outline-variant/30 flex items-center justify-between">
+        <div className="h-20 px-3 border-b border-outline-variant/30 flex items-center justify-between">
           {!collapsed ? (
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm shrink-0">
-                <span className="material-symbols-outlined text-[20px]">{icon}</span>
-              </div>
+            <div className="flex items-center gap-2 overflow-hidden">
+              <img
+                src={nextPlusLogo}
+                alt="NEXT+ Logo"
+                className="h-10 w-auto object-contain shrink-0"
+              />
               <div className="flex flex-col truncate">
-                <span className="font-heading font-extrabold text-sm text-on-surface leading-tight truncate">
+                <span className="font-heading font-extrabold text-xs text-on-surface leading-tight truncate">
                   {title}
                 </span>
                 <span className="text-[10px] text-on-surface-variant font-medium truncate">
-                  Colegio Salesiano San José
+                  Colegio San José
                 </span>
               </div>
             </div>
           ) : (
-            <div className="w-9 h-9 mx-auto rounded-xl bg-primary flex items-center justify-center text-white shadow-sm">
-              <span className="material-symbols-outlined text-[20px]">{icon}</span>
+            <div className="mx-auto flex items-center justify-center">
+              <img
+                src={nextPlusLogo}
+                alt="NEXT+"
+                className="h-8 w-auto object-contain"
+              />
             </div>
           )}
 
@@ -101,9 +108,17 @@ export default function Sidebar({
       {/* Pie del Sidebar: Usuario & Logout */}
       <div className="p-3 border-t border-outline-variant/30 space-y-2">
         <div className={`flex items-center gap-2 p-2 rounded-xl bg-surface-container-low ${collapsed ? 'justify-center' : ''}`}>
-          <div className="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-xs shrink-0">
-            {user?.name ? user.name.substring(0, 2).toUpperCase() : 'US'}
-          </div>
+          {user?.photoUrl ? (
+            <img
+              src={user.photoUrl}
+              alt={user.name}
+              className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-primary/30"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-xs shrink-0">
+              {user?.name ? user.name.substring(0, 2).toUpperCase() : 'US'}
+            </div>
+          )}
           {!collapsed && (
             <div className="flex flex-col truncate flex-1">
               <span className="text-xs font-bold text-on-surface truncate leading-tight">

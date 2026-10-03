@@ -2,16 +2,39 @@ import React, { useState, useEffect } from 'react'
 import Sidebar from '../shared/Sidebar'
 import ExamBuilder from './ExamBuilder'
 import OralInterviewExam from './OralInterviewExam'
+import TeacherProfile from './TeacherProfile'
 import teacherAvatar from '../../assets/avatar_teacher.png'
-import { getAllUsers, updateUserStatus, getOralEvaluations, getAcademicStructure } from '../../lib/dataService'
+import {
+  getAllUsers,
+  updateUserStatus,
+  getOralEvaluations,
+  getAcademicStructure,
+  resetStudentEvaluation,
+  resetAllEvaluations
+} from '../../lib/dataService'
 
-export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView }) {
+export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView, onUpdateCurrentUser }) {
   const [currentSection, setCurrentSection] = useState('interview')
   const [collapsed, setCollapsed] = useState(false)
+  const [currentTeacher, setCurrentTeacher] = useState(user)
 
-  // Segmentos / Toggles de Grados y Secciones dinámicos
+  // Mantener sincronizado si user cambia
+  useEffect(() => {
+    if (user) setCurrentTeacher(user)
+  }, [user])
+
+  // Segmentos / Toggles de Grados, Secciones y Filtro por Docente Asignado
   const [gradePill, setGradePill] = useState('all')
   const [sectionPill, setSectionPill] = useState('all')
+  const [levelPill, setLevelPill] = useState('all')
+  // Por defecto, si el usuario logueado es uno de los docentes oficiales, se preselecciona ver sus alumnos asignados
+  const [teacherFilter, setTeacherFilter] = useState(() => {
+    const email = (user?.email || '').toLowerCase()
+    if (email.includes('ronald')) return 'ronald'
+    if (email.includes('silvia')) return 'silvia'
+    if (email.includes('nelsi')) return 'nelsi'
+    return 'all'
+  })
   const [statusToggle, setStatusToggle] = useState('all') // 'all' | 'pending' | 'completed'
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -57,6 +80,46 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     setActiveInterviewStudent(student)
   }
 
+  // Resetear la evaluación de un alumno individual
+  const handleResetStudent = async (student) => {
+    if (!confirm(`¿Deseas resetear el Nivel Oficial y la evaluación de ${student.name}? Volverá a quedar en "Sin Evaluar".`)) return
+    try {
+      await resetStudentEvaluation(student.email)
+      await loadData()
+    } catch (e) {
+      console.error('Error al resetear alumno:', e)
+    }
+  }
+
+  // Resetear TODAS las evaluaciones de los alumnos
+  const handleResetAll = async () => {
+    if (!confirm('⚠️ ¿Estás seguro de que deseas resetear los Niveles Oficiales de TODOS los alumnos? Quedarán todos pendientes de evaluación.')) return
+    try {
+      await resetAllEvaluations()
+      await loadData()
+    } catch (e) {
+      console.error('Error al resetear todas las evaluaciones:', e)
+    }
+  }
+
+  // Activar o desactivar alumno desde vista docente
+  const handleToggleStatus = async (targetEmail, currentStatus) => {
+    if (!targetEmail) return
+    const clean = targetEmail.trim().toLowerCase()
+    const newStatus = currentStatus === 'active' ? 'pending' : 'active'
+    
+    // Actualización visual inmediata (optimista)
+    setStudents(prev => prev.map(s => (s.email || '').trim().toLowerCase() === clean ? { ...s, status: newStatus } : s))
+    
+    try {
+      await updateUserStatus(clean, newStatus, user.email)
+      await loadData()
+    } catch (e) {
+      console.error('Error al actualizar estado:', e)
+      await loadData()
+    }
+  }
+
   // Filtrado reactivo con Botones Ovalados
   const filteredStudents = students.filter(s => {
     const isCompleted = Boolean(s.assignedLevel)
@@ -80,12 +143,26 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
     const matchSection = sectionPill === 'all' || s.section === sectionPill
 
+    // Filtro por nivel institucional actual (L1-A, L1-B, etc.)
+    const matchLevel = levelPill === 'all' || s.currentLevel === levelPill
+
+    // Filtro por docente asignado
+    let matchTeacher = true
+    if (teacherFilter !== 'all') {
+      const tKey = teacherFilter.toLowerCase()
+      const sTeacher = (s.assignedTeacher || '').toLowerCase()
+      const sTeacherEmail = (s.assignedTeacherEmail || '').toLowerCase()
+      matchTeacher = sTeacher.includes(tKey) || sTeacherEmail.includes(tKey)
+    }
+
     const matchSearch = !searchTerm ||
       (s.name && s.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.carnet && s.carnet.includes(searchTerm)) ||
-      (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase()))
+      (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.currentLevel && s.currentLevel.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.assignedTeacher && s.assignedTeacher.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    return matchStatus && matchGrade && matchSection && matchSearch
+    return matchStatus && matchGrade && matchSection && matchLevel && matchTeacher && matchSearch
   })
 
   // Paginación
@@ -96,6 +173,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     { key: 'interview', label: 'Entrevista Oral (A1-C1)', icon: 'record_voice_over', badge: `${students.length}` },
     { key: 'results', label: 'Resultados y Niveles', icon: 'military_tech', badge: `${evaluations.length}` },
     { key: 'builder', label: 'Constructor de Examen', icon: 'quiz' },
+    { key: 'profile', label: 'Mi Perfil Docente', icon: 'account_circle' },
   ]
 
   return (
@@ -112,7 +190,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
         }}
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed(!collapsed)}
-        user={user}
+        user={currentTeacher}
         onLogout={onLogout}
       />
 
@@ -125,12 +203,33 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
           </div>
 
           <div className="flex items-center gap-3">
+            {activeInterviewStudent && (
+              <button
+                type="button"
+                onClick={() => setActiveInterviewStudent(null)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                title="Salir de la evaluación actual y volver a la lista de alumnos / niveles"
+              >
+                <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                <span>Restaurar / Ver Niveles</span>
+              </button>
+            )}
+
             <button
               onClick={onSwitchToStudentView}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-bold text-on-surface transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-bold text-on-surface transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[16px] text-secondary">visibility</span>
               Vista de Alumno
+            </button>
+
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-all border border-red-200 cursor-pointer"
+              title="Cerrar sesión"
+            >
+              <span className="material-symbols-outlined text-[16px]">logout</span>
+              <span className="hidden sm:inline">Cerrar Sesión</span>
             </button>
           </div>
         </header>
@@ -157,14 +256,27 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <img
-                        src={teacherAvatar}
-                        alt={user.name}
-                        className="w-14 h-14 rounded-full object-cover ring-2 ring-primary/30"
+                        src={currentTeacher?.photoUrl || teacherAvatar}
+                        alt={currentTeacher?.name || user.name}
+                        className="w-14 h-14 rounded-full object-cover ring-2 ring-primary/30 bg-slate-100"
                       />
                       <div>
-                        <h2 className="font-heading font-extrabold text-xl text-on-surface">{user.name}</h2>
+                        <div className="flex items-center gap-2">
+                          <h2 className="font-heading font-extrabold text-xl text-on-surface">
+                            {currentTeacher?.name || user.name}
+                          </h2>
+                          <button
+                            type="button"
+                            onClick={() => setCurrentSection('profile')}
+                            className="text-xs text-primary hover:underline font-bold flex items-center gap-0.5"
+                            title="Editar mis datos personales y foto"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">edit</span>
+                            <span>Editar Perfil</span>
+                          </button>
+                        </div>
                         <p className="text-xs text-on-surface-variant font-mono">
-                          {user.email} · Consola de Entrevista Diagnóstica Oral (A1 - C1)
+                          {user.email} · {currentTeacher?.specialty || 'Consola de Entrevista Diagnóstica Oral (A1 - C1)'}
                         </p>
                       </div>
                     </div>
@@ -223,7 +335,80 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       ))}
                     </div>
 
-                    {/* Fila 2: Botones Ovalados de Sección, Estado y Búsqueda */}
+                    {/* Fila 2: Filtro por Docente Titular y Nivel Institucional Asignado */}
+                    <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-gray-100">
+                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">school</span>
+                        Docente:
+                      </span>
+                      {[
+                        { id: 'all', label: 'Todos los Docentes' },
+                        { id: 'ronald', label: 'Ronald Cardona', short: 'Teacher Ronald' },
+                        { id: 'silvia', label: 'Silvia Herrera', short: 'Teacher Silvia' },
+                        { id: 'nelsi', label: 'Nelsi Ramos', short: 'Teacher Nelsi' }
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setTeacherFilter(t.id)
+                            setCurrentPage(1)
+                          }}
+                          className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            teacherFilter === t.id
+                              ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
+                              : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          <span>{t.short || t.label}</span>
+                          {t.id !== 'all' && (
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                              teacherFilter === t.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                            }`}>
+                              {students.filter(s => (s.assignedTeacher || '').toLowerCase().includes(t.id)).length}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+
+                      <span className="text-gray-300 mx-1 hidden md:inline">|</span>
+
+                      {/* Filtro por Nivel Institucional CSSJ */}
+                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                        Nivel:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLevelPill('all')
+                          setCurrentPage(1)
+                        }}
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                          levelPill === 'all' ? 'bg-gray-900 text-white' : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        Todos
+                      </button>
+                      {['L1-A', 'L1-B', 'L2', 'L2-A', 'L2-B', 'L3', 'L3-A', 'L3-B', 'L4-A', 'L5-A'].map(lvl => (
+                        <button
+                          key={lvl}
+                          type="button"
+                          onClick={() => {
+                            setLevelPill(lvl)
+                            setCurrentPage(1)
+                          }}
+                          className={`px-2.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                            levelPill === lvl
+                              ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-200'
+                              : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {lvl}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Fila 3: Botones Ovalados de Sección, Estado y Búsqueda */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-gray-100">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
@@ -306,21 +491,34 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         </div>
                       </div>
 
-                      {/* Buscador Rápido */}
-                      <div className="relative w-full sm:w-60">
-                        <input
-                          type="text"
-                          value={searchTerm}
-                          onChange={(e) => {
-                            setSearchTerm(e.target.value)
-                            setCurrentPage(1)
-                          }}
-                          placeholder="Nombre o carnet..."
-                          className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30"
-                        />
-                        <span className="material-symbols-outlined text-[16px] text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2">
-                          search
-                        </span>
+                      {/* Buscador Rápido y Reset General */}
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:w-56">
+                          <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => {
+                              setSearchTerm(e.target.value)
+                              setCurrentPage(1)
+                            }}
+                            placeholder="Nombre o carnet..."
+                            className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30"
+                          />
+                          <span className="material-symbols-outlined text-[16px] text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2">
+                            search
+                          </span>
+                        </div>
+
+                        {/* Botón para resetear todos los niveles en pruebas */}
+                        <button
+                          type="button"
+                          onClick={handleResetAll}
+                          className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                          title="Resetear los niveles oficiales de todos los alumnos (modo pruebas)"
+                        >
+                          <span className="material-symbols-outlined text-[15px]">restart_alt</span>
+                          <span className="hidden md:inline">Resetear Evaluaciones</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -344,6 +542,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <th className="py-3 px-4">Estudiante</th>
                             <th className="py-3 px-4">Grado & Secc.</th>
                             <th className="py-3 px-4">Nivel Obtenido</th>
+                            <th className="py-3 px-4 text-center">Acceso</th>
                             <th className="py-3 px-4 text-right">Acción</th>
                           </tr>
                         </thead>
@@ -372,20 +571,72 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                     <div className="text-[11px] text-gray-400 font-mono font-normal truncate max-w-xs">{s.email}</div>
                                   </td>
                                   <td className="py-3.5 px-4">
-                                    <span className="px-2.5 py-0.5 rounded-lg bg-gray-100 font-bold text-xs text-gray-700">
-                                      {s.grade} - {s.section}
-                                    </span>
+                                    <div className="space-y-1">
+                                      <span className="px-2.5 py-0.5 rounded-lg bg-gray-100 font-bold text-xs text-gray-700 block w-fit">
+                                        {s.grade} - Secc. {s.section}
+                                      </span>
+                                      {s.currentLevel && s.currentLevel !== 'Sin Nivel' && (
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-900 border border-indigo-200" title={`Nivel Inicial CSSJ: ${s.currentLevel}`}>
+                                            Nivel: {s.currentLevel}
+                                          </span>
+                                          {s.assignedTeacher && (
+                                            <span className="text-[10px] text-gray-500 font-medium">
+                                              👨‍🏫 {s.assignedTeacher}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   </td>
                                   <td className="py-3.5 px-4">
                                     {hasLevel ? (
-                                      <span className="px-3 py-1 rounded-full font-extrabold text-xs bg-emerald-100 text-emerald-800">
-                                        Nivel {s.assignedLevel}
-                                      </span>
+                                      <div className="inline-flex items-center gap-1.5">
+                                        <span className="px-3 py-1 rounded-full font-extrabold text-xs bg-emerald-100 text-emerald-800">
+                                          Oficial: {s.assignedLevel}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleResetStudent(s)}
+                                          className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                          title={`Resetear nivel de ${s.name} a Sin Evaluar`}
+                                        >
+                                          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                                        </button>
+                                      </div>
                                     ) : (
                                       <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                         Sin Evaluar
                                       </span>
                                     )}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-center">
+                                    {(() => {
+                                      const isActive = s.status === 'active'
+                                      return (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.preventDefault()
+                                            e.stopPropagation()
+                                            handleToggleStatus(s.email, s.status)
+                                          }}
+                                          className="inline-flex items-center gap-1.5 cursor-pointer select-none p-1 rounded-lg hover:bg-slate-100/80 transition-colors"
+                                          title={isActive ? 'Clic para pausar / desactivar acceso' : 'Clic para activar alumno'}
+                                        >
+                                          <div className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all duration-200 pointer-events-none ${
+                                            isActive ? 'bg-emerald-500 justify-end' : 'bg-gray-300 justify-start'
+                                          }`}>
+                                            <div className="bg-white w-3.5 h-3.5 rounded-full shadow-sm"></div>
+                                          </div>
+                                          <span className={`text-[10px] font-bold pointer-events-none ${
+                                            isActive ? 'text-emerald-700' : 'text-gray-400'
+                                          }`}>
+                                            {isActive ? 'Activo' : 'Pausado'}
+                                          </span>
+                                        </button>
+                                      )
+                                    })()}
                                   </td>
                                   <td className="py-3.5 px-4 text-right">
                                     <div className="flex items-center justify-end gap-1.5">
@@ -548,6 +799,23 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                 <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm">
                   <ExamBuilder onPublished={() => setCurrentSection('interview')} />
                 </div>
+              )}
+
+              {/* SECCIÓN 4: MI PERFIL DOCENTE */}
+              {currentSection === 'profile' && (
+                <TeacherProfile
+                  user={currentTeacher}
+                  onProfileUpdated={(updated) => {
+                    setCurrentTeacher(updated)
+                    onUpdateCurrentUser?.(updated)
+                    try {
+                      const cur = JSON.parse(localStorage.getItem('el_session_user') || '{}')
+                      localStorage.setItem('el_session_user', JSON.stringify({ ...cur, ...updated }))
+                    } catch (e) {
+                      console.warn(e)
+                    }
+                  }}
+                />
               )}
             </>
           )}

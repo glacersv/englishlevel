@@ -202,9 +202,11 @@ export default function OralInterviewExam({ student, teacher, onFinished, onCanc
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-200 transition-all"
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+            title="Restaurar y volver a la lista de niveles / alumnos"
           >
-            Cancelar
+            <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+            <span>Restaurar / Salir a Niveles</span>
           </button>
         </div>
       </div>

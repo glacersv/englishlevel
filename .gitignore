@@ -6,4 +6,10 @@ dist/
 .firebase/
 serviceAccount*.json
 docx_extracted/
+listados_doc/
+material_evaluaciones/
+*.ps1
+consolidate.js
+merge_data.js
+
 

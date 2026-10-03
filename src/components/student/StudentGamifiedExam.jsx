@@ -1,25 +1,36 @@
-import React, { useState } from 'react'
-import { saveStudentSelfLevel } from '../../lib/dataService'
+import React, { useState, useEffect } from 'react'
+import { db, isFirebaseConfigured } from '../../lib/firebase'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { getUserProfile, sanitizeDocId } from '../../lib/dataService'
+import nextPlusLogo from '../../assets/logo_next_plus.png'
 
-export default function StudentGamifiedExam({ student, onLogout }) {
-  const hasAssignedLevel = Boolean(student.assignedLevel)
-  const [selectedSelfLevel, setSelectedSelfLevel] = useState(student.selfReportedLevel || '')
-  const [isSaving, setIsSaving] = useState(false)
-  const [saved, setSaved] = useState(Boolean(student.selfReportedLevel))
+export default function StudentGamifiedExam({ student: initialStudent, onLogout }) {
+  const [currentStudent, setCurrentStudent] = useState(initialStudent)
 
-  const handleSelectLevel = async (lvl) => {
-    setSelectedSelfLevel(lvl)
-    setIsSaving(true)
-    try {
-      await saveStudentSelfLevel(student.email, lvl)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-    } catch (err) {
-      console.error('Error guardando auto-nivel:', err)
-    } finally {
-      setIsSaving(false)
+  // Escuchar en tiempo real en Firestore
+  useEffect(() => {
+    if (!initialStudent?.email) return
+    const docId = sanitizeDocId(initialStudent.email)
+
+    if (isFirebaseConfigured()) {
+      const unsub = onSnapshot(doc(db, 'users', docId), (docSnap) => {
+        if (docSnap.exists()) {
+          setCurrentStudent(prev => ({ ...prev, ...docSnap.data() }))
+        }
+      }, (err) => {
+        console.warn('Error en listener tiempo real Firestore:', err)
+      })
+      return () => unsub()
+    } else {
+      // Fallback local: refrescar desde datos
+      getUserProfile(initialStudent.email).then(data => {
+        if (data) setCurrentStudent(prev => ({ ...prev, ...data }))
+      })
     }
-  }
+  }, [initialStudent?.email])
+
+  const student = currentStudent
+  const hasAssignedLevel = Boolean(student.assignedLevel)
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-between font-sans">
@@ -27,9 +38,11 @@ export default function StudentGamifiedExam({ student, onLogout }) {
       {/* Top Navbar Institucional */}
       <header className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#2528b7] text-white flex items-center justify-center font-extrabold text-xs shadow-md shadow-indigo-600/20">
-            N+
-          </div>
+          <img
+            src={nextPlusLogo}
+            alt="NEXT+ Logo"
+            className="h-10 w-auto object-contain"
+          />
           <div>
             <span className="font-heading font-extrabold text-sm text-gray-900 block leading-tight">
               Portal del Estudiante
@@ -105,62 +118,64 @@ export default function StudentGamifiedExam({ student, onLogout }) {
                 Entrevista Oral en Curso
               </span>
               <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
-                Evaluación con tu Docente
+                Información de tu Evaluación
               </h2>
               <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-                Hola <strong className="text-gray-900">{student.name}</strong>. Esta prueba de ubicación es <strong>oral y auditiva</strong>. Tu profesor te hará preguntas verbalmente y registrará tus respuestas en la rúbrica oficial.
+                Hola <strong className="text-gray-900">{student.name}</strong>. Esta prueba de ubicación es oral y auditiva conducida por tu docente de inglés.
               </p>
             </div>
 
-            {/* Campo / Selector Interactivo: Autopercepción de Nivel de Inglés */}
-            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-3 max-w-md mx-auto">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[18px] text-[#2528b7]">psychology</span>
-                  ¿Cuál consideras que es tu nivel de inglés actual?
-                </label>
-                {saved && (
-                  <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 animate-fadeIn">
-                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                    Guardado
-                  </span>
-                )}
+            {/* Ficha Informativa del Alumno: Grado, Sección, Docente y Nivel Actual */}
+            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/90 text-left space-y-4 max-w-md mx-auto shadow-xs">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                <span className="material-symbols-outlined text-blue-700 text-[22px]">badge</span>
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Datos de Matrícula y Asignación
+                </span>
               </div>
-              <p className="text-[11px] text-gray-500 leading-tight">
-                Selecciona la opción con la que más te identifiques. Tu profesor verá esta referencia antes de tu entrevista.
-              </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-                {[
-                  { id: 'A1', label: 'A1 - Principiante', desc: 'Frases muy básicas' },
-                  { id: 'A2', label: 'A2 - Básico', desc: 'Conversaciones simples' },
-                  { id: 'B1', label: 'B1 - Intermedio', desc: 'Me desenvuelvo bien' },
-                  { id: 'B2', label: 'B2 - Intermedio Alto', desc: 'Fluidez y vocabulario' },
-                  { id: 'C1', label: 'C1 - Avanzado', desc: 'Casi bilingüe' },
-                  { id: 'Desconocido', label: 'No estoy seguro', desc: 'Prefiero evaluarme' },
-                ].map((item) => {
-                  const isSelected = selectedSelfLevel === item.id
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      disabled={isSaving}
-                      onClick={() => handleSelectLevel(item.id)}
-                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[#2528b7] bg-indigo-50/80 ring-2 ring-[#2528b7]/30 shadow-xs'
-                          : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-slate-50/50'
-                      }`}
-                    >
-                      <div className={`text-xs font-extrabold ${isSelected ? 'text-[#2528b7]' : 'text-gray-800'}`}>
-                        {item.label}
-                      </div>
-                      <div className="text-[10px] text-gray-500 line-clamp-1">
-                        {item.desc}
-                      </div>
-                    </button>
-                  )
-                })}
+              <div className="grid grid-cols-2 gap-3.5">
+                <div className="p-3.5 bg-white rounded-2xl border border-slate-200/70">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Grado y Sección
+                  </span>
+                  <span className="text-sm font-extrabold text-slate-800 mt-1 block">
+                    {student.grade || '7° Grado'} {student.section ? `• Secc. ${student.section}` : ''}
+                  </span>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-2xl border border-slate-200/70">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Nivel Actual Registrado
+                  </span>
+                  <span className="text-sm font-extrabold text-blue-700 mt-1 block">
+                    {student.currentLevel || 'L1-B'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Fila del docente y nivel al que aplica */}
+              <div className="p-3.5 bg-white rounded-2xl border border-slate-200/70 space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[20px]">school</span>
+                  </div>
+                  <div className="overflow-hidden">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Docente Evaluador (Get Involved)
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-800 truncate block">
+                      {student.assignedTeacher || 'Silvia Herrera'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Nivel al que aplica:</span>
+                  <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+                    {student.assignedLevel || 'En evaluación por docente'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -172,12 +187,12 @@ export default function StudentGamifiedExam({ student, onLogout }) {
               <ul className="list-disc list-inside text-amber-700 space-y-1 pl-1">
                 <li>Presta atención a cada pregunta verbal que formule tu docente.</li>
                 <li>Responde en inglés con claridad, usando oraciones completas.</li>
-                <li>Al finalizar la entrevista, tu nivel oficial validado por el docente aparecerá aquí en pantalla.</li>
+                <li>Al concluir la evaluación, la colocación oficial validada por el docente aparecerá aquí en pantalla.</li>
               </ul>
             </div>
 
-            <div className="pt-2 flex items-center justify-center gap-2 text-xs text-gray-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <div className="pt-2 flex items-center justify-center gap-2 text-xs text-gray-500 font-medium">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>Esperando que el docente concluya la calificación oficial...</span>
             </div>
           </div>

@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { loginWithMicrosoft, handleRedirectAuth } from '../../lib/authAzure'
 import { getUserProfile, registerOrUpdateUser } from '../../lib/dataService'
+import defaultSchoolStudents from '../../data/studentsFromSchool.json'
+import nextPlusLogo from '../../assets/logo_next_plus.png'
+import escudoCssj from '../../assets/escudo_cssj.png'
+import iconNextApp from '../../assets/icon_next_app.png'
 
 export default function AuthPortal({ onLoginSuccess }) {
   const [email, setEmail] = useState('')
@@ -19,7 +23,7 @@ export default function AuthPortal({ onLoginSuccess }) {
     const cleanEmail = (userEmail || '').trim().toLowerCase()
     if (!cleanEmail) return null
 
-    // 1. Si es el Admin José Márquez -> Acceso directo y automático siempre
+    // 1. Cuentas de Acceso Rápido Directo para Pruebas
     if (cleanEmail === ADMIN_EMAIL || cleanEmail.startsWith('jose.marquez@')) {
       const adminData = {
         email: cleanEmail,
@@ -34,26 +38,94 @@ export default function AuthPortal({ onLoginSuccess }) {
       return adminData
     }
 
+    if (cleanEmail === 'teacher@salesianosanjose.edu.sv' ||
+        cleanEmail === 'ronald.cardona@salesianosanjose.edu.sv' ||
+        cleanEmail === 'silvia.herrera@salesianosanjose.edu.sv' ||
+        cleanEmail === 'nelsi.ramos@salesianosanjose.edu.sv') {
+      let tName = displayName || 'Docente de Inglés'
+      let tId = 'DOC-CSSJ-99'
+      if (cleanEmail.includes('ronald')) { tName = 'Ronald Cardona'; tId = 'DOC-CSSJ-01'; }
+      else if (cleanEmail.includes('silvia')) { tName = 'Silvia Herrera'; tId = 'DOC-CSSJ-02'; }
+      else if (cleanEmail.includes('nelsi')) { tName = 'Nelsi Ramos'; tId = 'DOC-CSSJ-03'; }
+
+      const existingTeacher = await getUserProfile(cleanEmail)
+
+      const teacherData = {
+        ...(existingTeacher || {}),
+        email: cleanEmail,
+        name: existingTeacher?.name || tName,
+        photoUrl: existingTeacher?.photoUrl || '',
+        phone: existingTeacher?.phone || '',
+        specialty: existingTeacher?.specialty || 'Departamento de Idiomas (Get Involved)',
+        role: 'teacher',
+        status: 'active',
+        validatedBy: 'system',
+        id: existingTeacher?.id || tId,
+        area: 'Departamento de Idiomas (Get Involved)'
+      }
+      await registerOrUpdateUser(teacherData)
+      return teacherData
+    }
+
+    if (cleanEmail === 'alumno@salesianosanjose.edu.sv') {
+      const studentData = {
+        email: cleanEmail,
+        name: displayName || 'Estudiante Demo (Test)',
+        role: 'student',
+        status: 'active',
+        validatedBy: 'system',
+        carnet: '2026-TEST01',
+        grade: '7° Grado',
+        section: 'A',
+        selfReportedLevel: 'A2'
+      }
+      await registerOrUpdateUser(studentData)
+      return studentData
+    }
+
     // 2. Consultar perfil existente en base de datos
     const existing = await getUserProfile(cleanEmail)
 
+    // Buscar en el padrón institucional oficial de alumnos
+    const matchSchoolStudent = defaultSchoolStudents.find(
+      s => (s.email || '').toLowerCase() === cleanEmail
+    )
+
     if (existing) {
-      // Si ya está registrado, verificar estado
       if (existing.status === 'blocked') {
         throw new Error('Esta cuenta ha sido inhabilitada temporalmente por la administración.')
       }
-      if (existing.status === 'pending') {
-        // En espera de validación
-        setPendingValidationUser(existing)
+
+      // Si existe pero está en el padrón del colegio y le faltan datos de docente o nivel actual
+      const enrichedStudent = {
+        ...existing,
+        name: existing.name || matchSchoolStudent?.name,
+        carnet: existing.carnet || matchSchoolStudent?.carnet,
+        grade: existing.grade || matchSchoolStudent?.grade,
+        section: existing.section || matchSchoolStudent?.section,
+        currentLevel: existing.currentLevel || matchSchoolStudent?.currentLevel || 'L1-B',
+        assignedTeacher: existing.assignedTeacher || matchSchoolStudent?.assignedTeacher || 'Silvia Herrera',
+        assignedTeacherEmail: existing.assignedTeacherEmail || matchSchoolStudent?.assignedTeacherEmail || 'silvia.herrera@salesianosanjose.edu.sv',
+        status: matchSchoolStudent ? 'active' : existing.status
+      }
+
+      if (matchSchoolStudent && existing.status === 'pending') {
+        await registerOrUpdateUser(enrichedStudent)
+        return enrichedStudent
+      }
+
+      if (enrichedStudent.status === 'pending') {
+        setPendingValidationUser(enrichedStudent)
         return null
       }
-      return existing
+
+      await registerOrUpdateUser(enrichedStudent)
+      return enrichedStudent
     }
 
     // 3. Primer ingreso (nuevo usuario):
-    // Definir rol por defecto según dominio / prefijo
     let defaultRole = 'student'
-    let defaultStatus = 'pending' // Por defecto requiere validación
+    let defaultStatus = matchSchoolStudent ? 'active' : 'pending' // Si es alumno del colegio, entra directo activo
 
     if (cleanEmail.includes('coord') || cleanEmail.includes('director')) {
       defaultRole = 'coordination'
@@ -64,24 +136,31 @@ export default function AuthPortal({ onLoginSuccess }) {
     }
 
     const namePart = displayName || cleanEmail.split('@')[0].replace('.', ' ')
-    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1)
+    const formattedName = matchSchoolStudent?.name || (namePart.charAt(0).toUpperCase() + namePart.slice(1))
 
     const newProfile = {
       email: cleanEmail,
       name: formattedName,
       role: defaultRole,
-      status: defaultStatus, // 'pending' hasta que el Admin / Docente lo active
+      status: defaultStatus,
       createdAt: new Date().toISOString(),
-      grade: defaultRole === 'student' ? '3°' : null,
-      section: defaultRole === 'student' ? 'A' : null,
+      carnet: matchSchoolStudent?.carnet || null,
+      grade: matchSchoolStudent?.grade || (defaultRole === 'student' ? '7° Grado' : null),
+      section: matchSchoolStudent?.section || (defaultRole === 'student' ? 'A' : null),
+      currentLevel: matchSchoolStudent?.currentLevel || null,
+      assignedTeacher: matchSchoolStudent?.assignedTeacher || 'Ronald Cardona',
+      assignedTeacherEmail: matchSchoolStudent?.assignedTeacherEmail || 'ronald.cardona@salesianosanjose.edu.sv',
       code: `${defaultRole.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`
     }
 
     await registerOrUpdateUser(newProfile)
 
-    // Mostrar aviso de pendiente de validación
-    setPendingValidationUser(newProfile)
-    return null
+    if (defaultStatus === 'pending') {
+      setPendingValidationUser(newProfile)
+      return null
+    }
+
+    return newProfile
   }
 
   // Al montar, revisar si volvemos de la redirección de Microsoft
@@ -144,7 +223,7 @@ export default function AuthPortal({ onLoginSuccess }) {
     }
   }
 
-  // Acceso Rápido como Administrador José
+  // Acceso Rápido para Pruebas (Admin, Docente, Alumno)
   const quickLoginAsAdmin = async () => {
     setIsLoading(true)
     const userObj = await processUserAccount(ADMIN_EMAIL, 'José Márquez')
@@ -152,225 +231,186 @@ export default function AuthPortal({ onLoginSuccess }) {
     if (userObj) onLoginSuccess(userObj)
   }
 
+  const quickLoginAsTeacher = async (teacherEmail = 'ronald.cardona@salesianosanjose.edu.sv') => {
+    setIsLoading(true)
+    let tName = 'Docente de Inglés'
+    if (teacherEmail.includes('ronald')) tName = 'Ronald Cardona'
+    else if (teacherEmail.includes('silvia')) tName = 'Silvia Herrera'
+    else if (teacherEmail.includes('nelsi')) tName = 'Nelsi Ramos'
+    const userObj = await processUserAccount(teacherEmail, tName)
+    setIsLoading(false)
+    if (userObj) onLoginSuccess(userObj)
+  }
+
+  const quickLoginAsStudent = async () => {
+    setIsLoading(true)
+    const userObj = await processUserAccount('alumno@salesianosanjose.edu.sv', 'Alumno de Prueba')
+    setIsLoading(false)
+    if (userObj) onLoginSuccess(userObj)
+  }
+
   return (
-    <div className="min-h-screen bg-[#e8ecf4] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
-      <div className="w-full max-w-5xl bg-white rounded-[36px] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px] border border-gray-100">
+    <div className="min-h-screen bg-slate-100/90 flex items-center justify-center p-3 sm:p-6 lg:p-8 font-sans">
+      <div className="w-full max-w-[1060px] bg-white rounded-3xl md:rounded-[28px] shadow-[0_20px_50px_-10px_rgba(15,23,42,0.18)] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px] border border-slate-200/80">
         
-        {/* ================= COLUMNA IZQUIERDA: Arte / Radar Futurista ================= */}
-        <div className="hidden lg:flex lg:col-span-6 relative bg-gradient-to-br from-[#161a33] via-[#10132b] to-[#0c0e1e] overflow-hidden flex-col justify-between p-10">
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[460px] h-[460px] rounded-full border border-white/[0.05]"></div>
-            <div className="absolute w-[340px] h-[340px] rounded-full border border-dashed border-white/[0.08]"></div>
-            <div className="absolute w-[200px] h-[200px] rounded-full border border-white/[0.06]"></div>
-            <div className="absolute w-[280px] h-[280px] rounded-full bg-gradient-to-tr from-indigo-500/10 via-purple-500/5 to-transparent blur-3xl"></div>
-          </div>
-          <div className="absolute -top-20 -left-20 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="relative z-10"></div>
-          <div className="relative z-10 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_10px_#10b981]"></span>
-            <span className="text-[11px] font-medium tracking-wider text-slate-400 uppercase">
-              Sistema Operativo
+        {/* ================= COLUMNA IZQUIERDA: Fondo blanco institucional con Escudo del Colegio ================= */}
+        <section className="hidden md:flex md:col-span-5 bg-white border-r border-slate-100 p-8 lg:p-10 flex-col justify-between items-center text-center relative">
+          
+          <div className="w-full flex justify-start">
+            <span className="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200/80 px-3.5 py-1.5 rounded-full text-[11px] font-bold text-blue-900 tracking-wider uppercase">
+              Colegio Salesiano San José
             </span>
           </div>
-        </div>
 
-        {/* ================= COLUMNA DERECHA: Formulario / Notificación de Validación ================= */}
-        <div className="col-span-1 lg:col-span-6 p-8 sm:p-12 lg:p-14 flex flex-col justify-between bg-white">
-          
-          {/* Encabezado: Logo Next+ CSSJ & Ayuda Técnica */}
-          <div className="flex items-center justify-between pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#2528b7] text-white flex items-center justify-center font-extrabold text-sm shadow-md shadow-indigo-600/20">
-                N+
+          {/* Tarjeta interior para darle marco al escudo */}
+          <div className="my-auto w-full flex flex-col items-center">
+            <div className="w-full max-w-[310px] bg-white border border-slate-200/70 rounded-3xl p-6 pb-4 shadow-[0_10px_25px_-5px_rgba(15,23,42,0.06),0_0_0_1px_rgba(226,232,240,0.6)] flex flex-col items-center">
+              
+              {/* Contenedor del Escudo */}
+              <div className="w-36 h-44 flex items-center justify-center mb-3">
+                <img
+                  src={escudoCssj}
+                  alt="Escudo Colegio Salesiano San José"
+                  className="max-w-full max-h-full object-contain drop-shadow-sm"
+                />
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-gray-900 text-sm tracking-tight">Next+</span>
-                  <span className="font-extrabold text-[#2528b7] text-sm tracking-tight">CSSJ</span>
-                </div>
-                <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
-                  SISTEMA DE UBICACIÓN DE INGLÉS — COLEGIO SALESIANO SAN JOSÉ
-                </span>
+
+              {/* Logotipo NEXT+ */}
+              <div className="w-full max-w-[190px] pt-1 border-t border-slate-100">
+                <img
+                  src={nextPlusLogo}
+                  alt="NEXT+"
+                  className="w-full h-auto object-contain"
+                />
               </div>
             </div>
 
-            <a
-              href="mailto:soporte@salesianosanjose.edu.sv"
-              title="Contacto con Soporte Técnico"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
-            >
-              <span className="material-symbols-outlined text-[16px] text-slate-500">help</span>
-              <span className="hidden sm:inline">Ayuda Técnica</span>
-            </a>
+            <p className="text-slate-500 text-xs sm:text-[13px] leading-relaxed max-w-[310px] mt-4 font-normal">
+              Plataforma para la evaluación, diagnóstico y colocación de niveles en el idioma inglés.
+            </p>
           </div>
+        </section>
 
-          {/* Si la cuenta está pendiente de validación */}
-          {pendingValidationUser ? (
-            <div className="my-auto py-6 bg-amber-50/80 rounded-2xl p-6 border border-amber-200/80 text-center space-y-4">
-              <div className="w-14 h-14 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shadow-inner">
-                <span className="material-symbols-outlined text-[28px]">lock_clock</span>
+        {/* ================= COLUMNA DERECHA: Autenticación SSO Microsoft 365 (Sin formulario manual) ================= */}
+        <section className="col-span-1 md:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-between bg-white">
+          
+          <div>
+            {/* Cabecera del Formulario con Ícono NEXT+ Arriba y Ayuda */}
+            <header className="flex items-center justify-between pb-6 mb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3.5">
+                <img
+                  src={iconNextApp}
+                  alt="Ícono NEXT+"
+                  className="w-12 h-12 object-contain shrink-0"
+                />
+                <div className="w-[1px] h-8 bg-slate-300"></div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-tight leading-tight">
+                    Sistema de Ubicación de Inglés
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase">
+                    Colegio Salesiano San José
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Cuenta en Proceso de Activación</h3>
-                <p className="text-xs text-gray-600 mt-1.5 max-w-sm mx-auto">
-                  Hola <strong className="text-gray-900">{pendingValidationUser.name}</strong> ({pendingValidationUser.email}). Tu cuenta ha sido registrada con rol <span className="font-semibold uppercase text-amber-800">[{pendingValidationUser.role}]</span> pero aún no ha sido validada.
-                </p>
-              </div>
-              <div className="p-3 bg-white rounded-xl text-[11px] text-left text-gray-600 border border-amber-100 space-y-1">
-                <p className="font-semibold text-gray-800 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[14px] text-blue-600">info</span>
-                  ¿Quién puede validar tu acceso?
-                </p>
-                <ul className="list-disc list-inside space-y-0.5 text-gray-500 pl-1">
-                  {pendingValidationUser.role === 'student' ? (
-                    <>
-                      <li>Docentes del Área de Inglés</li>
-                      <li>Coordinación Académica</li>
-                      <li>Administrador General (José Márquez)</li>
-                    </>
-                  ) : (
-                    <>
-                      <li>Coordinación Académica / Administrador General</li>
-                    </>
-                  )}
-                </ul>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPendingValidationUser(null)}
-                className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition-all"
+
+              <a
+                href="mailto:soporte@salesianosanjose.edu.sv"
+                className="hidden sm:inline-flex items-center gap-1.5 text-slate-500 hover:text-blue-900 text-xs font-semibold transition-colors"
               >
-                Volver al Inicio de Sesión
-              </button>
-            </div>
-          ) : (
-            /* Bloque Formulario Principal */
-            <div className="my-auto py-4">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-                Iniciar Sesión
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1 mb-6">
-                Ingresa tus credenciales autorizadas del Colegio Salesiano San José.
-              </p>
+                <span className="material-symbols-outlined text-[16px]">help</span>
+                <span>Ayuda Técnica</span>
+              </a>
+            </header>
 
-              {errorMsg && (
-                <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px] shrink-0">error</span>
-                  <span>{errorMsg}</span>
+            {/* Aviso de cuenta pendiente */}
+            {pendingValidationUser ? (
+              <div className="my-6 py-6 bg-amber-50/80 rounded-2xl p-6 border border-amber-200/80 text-center space-y-4">
+                <div className="w-14 h-14 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shadow-inner">
+                  <span className="material-symbols-outlined text-[28px]">lock_clock</span>
                 </div>
-              )}
-
-              <form onSubmit={handleEmailLogin} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Correo Institucional o Usuario
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={email}
-                    placeholder="usuario@salesianosanjose.edu.sv"
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30 focus:border-[#2528b7] transition-all"
-                  />
+                  <h3 className="text-lg font-bold text-gray-900">Cuenta en Proceso de Activación</h3>
+                  <p className="text-xs text-gray-600 mt-1.5 max-w-sm mx-auto">
+                    La cuenta (<span className="text-gray-900 font-semibold">{pendingValidationUser.email}</span>) ha sido registrada pero aún no ha sido validada en el sistema.
+                  </p>
+                </div>
+                <div className="p-3 bg-white rounded-xl text-[11px] text-left text-gray-600 border border-amber-100 space-y-1">
+                  <p className="font-semibold text-gray-800 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[14px] text-blue-600">info</span>
+                    ¿Quién puede validar tu acceso?
+                  </p>
+                  <ul className="list-disc list-inside space-y-0.5 text-gray-600 pl-1 font-medium">
+                    <li>Docentes del Área de Inglés</li>
+                    <li>Coordinación Académica</li>
+                  </ul>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPendingValidationUser(null)}
+                  className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition-all"
+                >
+                  Volver al Inicio de Sesión
+                </button>
+              </div>
+            ) : (
+              /* Bloque Principal de Iniciar Sesión Directo (Sin Formulario Manual) */
+              <div className="py-4 my-auto">
+                <div className="mb-6">
+                  <h2 className="text-2xl sm:text-[32px] font-extrabold text-slate-900 tracking-tight leading-snug">
+                    Iniciar Sesión
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                    El ingreso se realiza mediante la cuenta institucional de Microsoft Teams / Office 365 para acceder a las evaluaciones de ubicación de nivel de inglés del Colegio Salesiano San José.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Contraseña
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      placeholder="••••••••••••"
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30 focus:border-[#2528b7] transition-all pr-11"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
-                      title={showPassword ? 'Ocultar' : 'Mostrar'}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">
-                        {showPassword ? 'visibility_off' : 'visibility'}
-                      </span>
-                    </button>
+                {/* Cuadro informativo SSO */}
+                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 sm:p-5 mb-8 flex items-start gap-3.5 shadow-xs">
+                  <div className="text-blue-600 mt-0.5 shrink-0">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </div>
+                  <div className="text-xs sm:text-[13px] text-slate-600 leading-relaxed">
+                    Ingresa únicamente con tu cuenta <strong className="text-slate-900">@salesianosanjose.edu.sv</strong>. No requieres ingresar ni registrar contraseñas manuales en esta pantalla.
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none text-gray-600 font-medium">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#2528b7] border-gray-300 focus:ring-[#2528b7]"
-                    />
-                    Recordar sesión
-                  </label>
-                  <a
-                    href="https://passwordreset.microsoftonline.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-semibold text-[#2528b7] hover:underline"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </a>
-                </div>
+                {errorMsg && (
+                  <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full mt-2 py-3.5 px-4 rounded-xl font-bold text-sm text-white shadow-lg shadow-pink-500/25 bg-gradient-to-r from-[#ff4757] via-[#ff5252] to-[#ff3881] hover:brightness-105 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
-                >
-                  <span>{isLoading ? 'Verificando...' : 'Ingresar al Portal'}</span>
-                  {!isLoading && (
-                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                  )}
-                </button>
-
+                {/* Botón Principal Microsoft 365 / Teams */}
                 <button
                   type="button"
                   onClick={handleMicrosoftLogin}
                   disabled={isLoading}
-                  className="w-full py-3 px-4 rounded-xl font-semibold text-sm text-gray-800 bg-[#f0f3fa] hover:bg-[#e4e9f5] border border-gray-200/80 transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
+                  className="w-full h-14 rounded-2xl font-bold text-sm sm:text-base text-white bg-[#0f172a] hover:bg-[#1e293b] active:scale-[0.99] shadow-lg shadow-slate-900/15 hover:shadow-xl hover:shadow-slate-900/25 transition-all flex items-center justify-center gap-3.5 cursor-pointer disabled:opacity-60"
                 >
-                  <svg className="w-4 h-4" viewBox="0 0 21 21">
-                    <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                    <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                    <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                    <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-                  </svg>
-                  <span>Iniciar sesión con Microsoft 365</span>
+                  <div className="grid grid-cols-2 gap-0.5 w-4 h-4 shrink-0">
+                    <span className="w-2 h-2 bg-[#f25022]"></span>
+                    <span className="w-2 h-2 bg-[#7fba00]"></span>
+                    <span className="w-2 h-2 bg-[#00a4ef]"></span>
+                    <span className="w-2 h-2 bg-[#ffb900]"></span>
+                  </div>
+                  <span>{isLoading ? 'Conectando con Microsoft...' : 'Iniciar sesión con Microsoft 365 / Teams'}</span>
                 </button>
-
-                <div className="pt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={quickLoginAsAdmin}
-                    className="text-[11px] font-semibold text-gray-400 hover:text-[#2528b7] transition-colors"
-                  >
-                    ⚡ Acceso directo como Admin ({ADMIN_EMAIL})
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
           {/* Pie de página */}
-          <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-gray-400">
+          <footer className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
             <span>
-              © 2025-2026 Next+ | CSSJ English Placement — Colegio Salesiano San José.
+              &copy; 2025–2026 Next+ | CSSJ English Placement &bull; Colegio Salesiano San José.
             </span>
-            <div className="flex items-center gap-1 cursor-pointer hover:text-gray-600 transition-colors">
-              <span className="material-symbols-outlined text-[14px]">language</span>
-              <span>Español (Latinoamérica)</span>
-              <span className="material-symbols-outlined text-[14px]">expand_more</span>
-            </div>
-          </div>
-        </div>
+            <span>Español (Latinoamérica)</span>
+          </footer>
+        </section>
 
       </div>
     </div>

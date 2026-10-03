@@ -8,7 +8,9 @@ import {
   batchSyncStudents,
   getAcademicStructure,
   saveAcademicStructure,
-  getOralEvaluations
+  getOralEvaluations,
+  resetStudentEvaluation,
+  resetAllEvaluations
 } from '../../lib/dataService'
 import bundledStudents from '../../data/studentsFromSchool.json'
 
@@ -97,13 +99,25 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     loadData()
   }, [])
 
-  // Guardar nueva estructura académica en Firestore
+  // Estados para Edición inline de Grados y Secciones (CRUD completo)
+  const [editingGradeId, setEditingGradeId] = useState(null)
+  const [editGradeLabel, setEditGradeLabel] = useState('')
+  const [editingSection, setEditingSection] = useState(null)
+  const [editSectionName, setEditSectionName] = useState('')
+
+  // CRUD de Grados y Secciones en Firestore
   const handleAddGrade = async (e) => {
     e.preventDefault()
-    if (!newGradeId.trim() || !newGradeLabel.trim()) return
+    const gid = newGradeId.trim()
+    const glabel = newGradeLabel.trim()
+    if (!gid || !glabel) return
+    if (academic.grades.some(g => g.id === gid)) {
+      alert(`El Grado con ID "${gid}" ya existe.`)
+      return
+    }
     const updated = {
       ...academic,
-      grades: [...academic.grades, { id: newGradeId.trim(), label: newGradeLabel.trim() }]
+      grades: [...academic.grades, { id: gid, label: glabel }]
     }
     setIsSavingAcademic(true)
     await saveAcademicStructure(updated)
@@ -111,6 +125,30 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     setNewGradeId('')
     setNewGradeLabel('')
     setIsSavingAcademic(false)
+  }
+
+  const handleStartEditGrade = (grade) => {
+    setEditingGradeId(grade.id)
+    setEditGradeLabel(grade.label)
+  }
+
+  const handleSaveEditGrade = async (gradeId) => {
+    if (!editGradeLabel.trim()) return
+    const updated = {
+      ...academic,
+      grades: academic.grades.map(g => g.id === gradeId ? { ...g, label: editGradeLabel.trim() } : g)
+    }
+    setIsSavingAcademic(true)
+    await saveAcademicStructure(updated)
+    setAcademic(updated)
+    setEditingGradeId(null)
+    setEditGradeLabel('')
+    setIsSavingAcademic(false)
+  }
+
+  const handleCancelEditGrade = () => {
+    setEditingGradeId(null)
+    setEditGradeLabel('')
   }
 
   const handleRemoveGrade = async (gradeId) => {
@@ -128,7 +166,11 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
   const handleAddSection = async (e) => {
     e.preventDefault()
     const sec = newSectionName.trim().toUpperCase()
-    if (!sec || academic.sections.includes(sec)) return
+    if (!sec) return
+    if (academic.sections.includes(sec)) {
+      alert(`La sección "${sec}" ya existe.`)
+      return
+    }
     const updated = {
       ...academic,
       sections: [...academic.sections, sec].sort()
@@ -138,6 +180,35 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     setAcademic(updated)
     setNewSectionName('')
     setIsSavingAcademic(false)
+  }
+
+  const handleStartEditSection = (sec) => {
+    setEditingSection(sec)
+    setEditSectionName(sec)
+  }
+
+  const handleSaveEditSection = async (oldSec) => {
+    const newSec = editSectionName.trim().toUpperCase()
+    if (!newSec) return
+    if (newSec !== oldSec && academic.sections.includes(newSec)) {
+      alert(`La sección "${newSec}" ya existe.`)
+      return
+    }
+    const updated = {
+      ...academic,
+      sections: academic.sections.map(s => s === oldSec ? newSec : s).sort()
+    }
+    setIsSavingAcademic(true)
+    await saveAcademicStructure(updated)
+    setAcademic(updated)
+    setEditingSection(null)
+    setEditSectionName('')
+    setIsSavingAcademic(false)
+  }
+
+  const handleCancelEditSection = () => {
+    setEditingSection(null)
+    setEditSectionName('')
   }
 
   const handleRemoveSection = async (sec) => {
@@ -152,11 +223,44 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     setIsSavingAcademic(false)
   }
 
+  // Resetear la evaluación de un alumno individual
+  const handleResetStudent = async (student) => {
+    if (!confirm(`¿Deseas resetear el Nivel Oficial y la evaluación de ${student.name}? Volverá a quedar en "Sin Evaluar".`)) return
+    try {
+      await resetStudentEvaluation(student.email)
+      await loadData()
+    } catch (e) {
+      console.error('Error al resetear alumno en admin:', e)
+    }
+  }
+
+  // Resetear TODAS las evaluaciones de los alumnos
+  const handleResetAll = async () => {
+    if (!confirm('⚠️ ¿Estás seguro de que deseas resetear los Niveles Oficiales de TODOS los alumnos? Quedarán todos como "Sin Evaluar".')) return
+    try {
+      await resetAllEvaluations()
+      await loadData()
+    } catch (e) {
+      console.error('Error al resetear todas las evaluaciones en admin:', e)
+    }
+  }
+
   // Modificar estado de un usuario (Switch Rápido)
   const handleToggleStatus = async (targetEmail, currentStatus) => {
+    if (!targetEmail) return
+    const clean = targetEmail.trim().toLowerCase()
     const newStatus = currentStatus === 'active' ? 'pending' : 'active'
-    await updateUserStatus(targetEmail, newStatus, user.email)
-    await loadUsers()
+    
+    // Actualización visual inmediata en el estado local
+    setAllUsersList(prev => prev.map(u => (u.email || '').trim().toLowerCase() === clean ? { ...u, status: newStatus } : u))
+    
+    try {
+      await updateUserStatus(clean, newStatus, user.email)
+      await loadData()
+    } catch (e) {
+      console.error('Error al actualizar estado:', e)
+      await loadData()
+    }
   }
 
   // Abrir modal para Crear
@@ -202,14 +306,14 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
       validatedBy: user.email
     })
     setIsModalOpen(false)
-    await loadUsers()
+    await loadData()
   }
 
   // Eliminar Usuario
   const handleDeleteUser = async (targetEmail, targetName) => {
     if (confirm(`¿Estás seguro de eliminar a "${targetName}" (${targetEmail}) de la plataforma?`)) {
       await deleteUser(targetEmail)
-      await loadUsers()
+      await loadData()
     }
   }
 
@@ -243,7 +347,7 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
         if (parsed.length > 0) {
           setIsSyncing(true)
           await batchSyncStudents(parsed, user.email)
-          await loadUsers()
+          await loadData()
           setIsSyncing(false)
           alert(`✅ Se importaron y guardaron ${parsed.length} alumnos en Firebase con éxito.`)
         } else {
@@ -264,7 +368,7 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     setIsSyncing(true)
     try {
       await batchSyncStudents(bundledStudents, user.email)
-      await loadUsers()
+      await loadData()
       alert(`✅ Sincronización Exitosa: ${bundledStudents.length} alumnos actualizados en Firestore de englishlevel.`)
     } catch (e) {
       console.error(e)
@@ -391,10 +495,19 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
 
             <button
               onClick={onSwitchToStudentView}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-bold text-on-surface transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-bold text-on-surface transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[16px] text-primary">visibility</span>
               Vista de Alumno
+            </button>
+
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-all border border-red-200 cursor-pointer"
+              title="Cerrar sesión"
+            >
+              <span className="material-symbols-outlined text-[16px]">logout</span>
+              <span className="hidden sm:inline">Cerrar Sesión</span>
             </button>
           </div>
         </header>
@@ -633,21 +746,33 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                       </div>
                     </div>
 
-                    {/* Buscador Rápido */}
-                    <div className="relative w-full sm:w-60">
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => {
-                          setSearchTerm(e.target.value)
-                          setCurrentPage(1)
-                        }}
-                        placeholder="Carnet o nombre..."
-                        className="w-full pl-8 pr-3 py-1.5 rounded-full border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30"
-                      />
-                      <span className="material-symbols-outlined text-[16px] text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2">
-                        search
-                      </span>
+                    {/* Buscador Rápido y Reset Global */}
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="relative flex-1 sm:w-56">
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value)
+                            setCurrentPage(1)
+                          }}
+                          placeholder="Carnet o nombre..."
+                          className="w-full pl-8 pr-3 py-1.5 rounded-full border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30"
+                        />
+                        <span className="material-symbols-outlined text-[16px] text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2">
+                          search
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleResetAll}
+                        className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                        title="Resetear todos los niveles oficiales (modo pruebas)"
+                      >
+                        <span className="material-symbols-outlined text-[15px]">restart_alt</span>
+                        <span className="hidden md:inline">Resetear Evaluaciones</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -701,15 +826,39 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                                 <div className="text-[11px] text-gray-400 font-mono font-normal truncate max-w-xs">{s.email}</div>
                               </td>
                               <td className="py-3.5 px-4">
-                                <span className="px-3 py-1 rounded-full bg-slate-100 font-bold text-xs text-gray-700">
-                                  {s.grade} - {s.section}
-                                </span>
+                                <div className="space-y-1">
+                                  <span className="px-3 py-1 rounded-full bg-slate-100 font-bold text-xs text-gray-700 block w-fit">
+                                    {s.grade} - Secc. {s.section}
+                                  </span>
+                                  {s.currentLevel && s.currentLevel !== 'Sin Nivel' && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-900 border border-indigo-200">
+                                        Nivel: {s.currentLevel}
+                                      </span>
+                                      {s.assignedTeacher && (
+                                        <span className="text-[10px] text-gray-500 font-medium">
+                                          👨‍🏫 {s.assignedTeacher}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-3.5 px-4">
                                 {s.assignedLevel ? (
-                                  <span className="px-3 py-1 rounded-full font-bold text-xs bg-indigo-100 text-[#2528b7]">
-                                    Nivel {s.assignedLevel}
-                                  </span>
+                                  <div className="inline-flex items-center gap-1.5">
+                                    <span className="px-3 py-1 rounded-full font-bold text-xs bg-indigo-100 text-[#2528b7]">
+                                      Oficial: {s.assignedLevel}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleResetStudent(s)}
+                                      className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                      title={`Resetear nivel de ${s.name} a Sin Evaluar`}
+                                    >
+                                      <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                                    </button>
+                                  </div>
                                 ) : (
                                   <span className="text-gray-400 text-xs">Sin evaluar</span>
                                 )}
@@ -719,16 +868,20 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                               <td className="py-3.5 px-4 text-center">
                                 <button
                                   type="button"
-                                  onClick={() => handleToggleStatus(s.email, s.status)}
-                                  className="inline-flex items-center gap-2 cursor-pointer group"
-                                  title={isActive ? 'Clic para pausar acceso' : 'Clic para habilitar'}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleToggleStatus(s.email, s.status)
+                                  }}
+                                  className="inline-flex items-center gap-2 cursor-pointer select-none p-1 rounded-lg hover:bg-slate-100/80 transition-colors"
+                                  title={isActive ? 'Clic para pausar acceso' : 'Clic para habilitar acceso'}
                                 >
-                                  <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-all duration-200 ${
+                                  <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-all duration-200 pointer-events-none ${
                                     isActive ? 'bg-emerald-500 justify-end' : 'bg-gray-300 justify-start'
                                   }`}>
-                                    <div className="bg-white w-4 h-4 rounded-full shadow-md transition-all"></div>
+                                    <div className="bg-white w-4 h-4 rounded-full shadow-md"></div>
                                   </div>
-                                  <span className={`text-[11px] font-bold ${
+                                  <span className={`text-[11px] font-bold pointer-events-none ${
                                     isActive ? 'text-emerald-700' : 'text-gray-400'
                                   }`}>
                                     {isActive ? 'Activo' : 'Pausado'}
@@ -1096,24 +1249,72 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                   {/* Lista de Grados Existentes */}
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                     {academic.grades.map(g => (
-                      <div key={g.id} className="p-3 rounded-2xl border border-gray-200 flex items-center justify-between hover:bg-slate-50">
-                        <div className="flex items-center gap-3">
-                          <span className="w-8 h-8 rounded-full bg-indigo-50 text-[#2528b7] flex items-center justify-center font-black text-xs">
+                      <div key={g.id} className="p-3 rounded-2xl border border-gray-200 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-3 flex-1 mr-2">
+                          <span className="w-8 h-8 rounded-full bg-indigo-50 text-[#2528b7] flex items-center justify-center font-black text-xs shrink-0">
                             {g.id}
                           </span>
-                          <div>
-                            <span className="font-bold text-xs text-gray-900 block">{g.label}</span>
-                            <span className="text-[10px] text-gray-400 font-mono">ID: {g.id}</span>
-                          </div>
+                          {editingGradeId === g.id ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <input
+                                type="text"
+                                value={editGradeLabel}
+                                onChange={(e) => setEditGradeLabel(e.target.value)}
+                                className="w-full px-2.5 py-1 text-xs rounded-lg border border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-gray-800"
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              <span className="font-bold text-xs text-gray-900 block">{g.label}</span>
+                              <span className="text-[10px] text-gray-400 font-mono">ID: {g.id}</span>
+                            </div>
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveGrade(g.id)}
-                          className="text-gray-400 hover:text-red-600 p-1 rounded-lg"
-                          title="Eliminar grado"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          {editingGradeId === g.id ? (
+                            <>
+                              <button
+                                type="button"
+                                disabled={isSavingAcademic}
+                                onClick={() => handleSaveEditGrade(g.id)}
+                                className="text-emerald-600 hover:bg-emerald-50 p-1 rounded-lg"
+                                title="Guardar cambios"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">check</span>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isSavingAcademic}
+                                onClick={handleCancelEditGrade}
+                                className="text-gray-400 hover:bg-gray-100 p-1 rounded-lg"
+                                title="Cancelar"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditGrade(g)}
+                                className="text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded-lg"
+                                title="Editar nombre de grado"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveGrade(g.id)}
+                                className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1 rounded-lg"
+                                title="Eliminar grado"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1154,23 +1355,70 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                   </form>
 
                   {/* Lista de Secciones Existentes */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto pr-1">
                     {academic.sections.map(sec => (
-                      <div key={sec} className="p-3 rounded-2xl border border-gray-200 flex items-center justify-between hover:bg-slate-50">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-8 h-8 rounded-full bg-slate-100 text-gray-900 flex items-center justify-center font-black text-sm">
+                      <div key={sec} className="p-3 rounded-2xl border border-gray-200 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-2.5 flex-1 mr-2">
+                          <span className="w-8 h-8 rounded-full bg-slate-100 text-gray-900 flex items-center justify-center font-black text-sm shrink-0">
                             {sec}
                           </span>
-                          <span className="font-bold text-xs text-gray-800">Sección {sec}</span>
+                          {editingSection === sec ? (
+                            <input
+                              type="text"
+                              maxLength={3}
+                              value={editSectionName}
+                              onChange={(e) => setEditSectionName(e.target.value.toUpperCase())}
+                              className="w-16 px-2 py-0.5 text-xs rounded border border-indigo-300 font-bold uppercase focus:outline-none"
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="font-bold text-xs text-gray-800">Sección {sec}</span>
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSection(sec)}
-                          className="text-gray-400 hover:text-red-600 p-1 rounded-lg"
-                          title="Eliminar sección"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          {editingSection === sec ? (
+                            <>
+                              <button
+                                type="button"
+                                disabled={isSavingAcademic}
+                                onClick={() => handleSaveEditSection(sec)}
+                                className="text-emerald-600 hover:bg-emerald-50 p-1 rounded-lg"
+                                title="Guardar cambios"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">check</span>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isSavingAcademic}
+                                onClick={handleCancelEditSection}
+                                className="text-gray-400 hover:bg-gray-100 p-1 rounded-lg"
+                                title="Cancelar"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditSection(sec)}
+                                className="text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded-lg"
+                                title="Editar sección"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSection(sec)}
+                                className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1 rounded-lg"
+                                title="Eliminar sección"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
