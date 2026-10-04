@@ -7,6 +7,7 @@ import teacherAvatar from '../../assets/avatar_teacher.png'
 import {
   getAllUsers,
   updateUserStatus,
+  updateUsersStatusBatch,
   getOralEvaluations,
   getAcademicStructure,
   resetStudentEvaluation,
@@ -23,9 +24,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     if (user) setCurrentTeacher(user)
   }, [user])
 
-  // Segmentos / Toggles de Grados, Secciones y Filtro por Docente Asignado
+  // Segmentos / Toggles de Grados, Secciones, Especialidad de Bachillerato y Filtro por Docente Asignado
   const [gradePill, setGradePill] = useState('all')
   const [sectionPill, setSectionPill] = useState('all')
+  const [modalityPill, setModalityPill] = useState('all') // 'all' | 'General' | 'Técnico'
   const [levelPill, setLevelPill] = useState('all')
   // Por defecto, si el usuario logueado es uno de los docentes oficiales, se preselecciona ver sus alumnos asignados
   const [teacherFilter, setTeacherFilter] = useState(() => {
@@ -120,6 +122,38 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     }
   }
 
+  // Alternar Activo / Pausado de toda la lista filtrada
+  const [isBatchUpdatingStatus, setIsBatchUpdatingStatus] = useState(false)
+  const handleBatchToggleStatus = async () => {
+    if (filteredStudents.length === 0) return
+    const allActive = filteredStudents.every(s => s.status === 'active')
+    const targetStatus = allActive ? 'pending' : 'active'
+    const actionText = targetStatus === 'active' ? 'HABILITAR' : 'PAUSAR'
+
+    if (!confirm(`¿Deseas ${actionText} el acceso de los ${filteredStudents.length} alumnos de esta sección/vista?`)) return
+
+    setIsBatchUpdatingStatus(true)
+    const emailsToUpdate = filteredStudents.map(s => s.email).filter(Boolean)
+    const cleanEmails = emailsToUpdate.map(e => e.trim().toLowerCase())
+
+    // Actualización visual reactiva inmediata
+    setStudents(prev => prev.map(s => {
+      const email = (s.email || '').trim().toLowerCase()
+      if (cleanEmails.includes(email)) return { ...s, status: targetStatus }
+      return s
+    }))
+
+    try {
+      await updateUsersStatusBatch(cleanEmails, targetStatus, user.email)
+      await loadData()
+    } catch (e) {
+      console.error('Error al actualizar estados en lote:', e)
+      await loadData()
+    } finally {
+      setIsBatchUpdatingStatus(false)
+    }
+  }
+
   // Filtrado reactivo con Botones Ovalados
   const filteredStudents = students.filter(s => {
     const isCompleted = Boolean(s.assignedLevel)
@@ -143,6 +177,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
     const matchSection = sectionPill === 'all' || s.section === sectionPill
 
+    // Filtro de Especialidad / Modalidad de Bachillerato (General vs Técnico)
+    const matchModality = modalityPill === 'all' || s.especialidad === modalityPill
+
     // Filtro por nivel institucional actual (L1-A, L1-B, etc.)
     const matchLevel = levelPill === 'all' || s.currentLevel === levelPill
 
@@ -159,10 +196,11 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
       (s.name && s.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.carnet && s.carnet.includes(searchTerm)) ||
       (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.especialidad && s.especialidad.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.currentLevel && s.currentLevel.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.assignedTeacher && s.assignedTeacher.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    return matchStatus && matchGrade && matchSection && matchLevel && matchTeacher && matchSearch
+    return matchStatus && matchGrade && matchSection && matchModality && matchLevel && matchTeacher && matchSearch
   })
 
   // Paginación
@@ -234,7 +272,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
           </div>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="p-4 md:p-6 lg:p-8 space-y-6 max-w-[96rem] w-full mx-auto">
           
           {/* ================= SI HAY UN ALUMNO EN EVALUACIÓN ORAL ================= */}
           {activeInterviewStudent ? (
@@ -316,23 +354,26 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         { id: '10', label: '10°' },
                         { id: '11', label: '11°' },
                         { id: '12', label: '12°' }
-                      ]).map(g => (
-                        <button
-                          key={g.id}
-                          type="button"
-                          onClick={() => {
-                            setGradePill(g.id)
-                            setCurrentPage(1)
-                          }}
-                          className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
-                            gradePill === g.id
-                              ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
-                              : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          {g.label.length > 10 ? g.id + '°' : g.label}
-                        </button>
-                      ))}
+                      ]).map(g => {
+                        const shortLabel = g.id ? `${parseInt(g.id, 10)}°` : g.label
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={() => {
+                              setGradePill(g.id)
+                              setCurrentPage(1)
+                            }}
+                            className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                              gradePill === g.id
+                                ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
+                                : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            {shortLabel}
+                          </button>
+                        )
+                      })}
                     </div>
 
                     {/* Fila 2: Filtro por Docente Titular y Nivel Institucional Asignado */}
@@ -436,13 +477,46 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setSectionPill(sec)
                               setCurrentPage(1)
                             }}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                            className={`w-8 h-8 rounded-full text-xs font-black transition-all cursor-pointer flex items-center justify-center ${
                               sectionPill === sec
                                 ? 'bg-indigo-900 text-white shadow-sm ring-2 ring-indigo-200'
+                                : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                            }`}
+                            title={`Sección ${sec}`}
+                          >
+                            {sec}
+                          </button>
+                        ))}
+
+                        <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
+
+                        {/* Especialidad de Bachillerato: General / Técnico */}
+                        <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                          Bachillerato:
+                        </span>
+                        {[
+                          { id: 'all', label: 'Todos' },
+                          { id: 'General', label: 'General' },
+                          { id: 'Técnico', label: 'Técnico' }
+                        ].map(mod => (
+                          <button
+                            key={mod.id}
+                            type="button"
+                            onClick={() => {
+                              setModalityPill(mod.id)
+                              setCurrentPage(1)
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                              modalityPill === mod.id
+                                ? mod.id === 'Técnico'
+                                  ? 'bg-purple-700 text-white shadow-sm ring-2 ring-purple-200'
+                                  : mod.id === 'General'
+                                  ? 'bg-blue-700 text-white shadow-sm ring-2 ring-blue-200'
+                                  : 'bg-gray-900 text-white shadow-sm'
                                 : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
                             }`}
                           >
-                            Secc. {sec}
+                            {mod.label}
                           </button>
                         ))}
 
@@ -538,62 +612,104 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       <table className="w-full text-left text-xs md:text-sm">
                         <thead>
                           <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-white">
-                            <th className="py-3 px-4">Carnet</th>
-                            <th className="py-3 px-4">Estudiante</th>
-                            <th className="py-3 px-4">Grado & Secc.</th>
-                            <th className="py-3 px-4">Nivel Obtenido</th>
-                            <th className="py-3 px-4 text-center">Acceso</th>
-                            <th className="py-3 px-4 text-right">Acción</th>
+                            <th className="py-3 px-3">Carnet</th>
+                            <th className="py-3 px-3">Estudiante</th>
+                            <th className="py-3 px-3 text-center">Grado</th>
+                            <th className="py-3 px-3 text-center">Secc.</th>
+                            <th className="py-3 px-3 text-center">Especialidad</th>
+                            <th className="py-3 px-3">Docente</th>
+                            <th className="py-3 px-3 text-center">Nivel Actual</th>
+                            <th className="py-3 px-3 text-center">Nivel Obtenido</th>
+                            <th className="py-3 px-3 text-center">Acceso</th>
+                            <th className="py-3 px-3 text-right">Acción</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                           {paginatedStudents.length === 0 ? (
                             <tr>
-                              <td colSpan="5" className="py-12 text-center text-gray-400 text-xs italic">
+                              <td colSpan="10" className="py-12 text-center text-gray-400 text-xs italic">
                                 No se encontraron alumnos con los criterios seleccionados.
                               </td>
                             </tr>
                           ) : (
                             paginatedStudents.map((s) => {
                               const hasLevel = Boolean(s.assignedLevel)
+                              // Grado conciso: 6°, 7°, 8°, 9°, 10°, 11°, 12°
+                              const displayGrade = s.codigoGrado ? `${parseInt(s.codigoGrado, 10)}°` : (s.grade || '').match(/\d+/)?.[0] ? `${(s.grade || '').match(/\d+/)[0]}°` : s.grade
+
                               return (
                                 <tr key={s.carnet || s.email} className="hover:bg-indigo-50/30 transition-colors">
-                                  <td className="py-3.5 px-4 font-mono font-bold text-gray-700">{s.carnet || 'N/A'}</td>
-                                  <td className="py-3.5 px-4 font-semibold text-gray-900">
-                                    <div className="flex items-center gap-2">
+                                  <td className="py-3.5 px-3 font-mono font-bold text-gray-700">{s.carnet || 'N/A'}</td>
+                                  <td className="py-3.5 px-3 font-semibold text-gray-900">
+                                    <div className="flex items-center gap-1.5">
                                       <span>{s.name}</span>
                                       {s.selfReportedLevel && (
-                                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold" title="Nivel auto-percibido por el alumno">
+                                        <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold" title="Auto-reportado">
                                           Auto: {s.selfReportedLevel}
                                         </span>
                                       )}
                                     </div>
                                     <div className="text-[11px] text-gray-400 font-mono font-normal truncate max-w-xs">{s.email}</div>
                                   </td>
-                                  <td className="py-3.5 px-4">
-                                    <div className="space-y-1">
-                                      <span className="px-2.5 py-0.5 rounded-lg bg-gray-100 font-bold text-xs text-gray-700 block w-fit">
-                                        {s.grade} - Secc. {s.section}
-                                      </span>
-                                      {s.currentLevel && s.currentLevel !== 'Sin Nivel' && (
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-900 border border-indigo-200" title={`Nivel Inicial CSSJ: ${s.currentLevel}`}>
-                                            Nivel: {s.currentLevel}
-                                          </span>
-                                          {s.assignedTeacher && (
-                                            <span className="text-[10px] text-gray-500 font-medium">
-                                              👨‍🏫 {s.assignedTeacher}
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
+
+                                  {/* Columna: Grado (6°, 7°, 8°, 9°, 10°, 11°) */}
+                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                    <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 font-black text-xs text-slate-800 border border-slate-200 shadow-2xs">
+                                      {displayGrade}
+                                    </span>
                                   </td>
-                                  <td className="py-3.5 px-4">
+
+                                  {/* Columna: Sección (A, B, C...) */}
+                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 font-black text-xs text-indigo-700 border border-indigo-200 shadow-2xs">
+                                      {s.section || 'A'}
+                                    </span>
+                                  </td>
+
+                                  {/* Columna: Especialidad (General / Técnico / N/A) */}
+                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                    {s.especialidad ? (
+                                      <span className={`inline-block px-2.5 py-0.5 rounded-full font-black text-[11px] uppercase tracking-wider border shadow-2xs ${
+                                        s.especialidad === 'Técnico'
+                                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                          : 'bg-blue-50 text-blue-700 border-blue-200'
+                                      }`}>
+                                        {s.especialidad}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs font-semibold">-</span>
+                                    )}
+                                  </td>
+
+                                  {/* Columna: Docente */}
+                                  <td className="py-3.5 px-3 whitespace-nowrap">
+                                    {s.assignedTeacher ? (
+                                      <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">
+                                        <span>👨‍🏫</span>
+                                        <span>{s.assignedTeacher}</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs italic">Sin asignar</span>
+                                    )}
+                                  </td>
+
+                                  {/* Columna: Nivel Actual (Inicial) */}
+                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                    {s.currentLevel && s.currentLevel !== 'Sin Nivel' ? (
+                                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                                        {s.currentLevel}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs">-</span>
+                                    )}
+                                  </td>
+
+                                  {/* Columna: Nivel Obtenido (Oficial) */}
+                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
                                     {hasLevel ? (
-                                      <div className="inline-flex items-center gap-1.5">
-                                        <span className="px-3 py-1 rounded-full font-extrabold text-xs bg-emerald-100 text-emerald-800">
-                                          Oficial: {s.assignedLevel}
+                                      <div className="inline-flex items-center gap-1">
+                                        <span className="px-2.5 py-0.5 rounded-full font-black text-xs bg-indigo-600 text-white shadow-sm">
+                                          {s.assignedLevel}
                                         </span>
                                         <button
                                           type="button"
@@ -601,7 +717,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                           className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                           title={`Resetear nivel de ${s.name} a Sin Evaluar`}
                                         >
-                                          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                                          <span className="material-symbols-outlined text-[15px]">restart_alt</span>
                                         </button>
                                       </div>
                                     ) : (
@@ -613,24 +729,44 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                   <td className="py-3.5 px-4 text-center">
                                     {(() => {
                                       const isActive = s.status === 'active'
+                                      // Verificar si el alumno le pertenece al docente conectado
+                                      const userEmail = (user?.email || '').toLowerCase()
+                                      const userName = (user?.name || '').toLowerCase()
+                                      const isGlobalAdminOrCoord = user?.role === 'admin' || user?.role === 'coordination' || userEmail.includes('admin') || userEmail.includes('docente@')
+                                      const studentTeacher = (s.assignedTeacher || '').toLowerCase()
+                                      const studentTeacherEmail = (s.assignedTeacherEmail || '').toLowerCase()
+
+                                      const isMyStudent = isGlobalAdminOrCoord ||
+                                        (userEmail && studentTeacherEmail && userEmail === studentTeacherEmail) ||
+                                        (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
+                                        (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
+                                        (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi')))
+
                                       return (
                                         <button
                                           type="button"
+                                          disabled={!isMyStudent}
                                           onClick={(e) => {
                                             e.preventDefault()
                                             e.stopPropagation()
-                                            handleToggleStatus(s.email, s.status)
+                                            if (isMyStudent) handleToggleStatus(s.email, s.status)
                                           }}
-                                          className="inline-flex items-center gap-1.5 cursor-pointer select-none p-1 rounded-lg hover:bg-slate-100/80 transition-colors"
-                                          title={isActive ? 'Clic para pausar / desactivar acceso' : 'Clic para activar alumno'}
+                                          className={`inline-flex items-center gap-2 select-none px-2.5 py-1.5 rounded-xl border transition-all ${
+                                            !isMyStudent
+                                              ? 'cursor-not-allowed opacity-40 bg-gray-50 border-gray-200'
+                                              : isActive
+                                                ? 'cursor-pointer bg-emerald-50/80 border-emerald-200 hover:bg-emerald-100/70 shadow-2xs'
+                                                : 'cursor-pointer bg-slate-100 border-slate-200 hover:bg-slate-200/70 shadow-2xs'
+                                          }`}
+                                          title={!isMyStudent ? `Alumno asignado a ${s.assignedTeacher || 'otro docente'}` : (isActive ? 'Clic para pausar / desactivar acceso' : 'Clic para activar alumno')}
                                         >
-                                          <div className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all duration-200 pointer-events-none ${
+                                          <div className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-all duration-200 pointer-events-none ${
                                             isActive ? 'bg-emerald-500 justify-end' : 'bg-gray-300 justify-start'
                                           }`}>
                                             <div className="bg-white w-3.5 h-3.5 rounded-full shadow-sm"></div>
                                           </div>
-                                          <span className={`text-[10px] font-bold pointer-events-none ${
-                                            isActive ? 'text-emerald-700' : 'text-gray-400'
+                                          <span className={`text-[11px] font-extrabold pointer-events-none tracking-wide ${
+                                            isActive ? 'text-emerald-800' : 'text-gray-500'
                                           }`}>
                                             {isActive ? 'Activo' : 'Pausado'}
                                           </span>
@@ -639,24 +775,59 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                     })()}
                                   </td>
                                   <td className="py-3.5 px-4 text-right">
-                                    <div className="flex items-center justify-end gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => onSwitchToStudentView?.(s)}
-                                        className="p-2 rounded-xl text-gray-500 hover:text-[#2528b7] hover:bg-indigo-50 transition-colors"
-                                        title={`Ver portal como ${s.name}`}
-                                      >
-                                        <span className="material-symbols-outlined text-[18px]">visibility</span>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleStartInterview(s)}
-                                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#2528b7] to-[#4f46e5] hover:brightness-110 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer"
-                                      >
-                                        <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
-                                        <span>{hasLevel ? 'Reevaluar' : 'Llamar'}</span>
-                                      </button>
-                                    </div>
+                                    {(() => {
+                                      const userEmail = (user?.email || '').toLowerCase()
+                                      const userName = (user?.name || '').toLowerCase()
+                                      const isGlobalAdminOrCoord = user?.role === 'admin' || user?.role === 'coordination' || userEmail.includes('admin') || userEmail.includes('docente@')
+                                      const studentTeacher = (s.assignedTeacher || '').toLowerCase()
+                                      const studentTeacherEmail = (s.assignedTeacherEmail || '').toLowerCase()
+
+                                      const isMyStudent = isGlobalAdminOrCoord ||
+                                        (userEmail && studentTeacherEmail && userEmail === studentTeacherEmail) ||
+                                        (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
+                                        (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
+                                        (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi'))) ||
+                                        (userName && studentTeacher && userName.includes(studentTeacher))
+
+                                      return (
+                                        <div className="flex items-center justify-end gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => onSwitchToStudentView?.(s)}
+                                            className="p-2 rounded-xl text-gray-500 hover:text-[#2528b7] hover:bg-indigo-50 transition-colors cursor-pointer"
+                                            title={`Ver portal como ${s.name}`}
+                                          >
+                                            <span className="material-symbols-outlined text-[18px]">visibility</span>
+                                          </button>
+                                          {s.canEvaluate === false ? (
+                                            <span
+                                              className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold text-[11px] flex items-center gap-1 border border-slate-200 select-none"
+                                              title="Los alumnos de 11° General ya completaron su proceso o no se evalúan este año"
+                                            >
+                                              <span className="material-symbols-outlined text-[14px] text-slate-400">check_circle</span>
+                                              <span>No se evalúa</span>
+                                            </span>
+                                          ) : isMyStudent ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleStartInterview(s)}
+                                              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#2528b7] to-[#4f46e5] hover:brightness-110 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                              <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
+                                              <span>{hasLevel ? 'Reevaluar' : 'Llamar'}</span>
+                                            </button>
+                                          ) : (
+                                            <span
+                                              className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs flex items-center gap-1 cursor-not-allowed select-none"
+                                              title={`Solo puede ser evaluado por ${s.assignedTeacher || 'su docente titular'}`}
+                                            >
+                                              <span className="material-symbols-outlined text-[15px]">lock</span>
+                                              <span>Otro Docente</span>
+                                            </span>
+                                          )}
+                                        </div>
+                                      )
+                                    })()}
                                   </td>
                                 </tr>
                               )

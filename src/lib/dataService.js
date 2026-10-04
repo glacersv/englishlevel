@@ -25,15 +25,16 @@ export const sanitizeDocId = email => (email || '').trim().toLowerCase().replace
 
 const DEFAULT_ACADEMIC = {
   grades: [
-    { id: '6', label: '6° Grado' },
-    { id: '7', label: '7° Grado' },
-    { id: '8', label: '8° Grado' },
-    { id: '9', label: '9° Grado' },
-    { id: '10', label: '1° Bachillerato (10°)' },
-    { id: '11', label: '2° Bachillerato (11°)' },
-    { id: '12', label: '3° Bachillerato Técnico (12°)' }
+    { id: '6', label: '6°' },
+    { id: '7', label: '7°' },
+    { id: '8', label: '8°' },
+    { id: '9', label: '9°' },
+    { id: '10', label: '10°' },
+    { id: '11', label: '11°' },
+    { id: '12', label: '12°' }
   ],
   sections: ['A', 'B', 'C', 'D'],
+  modalities: ['General', 'Técnico'],
   levels: [
     { id: 'A1', name: 'A1 - Principiante / Acceso', color: '#10b981' },
     { id: 'A2', name: 'A2 - Básico / Plataforma', color: '#06b6d4' },
@@ -136,12 +137,24 @@ export async function deleteUser(email) {
   const cleanEmail = (email || '').trim().toLowerCase()
   const docId = sanitizeDocId(cleanEmail)
 
+  // En Firestore, marcamos el registro con status: 'deleted' y eliminamos cualquier dato
   if (isFirebaseConfigured()) {
     try {
-      await deleteDoc(doc(db, 'users', docId))
+      await setDoc(doc(db, 'users', docId), {
+        email: cleanEmail,
+        status: 'deleted',
+        deletedAt: new Date().toISOString()
+      }, { merge: true })
     } catch (err) {
-      console.warn('Error al eliminar usuario en Firestore:', err)
+      console.warn('Error al marcar eliminado en Firestore:', err)
     }
+  }
+
+  // Guardar en lista local de excluidos/eliminados
+  const deletedEmails = JSON.parse(localStorage.getItem('el_deleted_users') || '[]')
+  if (!deletedEmails.includes(cleanEmail)) {
+    deletedEmails.push(cleanEmail)
+    localStorage.setItem('el_deleted_users', JSON.stringify(deletedEmails))
   }
 
   const all = readLS(LS_USERS)
@@ -150,19 +163,55 @@ export async function deleteUser(email) {
   return true
 }
 
+export async function deleteUsersBatch(emails = []) {
+  if (!Array.isArray(emails) || emails.length === 0) return true
+  const cleanEmails = emails.map(e => (e || '').trim().toLowerCase()).filter(Boolean)
+
+  if (isFirebaseConfigured()) {
+    try {
+      const promises = cleanEmails.map(cleanEmail => {
+        const docId = sanitizeDocId(cleanEmail)
+        return setDoc(doc(db, 'users', docId), {
+          email: cleanEmail,
+          status: 'deleted',
+          deletedAt: new Date().toISOString()
+        }, { merge: true })
+      })
+      await Promise.all(promises)
+    } catch (err) {
+      console.warn('Error al marcar lote de eliminados en Firestore:', err)
+    }
+  }
+
+  // Guardar en lista local de excluidos/eliminados
+  const deletedEmails = JSON.parse(localStorage.getItem('el_deleted_users') || '[]')
+  for (const c of cleanEmails) {
+    if (!deletedEmails.includes(c)) deletedEmails.push(c)
+  }
+  localStorage.setItem('el_deleted_users', JSON.stringify(deletedEmails))
+
+  const all = readLS(LS_USERS)
+  const filtered = all.filter(u => !cleanEmails.includes(u.email.toLowerCase()))
+  writeLS(LS_USERS, filtered)
+  return true
+}
+
 export async function getAllUsers() {
   const localMap = new Map()
+  const deletedSet = new Set(JSON.parse(localStorage.getItem('el_deleted_users') || '[]'))
 
-  // 1. Cargar alumnos base del colegio
+  // 1. Cargar alumnos base del colegio (omitiendo eliminados)
   for (let s of defaultSchoolStudents) {
-    if (s.email) localMap.set(s.email.toLowerCase(), { ...s })
+    if (s.email && !deletedSet.has(s.email.toLowerCase())) {
+      localMap.set(s.email.toLowerCase(), { ...s })
+    }
   }
 
   // 2. Sobrescribir con lo guardado en LocalStorage
   const savedLS = readLS(LS_USERS)
   if (Array.isArray(savedLS)) {
     for (let u of savedLS) {
-      if (u.email) {
+      if (u.email && !deletedSet.has(u.email.toLowerCase()) && u.status !== 'deleted') {
         const key = u.email.toLowerCase()
         localMap.set(key, { ...(localMap.get(key) || {}), ...u })
       }
@@ -178,7 +227,12 @@ export async function getAllUsers() {
           const u = d.data()
           if (u.email) {
             const key = u.email.toLowerCase()
-            localMap.set(key, { ...(localMap.get(key) || {}), ...u })
+            if (u.status === 'deleted') {
+              localMap.delete(key)
+              deletedSet.add(key)
+            } else {
+              localMap.set(key, { ...(localMap.get(key) || {}), ...u })
+            }
           }
         }
       }
@@ -187,7 +241,62 @@ export async function getAllUsers() {
     }
   }
 
-  return Array.from(localMap.values())
+  // Carnets oficiales de los alumnos de 11° Técnico (que este año se evalúan para ser 12° el próximo año)
+  const tecTargetCarnets = [
+    '20160122', '20253108', '20220702', '20253105',
+    '20240901', '20253103', '20253106', '20253101'
+  ]
+
+  // 4. Normalizar campos: separar grado, seccion limpia (A, B, C, D) y especialidad (General / Técnico para bachillerato)
+  const normalizedList = Array.from(localMap.values()).map(u => {
+    let section = u.section || 'A'
+    let especialidad = u.especialidad || null
+    let canEvaluate = true
+
+    // Extraer número de grado (6 a 12)
+    let numGrado = '7'
+    if (u.codigoGrado) {
+      numGrado = String(parseInt(u.codigoGrado, 10))
+    } else if (u.grade) {
+      const match = String(u.grade).match(/\d+/)
+      if (match) numGrado = match[0]
+    }
+
+    if (tecTargetCarnets.includes(u.carnet)) {
+      numGrado = '11'
+      section = 'A'
+      especialidad = 'Técnico'
+      canEvaluate = true
+    } else {
+      const isBachi = ['10', '11', '12', '32'].includes(numGrado) || (u.grade || '').toLowerCase().includes('bachillerato')
+
+      if (section === 'Téc') {
+        section = 'A'
+        if (isBachi) especialidad = 'Técnico'
+      } else if (isBachi && !especialidad) {
+        especialidad = 'General'
+      }
+
+      // Si es 11° General, ya no se evalúan este año
+      if (numGrado === '11' && especialidad === 'General') {
+        canEvaluate = false
+      }
+    }
+
+    const isBachiFinal = ['10', '11', '12', '32'].includes(numGrado) || (u.grade || '').toLowerCase().includes('bachillerato')
+    const canonicalGrade = `${numGrado}°`
+
+    return {
+      ...u,
+      grade: canonicalGrade,
+      codigoGrado: numGrado,
+      section,
+      especialidad: isBachiFinal ? (especialidad || 'General') : null,
+      canEvaluate
+    }
+  })
+
+  return normalizedList
 }
 
 export async function updateUserStatus(email, newStatus, validatedByEmail) {
@@ -219,6 +328,42 @@ export async function updateUserStatus(email, newStatus, validatedByEmail) {
   }
   writeLS(LS_USERS, all)
   return update
+}
+
+export async function updateUsersStatusBatch(emails = [], newStatus, validatedByEmail) {
+  if (!Array.isArray(emails) || emails.length === 0) return true
+  const cleanEmails = emails.map(e => (e || '').trim().toLowerCase()).filter(Boolean)
+  const updatedAt = new Date().toISOString()
+  const update = {
+    status: newStatus,
+    validatedBy: validatedByEmail,
+    updatedAt
+  }
+
+  if (isFirebaseConfigured()) {
+    try {
+      const promises = cleanEmails.map(cleanEmail => {
+        const docId = sanitizeDocId(cleanEmail)
+        return setDoc(doc(db, 'users', docId), update, { merge: true })
+      })
+      await Promise.all(promises)
+    } catch (err) {
+      console.warn('Error al actualizar estados en lote en Firestore:', err)
+    }
+  }
+
+  const all = readLS(LS_USERS)
+  for (const cleanEmail of cleanEmails) {
+    const idx = all.findIndex(u => u.email?.toLowerCase() === cleanEmail)
+    if (idx >= 0) {
+      all[idx] = { ...all[idx], ...update }
+    } else {
+      const base = defaultSchoolStudents.find(s => s.email?.toLowerCase() === cleanEmail) || {}
+      all.push({ ...base, email: cleanEmail, ...update })
+    }
+  }
+  writeLS(LS_USERS, all)
+  return true
 }
 
 export async function batchSyncStudents(studentsList, validatedByEmail) {

@@ -3,8 +3,10 @@ import Sidebar from '../shared/Sidebar'
 import {
   getAllUsers,
   updateUserStatus,
+  updateUsersStatusBatch,
   registerOrUpdateUser,
   deleteUser,
+  deleteUsersBatch,
   batchSyncStudents,
   getAcademicStructure,
   saveAcademicStructure,
@@ -24,16 +26,21 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
   const [searchTerm, setSearchTerm] = useState('')
   const [isSyncing, setIsSyncing] = useState(false)
 
-  // Botones Ovalados de Grado (6 a 12) y Sección (A, B, C)
+  // Botones Ovalados de Grado (6 a 12), Sección (A, B, C) y Especialidad de Bachillerato (General / Técnico)
   const [gradePill, setGradePill] = useState('all') // 'all' | '6' | '7' | '8' | '9' | '10' | '11' | '12'
   const [sectionPill, setSectionPill] = useState('all') // 'all' | 'A' | 'B' | 'C'
+  const [modalityPill, setModalityPill] = useState('all') // 'all' | 'General' | 'Técnico'
   const [statusPill, setStatusPill] = useState('all') // 'all' | 'active' | 'pending'
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 12
 
-  // Modal CRUD para Crear / Editar Alumno o Docente
+  // Selección múltiple y eliminación por lote (toda la sección / seleccionados)
+  const [selectedEmails, setSelectedEmails] = useState([])
+  const [batchDeleteTarget, setBatchDeleteTarget] = useState(null) // { title, count, emails } para modal de confirmación en lote
+  const [userToDelete, setUserToDelete] = useState(null) // { email, name } para modal de confirmación individual
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [formData, setFormData] = useState({
@@ -42,6 +49,7 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     carnet: '',
     grade: '7° Grado',
     section: 'A',
+    especialidad: 'General',
     role: 'student',
     status: 'active'
   })
@@ -49,13 +57,13 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
   // Estructura Dinámica de Grados y Secciones (Firestore)
   const [academic, setAcademic] = useState({
     grades: [
-      { id: '6', label: '6° Grado' },
-      { id: '7', label: '7° Grado' },
-      { id: '8', label: '8° Grado' },
-      { id: '9', label: '9° Grado' },
-      { id: '10', label: '1° Bachillerato (10°)' },
-      { id: '11', label: '2° Bachillerato (11°)' },
-      { id: '12', label: '3° Bachillerato Técnico (12°)' }
+      { id: '6', label: '6°' },
+      { id: '7', label: '7°' },
+      { id: '8', label: '8°' },
+      { id: '9', label: '9°' },
+      { id: '10', label: '10°' },
+      { id: '11', label: '11°' },
+      { id: '12', label: '12°' }
     ],
     sections: ['A', 'B', 'C', 'D'],
     levels: [
@@ -108,16 +116,21 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
   // CRUD de Grados y Secciones en Firestore
   const handleAddGrade = async (e) => {
     e.preventDefault()
-    const gid = newGradeId.trim()
-    const glabel = newGradeLabel.trim()
-    if (!gid || !glabel) return
+    const gid = newGradeId.trim().replace(/[^0-9]/g, '')
+    if (!gid) {
+      alert('Ingresa el número del grado (ej. 6, 7, 10, etc.)')
+      return
+    }
+    const glabel = newGradeLabel.trim() || `${gid}°`
+    const canonicalLabel = glabel.includes('°') ? glabel : `${glabel}°`
+    
     if (academic.grades.some(g => g.id === gid)) {
-      alert(`El Grado con ID "${gid}" ya existe.`)
+      alert(`El Grado "${gid}°" ya existe en la configuración.`)
       return
     }
     const updated = {
       ...academic,
-      grades: [...academic.grades, { id: gid, label: glabel }]
+      grades: [...academic.grades, { id: gid, label: canonicalLabel }]
     }
     setIsSavingAcademic(true)
     await saveAcademicStructure(updated)
@@ -263,6 +276,45 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     }
   }
 
+  // Activar o desactivar en lote (Todos los filtrados o seleccionados)
+  const [isBatchUpdatingStatus, setIsBatchUpdatingStatus] = useState(false)
+  const handleBatchUpdateStatus = async (targetStatus, scope = 'filtered') => {
+    const emailsToUpdate = scope === 'selected' && selectedEmails.length > 0
+      ? selectedEmails
+      : filteredStudents.map(s => s.email).filter(Boolean)
+
+    if (emailsToUpdate.length === 0) {
+      alert('No hay alumnos para actualizar en la vista actual.')
+      return
+    }
+
+    const actionText = targetStatus === 'active' ? 'HABILITAR' : 'DESACTIVAR'
+    const confirmMsg = `¿Estás seguro de ${actionText} a los ${emailsToUpdate.length} alumnos ${scope === 'selected' ? 'seleccionados' : 'de la sección/filtro actual'}?`
+    if (!confirm(confirmMsg)) return
+
+    setIsBatchUpdatingStatus(true)
+    const cleanEmails = emailsToUpdate.map(e => e.trim().toLowerCase())
+    
+    // Actualización visual reactiva inmediata
+    setAllUsersList(prev => prev.map(u => {
+      const email = (u.email || '').trim().toLowerCase()
+      if (cleanEmails.includes(email)) {
+        return { ...u, status: targetStatus }
+      }
+      return u
+    }))
+
+    try {
+      await updateUsersStatusBatch(cleanEmails, targetStatus, user.email)
+      await loadData()
+    } catch (e) {
+      console.error('Error al actualizar estados en lote:', e)
+      await loadData()
+    } finally {
+      setIsBatchUpdatingStatus(false)
+    }
+  }
+
   // Abrir modal para Crear
   const handleOpenCreateModal = () => {
     setEditingUser(null)
@@ -270,8 +322,9 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
       name: '',
       email: '',
       carnet: '',
-      grade: '7° Grado',
+      grade: '7°',
       section: 'A',
+      especialidad: null,
       role: 'student',
       status: 'active'
     })
@@ -285,8 +338,9 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
       name: u.name || '',
       email: u.email || '',
       carnet: u.carnet || '',
-      grade: u.grade || '7° Grado',
+      grade: u.grade || '7°',
       section: u.section || 'A',
+      especialidad: u.especialidad || null,
       role: u.role || 'student',
       status: u.status || 'active'
     })
@@ -309,11 +363,65 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     await loadData()
   }
 
-  // Eliminar Usuario
-  const handleDeleteUser = async (targetEmail, targetName) => {
-    if (confirm(`¿Estás seguro de eliminar a "${targetName}" (${targetEmail}) de la plataforma?`)) {
-      await deleteUser(targetEmail)
+  // Abrir Modal de Confirmación para Eliminar Usuario individual
+  const handleDeleteUser = (targetEmail, targetName) => {
+    setUserToDelete({ email: targetEmail, name: targetName })
+  }
+
+  // Ejecutar eliminación confirmada individual
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return
+    setIsDeleting(true)
+    try {
+      await deleteUser(userToDelete.email)
+      setSelectedEmails(prev => prev.filter(e => e !== userToDelete.email))
       await loadData()
+      setUserToDelete(null)
+    } catch (e) {
+      console.error('Error eliminando usuario:', e)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Abrir Modal de Confirmación para Eliminar TODA la Sección o los Seleccionados
+  const handleTriggerDeleteSectionOrSelected = (type = 'filtered') => {
+    if (type === 'selected' && selectedEmails.length > 0) {
+      setBatchDeleteTarget({
+        title: `Eliminar ${selectedEmails.length} alumnos seleccionados`,
+        description: `Se eliminarán permanentemente los ${selectedEmails.length} alumnos seleccionados de la plataforma y de Firebase.`,
+        emails: selectedEmails
+      })
+    } else {
+      // Eliminar toda la sección actualmente filtrada
+      const emailsToDelete = filteredStudents.map(s => s.email).filter(Boolean)
+      if (emailsToDelete.length === 0) {
+        alert('No hay alumnos en la sección actual para eliminar.')
+        return
+      }
+      const gradeLabel = gradePill !== 'all' ? `${gradePill}°` : 'Todos los grados'
+      const secLabel = sectionPill !== 'all' ? `Sección ${sectionPill}` : 'Todas las secciones'
+      setBatchDeleteTarget({
+        title: `Eliminar toda la ${secLabel} (${gradeLabel})`,
+        description: `¿Estás seguro de eliminar a los ${emailsToDelete.length} alumnos de esta sección? Serán removidos permanentemente de la plataforma y de Firebase.`,
+        emails: emailsToDelete
+      })
+    }
+  }
+
+  // Ejecutar eliminación masiva confirmada desde el modal
+  const handleConfirmBatchDelete = async () => {
+    if (!batchDeleteTarget || !batchDeleteTarget.emails.length) return
+    setIsDeleting(true)
+    try {
+      await deleteUsersBatch(batchDeleteTarget.emails)
+      setSelectedEmails([])
+      await loadData()
+      setBatchDeleteTarget(null)
+    } catch (e) {
+      console.error('Error en eliminación masiva:', e)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -398,16 +506,16 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
         ])
   ]
 
-  // Secciones Dinámicas
+  // Secciones Dinámicas (Solo la letra de la sección: A, B, C...)
   const sectionButtonsList = [
-    { id: 'all', label: 'Todas las Secciones' },
+    { id: 'all', label: 'Todas' },
     ...(academic.sections && academic.sections.length > 0
-      ? academic.sections.map(s => ({ id: s, label: `Secc. ${s}` }))
+      ? academic.sections.map(s => ({ id: s, label: s }))
       : [
-          { id: 'A', label: 'Secc. A' },
-          { id: 'B', label: 'Secc. B' },
-          { id: 'C', label: 'Secc. C' },
-          { id: 'D', label: 'Secc. D' }
+          { id: 'A', label: 'A' },
+          { id: 'B', label: 'B' },
+          { id: 'C', label: 'C' },
+          { id: 'D', label: 'D' }
         ])
   ]
 
@@ -430,6 +538,9 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     // Coincidencia de Sección
     const matchSection = sectionPill === 'all' || s.section === sectionPill
 
+    // Coincidencia de Especialidad Bachillerato (General vs Técnico)
+    const matchModality = modalityPill === 'all' || s.especialidad === modalityPill
+
     // Coincidencia de Estado
     const matchStatus = statusPill === 'all' || s.status === statusPill
 
@@ -437,9 +548,10 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     const matchSearch = !searchTerm ||
       (s.name && s.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.carnet && s.carnet.includes(searchTerm)) ||
-      (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase()))
+      (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.especialidad && s.especialidad.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    return matchGrade && matchSection && matchStatus && matchSearch
+    return matchGrade && matchSection && matchModality && matchStatus && matchSearch
   })
 
   // Paginación computada
@@ -512,7 +624,7 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
           </div>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="p-4 md:p-6 lg:p-8 space-y-6 max-w-[96rem] w-full mx-auto">
           {/* SECCIÓN 1: SUPERVISIÓN GENERAL */}
           {currentSection === 'overview' && (
             <div className="space-y-6">
@@ -697,6 +809,41 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
 
                       <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
 
+                      {/* Especialidad Bachillerato */}
+                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                        Bachillerato:
+                      </span>
+                      {[
+                        { id: 'all', label: 'Todos' },
+                        { id: 'General', label: 'General' },
+                        { id: 'Técnico', label: 'Técnico' }
+                      ].map(mod => {
+                        const isSelected = modalityPill === mod.id
+                        return (
+                          <button
+                            key={mod.id}
+                            type="button"
+                            onClick={() => {
+                              setModalityPill(mod.id)
+                              setCurrentPage(1)
+                            }}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                              isSelected
+                                ? mod.id === 'Técnico'
+                                  ? 'bg-purple-700 text-white shadow-sm ring-2 ring-purple-200'
+                                  : mod.id === 'General'
+                                  ? 'bg-blue-700 text-white shadow-sm ring-2 ring-blue-200'
+                                  : 'bg-gray-900 text-white shadow-sm'
+                                : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {mod.label}
+                          </button>
+                        )
+                      })}
+
+                      <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
+
                       {/* Estado */}
                       <div className="flex items-center gap-1.5">
                         <button
@@ -780,75 +927,223 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
 
               {/* TABLA PRINCIPAL CON INTERRUPTORES SWITCH Y ACCIONES CRUD */}
               <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
-                  <span className="text-xs font-bold text-gray-800">
-                    Mostrando {paginatedStudents.length} de {filteredStudents.length} alumnos
-                  </span>
-                  <span className="text-[11px] text-gray-500">
-                    Interruptores de estado en tiempo real sincronizados con Firestore.
-                  </span>
+                <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50/50">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-gray-800">
+                      Mostrando {paginatedStudents.length} de {filteredStudents.length} alumnos
+                    </span>
+                    {selectedEmails.length > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-bold text-xs">
+                        {selectedEmails.length} seleccionados
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Botón único maestro: Alternar Activo / Pausado de toda la sección o filtro */}
+                    {filteredStudents.length > 0 && (() => {
+                      const scopeEmails = selectedEmails.length > 0
+                        ? selectedEmails
+                        : filteredStudents.map(s => s.email).filter(Boolean)
+                      const targetStudents = filteredStudents.filter(s => scopeEmails.includes(s.email))
+                      const allActive = targetStudents.length > 0 && targetStudents.every(s => s.status === 'active')
+                      const nextStatus = allActive ? 'pending' : 'active'
+                      const count = targetStudents.length
+
+                      return (
+                        <button
+                          type="button"
+                          disabled={isBatchUpdatingStatus || count === 0}
+                          onClick={() => handleBatchUpdateStatus(nextStatus, selectedEmails.length > 0 ? 'selected' : 'filtered')}
+                          className={`inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border text-xs font-black shadow-sm transition-all cursor-pointer disabled:opacity-50 ${
+                            allActive
+                              ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/20'
+                              : 'bg-slate-200 hover:bg-slate-300 text-slate-800 border-slate-300'
+                          }`}
+                          title={`Clic para ${allActive ? 'Pausar' : 'Activar'} todos los ${count} alumnos (${selectedEmails.length > 0 ? 'seleccionados' : 'de esta sección/filtro'})`}
+                        >
+                          <div className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-all duration-200 pointer-events-none ${
+                            allActive ? 'bg-white justify-end' : 'bg-gray-400 justify-start'
+                          }`}>
+                            <div className={`w-3.5 h-3.5 rounded-full shadow-xs ${
+                              allActive ? 'bg-emerald-600' : 'bg-white'
+                            }`}></div>
+                          </div>
+                          <span>
+                            {isBatchUpdatingStatus
+                              ? 'Actualizando...'
+                              : allActive
+                                ? `Todos Activos (${count})`
+                                : `Pausados (${count}) - Clic para Activar`}
+                          </span>
+                        </button>
+                      )
+                    })()}
+
+                    <span className="text-gray-300 hidden sm:inline">|</span>
+
+                    {/* Botón para eliminar alumnos seleccionados */}
+                    {selectedEmails.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerDeleteSectionOrSelected('selected')}
+                        className="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                        title="Eliminar los alumnos marcados con casilla"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+                        <span>Eliminar Seleccionados ({selectedEmails.length})</span>
+                      </button>
+                    )}
+
+                    {/* Botón para eliminar TODA la sección o filtro actual */}
+                    {filteredStudents.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerDeleteSectionOrSelected('filtered')}
+                        className="px-3.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        title={`Eliminar de una vez todos los ${filteredStudents.length} alumnos de esta sección`}
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete_forever</span>
+                        <span>Eliminar toda la Sección ({filteredStudents.length})</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs md:text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-white">
-                        <th className="py-3 px-4">Carnet</th>
-                        <th className="py-3 px-4">Estudiante</th>
-                        <th className="py-3 px-4">Grado / Secc</th>
-                        <th className="py-3 px-4">Nivel Oficial</th>
-                        <th className="py-3 px-4 text-center">Estado de Acceso</th>
-                        <th className="py-3 px-4 text-right">Acciones</th>
+                        <th className="py-3 px-3 text-center w-10">
+                          <input
+                            type="checkbox"
+                            checked={paginatedStudents.length > 0 && paginatedStudents.every(s => selectedEmails.includes(s.email))}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                const newEmails = Array.from(new Set([...selectedEmails, ...paginatedStudents.map(s => s.email)]))
+                                setSelectedEmails(newEmails)
+                              } else {
+                                const pageEmails = new Set(paginatedStudents.map(s => s.email))
+                                setSelectedEmails(selectedEmails.filter(em => !pageEmails.has(em)))
+                              }
+                            }}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            title="Seleccionar todos los de esta página"
+                          />
+                        </th>
+                        <th className="py-3 px-3">Carnet</th>
+                        <th className="py-3 px-3">Estudiante</th>
+                        <th className="py-3 px-3 text-center">Grado</th>
+                        <th className="py-3 px-3 text-center">Secc.</th>
+                        <th className="py-3 px-3 text-center">Especialidad</th>
+                        <th className="py-3 px-3">Docente</th>
+                        <th className="py-3 px-3 text-center">Nivel Actual</th>
+                        <th className="py-3 px-3 text-center">Nivel Oficial</th>
+                        <th className="py-3 px-3 text-center">Estado de Acceso</th>
+                        <th className="py-3 px-3 text-right">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {paginatedStudents.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="py-12 text-center text-gray-400 text-xs italic">
+                          <td colSpan="11" className="py-12 text-center text-gray-400 text-xs italic">
                             No se encontraron alumnos con los criterios seleccionados.
                           </td>
                         </tr>
                       ) : (
                         paginatedStudents.map((s) => {
                           const isActive = s.status === 'active'
+                          const isSelected = selectedEmails.includes(s.email)
+                          const displayGrade = s.codigoGrado ? `${parseInt(s.codigoGrado, 10)}°` : (s.grade || '').match(/\d+/)?.[0] ? `${(s.grade || '').match(/\d+/)[0]}°` : s.grade
+
                           return (
-                            <tr key={s.carnet || s.email} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="py-3.5 px-4 font-mono font-bold text-indigo-900">{s.carnet || 'N/A'}</td>
-                              <td className="py-3.5 px-4 font-semibold text-gray-900">
-                                <div className="flex items-center gap-2">
+                            <tr key={s.carnet || s.email} className={`hover:bg-slate-50/80 transition-colors ${isSelected ? 'bg-indigo-50/40' : ''}`}>
+                              {/* Casilla de selección individual */}
+                              <td className="py-3.5 px-3 text-center w-10">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedEmails(prev => [...prev, s.email])
+                                    } else {
+                                      setSelectedEmails(prev => prev.filter(em => em !== s.email))
+                                    }
+                                  }}
+                                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                />
+                              </td>
+                              <td className="py-3.5 px-3 font-mono font-bold text-indigo-900">{s.carnet || 'N/A'}</td>
+                              <td className="py-3.5 px-3 font-semibold text-gray-900">
+                                <div className="flex items-center gap-1.5">
                                   <span>{s.name}</span>
                                   {s.selfReportedLevel && (
-                                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold" title="Nivel auto-percibido por el alumno">
+                                    <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold" title="Auto-reportado">
                                       Auto: {s.selfReportedLevel}
                                     </span>
                                   )}
                                 </div>
                                 <div className="text-[11px] text-gray-400 font-mono font-normal truncate max-w-xs">{s.email}</div>
                               </td>
-                              <td className="py-3.5 px-4">
-                                <div className="space-y-1">
-                                  <span className="px-3 py-1 rounded-full bg-slate-100 font-bold text-xs text-gray-700 block w-fit">
-                                    {s.grade} - Secc. {s.section}
-                                  </span>
-                                  {s.currentLevel && s.currentLevel !== 'Sin Nivel' && (
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-900 border border-indigo-200">
-                                        Nivel: {s.currentLevel}
-                                      </span>
-                                      {s.assignedTeacher && (
-                                        <span className="text-[10px] text-gray-500 font-medium">
-                                          👨‍🏫 {s.assignedTeacher}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
+
+                              {/* Columna: Grado (6°, 7°, 8°, 9°, 10°, 11°) */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 font-black text-xs text-slate-800 border border-slate-200 shadow-2xs">
+                                  {displayGrade}
+                                </span>
                               </td>
-                              <td className="py-3.5 px-4">
+
+                              {/* Columna: Sección (A, B, C...) */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 font-black text-xs text-indigo-700 border border-indigo-200 shadow-2xs">
+                                  {s.section || 'A'}
+                                </span>
+                              </td>
+
+                              {/* Columna: Especialidad (General / Técnico / -) */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                {s.especialidad ? (
+                                  <span className={`inline-block px-2.5 py-0.5 rounded-full font-black text-[11px] uppercase tracking-wider border shadow-2xs ${
+                                    s.especialidad === 'Técnico'
+                                      ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                                  }`}>
+                                    {s.especialidad}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 text-xs font-semibold">-</span>
+                                )}
+                              </td>
+
+                              {/* Columna: Docente */}
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                {s.assignedTeacher ? (
+                                  <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">
+                                    <span>👨‍🏫</span>
+                                    <span>{s.assignedTeacher}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 text-xs italic">Sin asignar</span>
+                                )}
+                              </td>
+
+                              {/* Columna: Nivel Actual (Inicial) */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                {s.currentLevel && s.currentLevel !== 'Sin Nivel' ? (
+                                  <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                                    {s.currentLevel}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 text-xs">-</span>
+                                )}
+                              </td>
+
+                              {/* Columna: Nivel Oficial */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
                                 {s.assignedLevel ? (
-                                  <div className="inline-flex items-center gap-1.5">
-                                    <span className="px-3 py-1 rounded-full font-bold text-xs bg-indigo-100 text-[#2528b7]">
-                                      Oficial: {s.assignedLevel}
+                                  <div className="inline-flex items-center gap-1">
+                                    <span className="px-2.5 py-0.5 rounded-full font-black text-xs bg-indigo-600 text-white shadow-sm">
+                                      {s.assignedLevel}
                                     </span>
                                     <button
                                       type="button"
@@ -856,7 +1151,7 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                                       className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                       title={`Resetear nivel de ${s.name} a Sin Evaluar`}
                                     >
-                                      <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                                      <span className="material-symbols-outlined text-[15px]">restart_alt</span>
                                     </button>
                                   </div>
                                 ) : (
@@ -873,13 +1168,13 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                                     e.stopPropagation()
                                     handleToggleStatus(s.email, s.status)
                                   }}
-                                  className="inline-flex items-center gap-2 cursor-pointer select-none p-1 rounded-lg hover:bg-slate-100/80 transition-colors"
+                                  className="inline-flex items-center gap-2 cursor-pointer select-none p-1 rounded-lg px-2.5 py-1.5 rounded-xl border transition-all"
                                   title={isActive ? 'Clic para pausar acceso' : 'Clic para habilitar acceso'}
                                 >
-                                  <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-all duration-200 pointer-events-none ${
+                                  <div className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-all duration-200 pointer-events-none ${
                                     isActive ? 'bg-emerald-500 justify-end' : 'bg-gray-300 justify-start'
                                   }`}>
-                                    <div className="bg-white w-4 h-4 rounded-full shadow-md"></div>
+                                    <div className="bg-white w-3.5 h-3.5 rounded-full shadow-sm"></div>
                                   </div>
                                   <span className={`text-[11px] font-bold pointer-events-none ${
                                     isActive ? 'text-emerald-700' : 'text-gray-400'
@@ -1581,16 +1876,28 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Rol</label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold focus:outline-none"
-                  >
-                    <option value="student">Alumno</option>
-                    <option value="teacher">Docente de Inglés</option>
-                    <option value="coordination">Coordinación</option>
-                  </select>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Rol de Usuario</label>
+                  <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+                    {[
+                      { id: 'student', label: 'Alumno', icon: 'school' },
+                      { id: 'teacher', label: 'Docente', icon: 'person' },
+                      { id: 'coordination', label: 'Coordinación', icon: 'manage_accounts' }
+                    ].map(r => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, role: r.id })}
+                        className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          formData.role === r.id
+                            ? 'bg-[#2528b7] text-white shadow-sm ring-1 ring-indigo-200'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-slate-200/60'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[15px]">{r.icon}</span>
+                        <span>{r.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1608,27 +1915,97 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
               </div>
 
               {formData.role === 'student' && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3.5 pt-1 border-t border-gray-100">
+                  {/* Selector de Grado con Toggles Ovalados */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Grado</label>
-                    <input
-                      type="text"
-                      value={formData.grade}
-                      onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                      placeholder="7° Grado"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:outline-none"
-                    />
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      Grado Académico ({formData.grade})
+                    </label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {(academic.grades && academic.grades.length > 0 ? academic.grades : [
+                        { id: '6', label: '6°' },
+                        { id: '7', label: '7°' },
+                        { id: '8', label: '8°' },
+                        { id: '9', label: '9°' },
+                        { id: '10', label: '10°' },
+                        { id: '11', label: '11°' },
+                        { id: '12', label: '12°' }
+                      ]).map(g => {
+                        const gradeVal = `${parseInt(g.id, 10)}°`
+                        const isSelected = formData.grade === gradeVal || (formData.grade || '').includes(g.id)
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={() => {
+                              const num = String(parseInt(g.id, 10))
+                              const isBachi = ['10', '11', '12'].includes(num)
+                              setFormData({
+                                ...formData,
+                                grade: `${num}°`,
+                                especialidad: isBachi ? (formData.especialidad || 'General') : null
+                              })
+                            }}
+                            className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
+                                : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            {parseInt(g.id, 10)}°
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
+
+                  {/* Selector de Sección con Toggles Circulares */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Sección</label>
-                    <input
-                      type="text"
-                      value={formData.section}
-                      onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                      placeholder="A"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:outline-none"
-                    />
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                      Sección ({formData.section || 'A'})
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {(academic.sections && academic.sections.length > 0 ? academic.sections : ['A', 'B', 'C', 'D']).map(sec => (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, section: sec })}
+                          className={`w-9 h-9 rounded-full text-xs font-black transition-all cursor-pointer flex items-center justify-center ${
+                            formData.section === sec
+                              ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
+                              : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          {sec}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Especialidad de Bachillerato con Toggles */}
+                  {['10', '11', '12'].some(id => (formData.grade || '').includes(id)) && (
+                    <div className="p-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-2">
+                      <label className="block text-xs font-extrabold text-[#2528b7]">
+                        Especialidad de Bachillerato
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {['General', 'Técnico'].map(esp => (
+                          <button
+                            key={esp}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, especialidad: esp })}
+                            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                              formData.especialidad === esp
+                                ? 'bg-[#2528b7] text-white shadow-sm'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {esp}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1652,6 +2029,110 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
         </div>
       )}
 
+      {/* ================= MODAL DE CONFIRMACIÓN: ELIMINAR USUARIO ================= */}
+      {userToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 md:p-7 max-w-md w-full shadow-2xl border border-red-100 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[26px]">delete_forever</span>
+              </div>
+              <div>
+                <h3 className="font-heading font-extrabold text-base text-gray-900">
+                  ¿Eliminar este usuario?
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Esta acción removerá al alumno de la nómina y de la base de datos de Firebase.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-xs space-y-1">
+              <div className="font-bold text-gray-800">{userToDelete.name}</div>
+              <div className="font-mono text-gray-500 text-[11px] truncate">{userToDelete.email}</div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setUserToDelete(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {isDeleting ? 'progress_activity' : 'delete'}
+                </span>
+                <span>{isDeleting ? 'Eliminando...' : 'Sí, Eliminar'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL DE CONFIRMACIÓN: ELIMINACIÓN MASIVA O SECCIÓN ================= */}
+      {batchDeleteTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 md:p-7 max-w-md w-full shadow-2xl border border-red-100 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[26px]">folder_delete</span>
+              </div>
+              <div>
+                <h3 className="font-heading font-extrabold text-base text-gray-900">
+                  {batchDeleteTarget.title}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  {batchDeleteTarget.description}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-red-50/70 rounded-2xl border border-red-100 text-xs space-y-2">
+              <div className="flex items-center justify-between text-red-800 font-bold">
+                <span>Total de estudiantes a eliminar:</span>
+                <span className="text-sm px-2 py-0.5 bg-red-200 text-red-900 rounded-lg">
+                  {batchDeleteTarget.emails.length}
+                </span>
+              </div>
+              <p className="text-[11px] text-red-600">
+                ⚠️ Esta acción es irreversible. Se eliminarán de Firebase y de los listados activos de evaluación.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setBatchDeleteTarget(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmBatchDelete}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {isDeleting ? 'progress_activity' : 'delete_sweep'}
+                </span>
+                <span>{isDeleting ? 'Eliminando en lote...' : 'Sí, Eliminar Todos'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
+
   )
 }
