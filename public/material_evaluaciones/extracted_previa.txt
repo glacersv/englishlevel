@@ -1,0 +1,550 @@
+﻿
+
+w14:paraId="1ABF4152" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Final Speaking Evaluation – Questions by Level
+w14:paraId="3639A641" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Columns: Level | Grammar Point / Topic | # | Question
+w14:paraId="5CABDFAE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="48B10EC5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Level
+w14:paraId="4B907F5F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Grammar Point / Topic
+w14:paraId="01733742" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">#
+w14:paraId="3C1B86FD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Question
+w14:paraId="0310F026" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="3BD9950E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Simple Present
+w14:paraId="25381D38" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">1
+w14:paraId="74C5C3BC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What do you do every morning when you wake up?
+w14:paraId="3F959CCE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="69AD6E30" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Simple Present
+w14:paraId="3D692218" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">2
+w14:paraId="054DD9D3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you like ice cream?
+w14:paraId="184FF2CD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="4E226648" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Simple Present
+w14:paraId="18BAC0C2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">3
+w14:paraId="4F819BD5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Where do you live?
+w14:paraId="5FC8A586" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="2F82F493" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Verb "To Be"
+w14:paraId="4DED7EA6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">4
+w14:paraId="2B207894" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Are you a student?
+w14:paraId="03C7B3F9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="1F4FFFD9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Verb "To Be"
+w14:paraId="5B16D7A3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">5
+w14:paraId="165B5DB6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Is she your friend?
+w14:paraId="4D76E235" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="64D0EA1C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Verb "To Be"
+w14:paraId="3DB232BA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">6
+w14:paraId="7850DB64" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Is it cold today?
+w14:paraId="26245D17" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="5C140ED3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Wh-Questions
+w14:paraId="08899BD5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">7
+w14:paraId="222BF26D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Where do you live?
+w14:paraId="1D193828" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="6B8C153E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Wh-Questions
+w14:paraId="7817ECFF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">8
+w14:paraId="48EBEE0B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is your favorite color?
+w14:paraId="1930598E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="6EE84EB6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Wh-Questions
+w14:paraId="612089CF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">9
+w14:paraId="3853C768" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">When do you usually eat lunch?
+w14:paraId="36E4F71F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="08E91F82" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Possessive Adjectives
+w14:paraId="726A627D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">10
+w14:paraId="76515250" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Is this your book?
+w14:paraId="44F15AE6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="7A391081" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Possessive Adjectives
+w14:paraId="7A3B14BA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">11
+w14:paraId="47972B1E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Are those her shoes?
+w14:paraId="669A3A7D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="45C2BC3B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Possessive Adjectives
+w14:paraId="5ABBEFB6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">12
+w14:paraId="76E7EF82" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Whose phone is this?
+w14:paraId="2D752945" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="02BCF910" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Leisure Activities
+w14:paraId="26AB88BF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">13
+w14:paraId="1DA9C821" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you like swimming?
+w14:paraId="6D121C56" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="6AD5FA3D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Leisure Activities
+w14:paraId="2DEDDEB0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">14
+w14:paraId="1984C867" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What games do you enjoy playing?
+w14:paraId="6B061D3B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="649C5339" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Leisure Activities
+w14:paraId="5C319609" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">15
+w14:paraId="7555B96C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you spend your free time?
+w14:paraId="3A4A31CC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="4B653799" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Present Simple
+w14:paraId="0512D648" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">16
+w14:paraId="3EB338A3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">She usually reads books. What does she usually do?
+w14:paraId="50726D71" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="50DD6DBA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Present Simple
+w14:paraId="59C76511" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">17
+w14:paraId="517D179D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">They travel to Europe every summer. Where do they travel every summer?
+w14:paraId="5D38E223" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="6A48504C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Present Simple
+w14:paraId="733D6FEA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">18
+w14:paraId="16FB4AF6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">I eat lunch at 12:30. When do you eat lunch?
+w14:paraId="21D073DD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="54F9A01A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Daily Activities
+w14:paraId="077FF5D7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">19
+w14:paraId="5306FE43" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What do you do after work or school?
+w14:paraId="3802ED0F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="634D325D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Daily Activities
+w14:paraId="2391F26D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">20
+w14:paraId="310E14DE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How often do you exercise during the week?
+w14:paraId="2676FA7C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="3D741E6B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Daily Activities
+w14:paraId="2ABFD1A1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">21
+w14:paraId="1BD9D067" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you have a specific routine before going to bed?
+w14:paraId="7F359F48" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="472C8232" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Adverbs of Frequency
+w14:paraId="118B8784" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">22
+w14:paraId="30DA9424" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How often do you go to the gym?
+w14:paraId="4D0F013B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="53AF20DB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Adverbs of Frequency
+w14:paraId="008C4508" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">23
+w14:paraId="204104B9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How frequently do you see your family?
+w14:paraId="488DCEDC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="0345A0DF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Adverbs of Frequency
+w14:paraId="21394169" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">24
+w14:paraId="2C8F2E0B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Does she visit the museum regularly?
+w14:paraId="1636CC40" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="4F466993" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Time Expressions
+w14:paraId="5B4CFA54" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">25
+w14:paraId="332C3EC2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What time does your favorite TV show start?
+w14:paraId="4C42FA92" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="409395A5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Time Expressions
+w14:paraId="78E0B647" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">26
+w14:paraId="5FBDABBD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What time do you arrive at work/school?
+w14:paraId="62A1074D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="56A20524" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Time Expressions
+w14:paraId="20AC0CB3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">27
+w14:paraId="036FE19C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">When do you usually have breakfast?
+w14:paraId="7AD8AA78" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="6510ADC2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Hobbies and Interests
+w14:paraId="4BE6E888" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">28
+w14:paraId="74738950" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What kind of music do you enjoy?
+w14:paraId="17B49D8F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="070D4421" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Hobbies and Interests
+w14:paraId="22FB5CEA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">29
+w14:paraId="202835F5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Have you ever tried any extreme sports?
+w14:paraId="4BC65C40" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="13CDECD4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Hobbies and Interests
+w14:paraId="5E0331DE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">30
+w14:paraId="3B9CFBF9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What hobbies do you enjoy in your free time?
+w14:paraId="65AABAF6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="61D369A6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Family Vocabulary
+w14:paraId="0688EFEE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">31
+w14:paraId="4E694325" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How many people are there in your family?
+w14:paraId="6F73ACBD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="43B6D18F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Family Vocabulary
+w14:paraId="57924160" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">32
+w14:paraId="20E2E555" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Who is your best friend? Describe them.
+w14:paraId="69D8B59C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="39BC039B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Family Vocabulary
+w14:paraId="7CE3144B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">33
+w14:paraId="2E8E69EC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you have any pets? What are their names?
+w14:paraId="2ABC155F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="0C8CA512" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Descriptive Adjectives
+w14:paraId="0AA568ED" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">34
+w14:paraId="06B70738" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Can you describe a typical day in your life?
+w14:paraId="33EDEF24" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="49FC0627" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Descriptive Adjectives
+w14:paraId="6484EA58" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">35
+w14:paraId="5A1F2C8D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you manage your study time?
+w14:paraId="1C9067A0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="6AE41766" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Descriptive Adjectives
+w14:paraId="4B629FB0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">36
+w14:paraId="2194F1B0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How does your daily routine differ on weekdays versus weekends?
+w14:paraId="6D31B84D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="2778457B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Pets and Descriptions
+w14:paraId="4C0E3B8D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">37
+w14:paraId="590F6F15" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you have any pets? Describe them.
+w14:paraId="729A5A1C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="267FCB80" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Pets and Descriptions
+w14:paraId="0FAEB390" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">38
+w14:paraId="3C2B486B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is the most interesting place you have visited with your pet?
+w14:paraId="2A5562C5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="28BAF450" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Pets and Descriptions
+w14:paraId="273B6540" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">39
+w14:paraId="2CA806F7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How often do you play with your pets?
+w14:paraId="79998F82" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="132374A7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Frequency Adverbs
+w14:paraId="523ED90C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">40
+w14:paraId="50198BE8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How often do you see your relatives?
+w14:paraId="032E2C8A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="1D6F58D1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Frequency Adverbs
+w14:paraId="53AF039F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">41
+w14:paraId="7C2AD65B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What do you like to do with your friends?
+w14:paraId="2EA4A3F4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A1
+w14:paraId="7D328288" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Frequency Adverbs
+w14:paraId="15C692C5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">42
+w14:paraId="7DF950AD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How often do you go shopping?
+w14:paraId="674D979C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="0046445B">
+w14:paraId="26BE27B8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="680694D5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Level
+w14:paraId="5F88AB29" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Grammar Point / Topic
+w14:paraId="191B206F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">#
+w14:paraId="40B80250" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Question
+w14:paraId="4B9EF792" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="2C8C8278" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Activities
+w14:paraId="2575F4AF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">43
+w14:paraId="3938B52B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What do you like to do with your friends?
+w14:paraId="209B6862" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="05003A97" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Activities
+w14:paraId="74D4752A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">44
+w14:paraId="159FC2F2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Have you ever experienced any culture shock while traveling?
+w14:paraId="6F5AAB68" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="046EA028" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Activities
+w14:paraId="2302DD40" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">45
+w14:paraId="3FEE9500" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you manage your study time?
+w14:paraId="57A9E40E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="2B9EC1AE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Talking About Hobbies
+w14:paraId="04790CD4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">46
+w14:paraId="32EDC19C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Have you ever attended a music concert?
+w14:paraId="5B232D5B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="6F8FDEF6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Talking About Hobbies
+w14:paraId="7D697A93" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">47
+w14:paraId="5290594E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you prefer reading books or watching movies? Why?
+w14:paraId="63E08EE1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="38D63CB5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Talking About Hobbies
+w14:paraId="0DE3C5F9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">48
+w14:paraId="762E893E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What hobbies do you enjoy in your free time?
+w14:paraId="1AC468BC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="7BF2BC73" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Past Simple for Experiences
+w14:paraId="2A3484E9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">49
+w14:paraId="3BDB9F4F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How often did you go on family vacations as a child?
+w14:paraId="60A4F6F8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="33A371F8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Past Simple for Experiences
+w14:paraId="205803D3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">50
+w14:paraId="6B976920" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Did you ever meet a famous person?
+w14:paraId="2CF274EF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="6C7CD0FC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Past Simple for Experiences
+w14:paraId="0B6A3D6D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">51
+w14:paraId="05C3250A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Have you ever tried scuba diving?
+w14:paraId="3F5FEBD1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="5DE68AB0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Expressing Preferences
+w14:paraId="70637300" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">52
+w14:paraId="323FCAE0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you prefer to travel alone or with others? Why?
+w14:paraId="1F3F9D59" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="6684198D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Expressing Preferences
+w14:paraId="74D5153B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">53
+w14:paraId="2D9C5E90" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is your favorite way to relax after a long day?
+w14:paraId="73A789C5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="7D5D521C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Expressing Preferences
+w14:paraId="0023ECA5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">54
+w14:paraId="7D3A1BC7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you prefer living in a city or a rural area? Why?
+w14:paraId="30D8D72C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="09C384F6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Comparing and Contrasting
+w14:paraId="2CD079E8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">55
+w14:paraId="54E17705" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is the most interesting place you have visited, and how does it compare to your hometown?
+w14:paraId="5A8AD637" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="1B48D72C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Comparing and Contrasting
+w14:paraId="547368A2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">56
+w14:paraId="6A81EAC9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Compare the advantages and disadvantages of working from home.
+w14:paraId="7F6181C8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="5ABCD4BC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Comparing and Contrasting
+w14:paraId="193A0C89" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">57
+w14:paraId="62FFAE3F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Compare traditional education to online learning.
+w14:paraId="149DCCC6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="04C59615" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Describing Places
+w14:paraId="2B1B686A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">58
+w14:paraId="55817A9B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What was your favorite holiday destination, and why?
+w14:paraId="12E065F8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="45B49EFB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Describing Places
+w14:paraId="3D43CC64" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">59
+w14:paraId="6D04DD8F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Describe a place you have never visited but would like to go.
+w14:paraId="24F1AFC8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">A2
+w14:paraId="66F1469F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Describing Places
+w14:paraId="512F4017" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">60
+w14:paraId="1CBA95A3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Describe a memorable vacation experience.
+w14:paraId="77C3A85A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="0046445B">
+w14:paraId="281E8221" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="3572E22A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Level
+w14:paraId="135B2540" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Grammar Point / Topic
+w14:paraId="2AB0C05F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">#
+w14:paraId="59D0D839" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Question
+w14:paraId="7D13A2CD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="7559906D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Travel Preferences
+w14:paraId="08068C7A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">61
+w14:paraId="7E47E6EE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you plan your holidays or trips?
+w14:paraId="075225F7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="75871B8A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Travel Preferences
+w14:paraId="5B3880C8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">62
+w14:paraId="21B1580B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Share a memorable experience from one of your trips or holidays.
+w14:paraId="1C11B180" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="6DD33F15" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Travel Preferences
+w14:paraId="5C2802B0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">63
+w14:paraId="05FBEFBC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What challenges might someone face while traveling to a new country?
+w14:paraId="0D3F8907" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="59788B89" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Comparatives and Superlatives
+w14:paraId="008DF73E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">64
+w14:paraId="6152AB49" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you see data analysis evolving in the future?
+w14:paraId="0507275A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="7E7D4FB4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Comparatives and Superlatives
+w14:paraId="2867AC72" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">65
+w14:paraId="2C4F553A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">In what ways does data analysis play a role in addressing global challenges?
+w14:paraId="6800240D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="68740054" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Comparatives and Superlatives
+w14:paraId="453D8F26" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">66
+w14:paraId="65A98F93" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can data analysis help us better understand complex systems like climate change or epidemiology?
+w14:paraId="5AAD48B7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="44CB6AA6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Future Plans
+w14:paraId="4AC737CC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">67
+w14:paraId="57B4709D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What are your future career plans?
+w14:paraId="02432491" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="64DE8080" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Future Plans
+w14:paraId="46F4A6B0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">68
+w14:paraId="32AB85E8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you think artificial intelligence will impact our future?
+w14:paraId="2D58BBDB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="402B856B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Future Plans
+w14:paraId="60AA30F0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">69
+w14:paraId="7C244392" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can individuals contribute to their community?
+w14:paraId="5EE0D6A7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="72979FA1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Cultural Experiences
+w14:paraId="3DD3D0F5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">70
+w14:paraId="02042F62" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What do you think are the biggest social issues in our society today?
+w14:paraId="41D60D42" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="4BC77E28" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Cultural Experiences
+w14:paraId="3F3FB4ED" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">71
+w14:paraId="0A0CAD43" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can technology aid or disrupt daily routines?
+w14:paraId="232CD87E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="0A7A0D54" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Cultural Experiences
+w14:paraId="075E01CC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">72
+w14:paraId="3C779E04" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do societal expectations influence individuals' daily routines?
+w14:paraId="17EEB752" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="3BFB7C29" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">School Subjects and Preferences
+w14:paraId="39D713A7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">73
+w14:paraId="0B19B095" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is your favorite subject at school? Why?
+w14:paraId="29309967" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="4879D32B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">School Subjects and Preferences
+w14:paraId="04A6EECB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">74
+w14:paraId="132390E1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Have you ever had a memorable teacher? Describe them.
+w14:paraId="1882CDF9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="6D2481F3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">School Subjects and Preferences
+w14:paraId="2C9A45D5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">75
+w14:paraId="3575CE47" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What are the key elements in fostering a culture of innovation?
+w14:paraId="11213E6F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="4364F533" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Career Aspirations
+w14:paraId="131F8D4E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">76
+w14:paraId="3C7CB2C4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can individuals contribute to their community?
+w14:paraId="19386E27" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="24E69713" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Career Aspirations
+w14:paraId="3D3E83A0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">77
+w14:paraId="224C7528" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How might someone's career influence their daily routine, and vice versa?
+w14:paraId="657E24F0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="335BE600" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Career Aspirations
+w14:paraId="67936D88" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">78
+w14:paraId="1DDDEAF3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you interpret statistical data in your work?
+w14:paraId="2A0B0A36" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="04938646" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Time Management
+w14:paraId="2A92D7F0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">79
+w14:paraId="5E72E7FB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you balance work and personal life?
+w14:paraId="4FAFB346" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="227D64DD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Time Management
+w14:paraId="3F93435C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">80
+w14:paraId="0F8BE86E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What kind of decisions benefit from data analysis?
+w14:paraId="64061080" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="57B3E6A6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Time Management
+w14:paraId="2BA45A94" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">81
+w14:paraId="5B33A54C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How has the availability of data influenced business decision-making?
+w14:paraId="66939E34" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="48290CAD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Part-Time Jobs and Job Descriptions
+w14:paraId="69D8363E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">82
+w14:paraId="26A5C9DB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you balance work and personal life?
+w14:paraId="765D2DF5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="6FB903B1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Part-Time Jobs and Job Descriptions
+w14:paraId="27CF8886" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">83
+w14:paraId="5FB553D2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do cultural differences influence daily routines in different countries?
+w14:paraId="0069C83D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B1
+w14:paraId="75338CE5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Part-Time Jobs and Job Descriptions
+w14:paraId="55B12AFF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">84
+w14:paraId="08CB5FF7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you see data analysis evolving in the future?
+w14:paraId="4DE4D4FB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="0046445B">
+w14:paraId="5ECB8C8E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="41DC0897" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Level
+w14:paraId="31425D00" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Grammar Point / Topic
+w14:paraId="59F6A22A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">#
+w14:paraId="65B804F0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Question
+w14:paraId="74BC8FF9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="00EC2EE9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Issues and Opinions
+w14:paraId="7FD04009" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">85
+w14:paraId="73359D97" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What do you think are the biggest social issues in our society today?
+w14:paraId="6E5ACE05" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="2C9E913A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Issues and Opinions
+w14:paraId="5A3617D7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">86
+w14:paraId="683D6EAA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is the significance of diplomacy in resolving international conflicts?
+w14:paraId="725F445D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="4BCEA0FD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Issues and Opinions
+w14:paraId="5102F7D4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">87
+w14:paraId="79EA6BC2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How might global crises impact the travel industry?
+w14:paraId="584DA4C4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="35B6D536" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Technology's Impact on Society
+w14:paraId="421E4292" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">88
+w14:paraId="1DECBF98" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you think technology has changed society?
+w14:paraId="086CD4E7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="523058FD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Technology's Impact on Society
+w14:paraId="23D2CF28" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">89
+w14:paraId="696204ED" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What role do entrepreneurs play in shaping the future?
+w14:paraId="416E0ADE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="35A3BB18" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Technology's Impact on Society
+w14:paraId="654D5664" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">90
+w14:paraId="62F82FE4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">In what ways can global trends and shifts affect the notion of a daily routine?
+w14:paraId="765A2D2E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="7C842376" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Cultural Traditions and Values
+w14:paraId="7451597B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">91
+w14:paraId="6FE2A803" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What cultural traditions are important in your country?
+w14:paraId="708CF1B8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="6A22255D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Cultural Traditions and Values
+w14:paraId="3B005500" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">92
+w14:paraId="16C9B047" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What are your thoughts on the future of renewable energy?
+w14:paraId="05C9A81A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="2442AD36" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Cultural Traditions and Values
+w14:paraId="2CFBBA33" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">93
+w14:paraId="5022F83D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What role does adaptability play in maintaining a consistent daily routine?
+w14:paraId="7C029BE2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="0B231C26" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Media Effects
+w14:paraId="5CFB98C6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">94
+w14:paraId="3B20BBE5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you think social media has more positive or negative effects?
+w14:paraId="18BEA649" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="64FE0360" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Media Effects
+w14:paraId="7FD4774D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">95
+w14:paraId="14F1C7BA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can ethical principles impact political decision-making?
+w14:paraId="692A865B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="1F714E44" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Social Media Effects
+w14:paraId="58D44E2F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">96
+w14:paraId="63C845DA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How might space tourism change the future of travel and holidays?
+w14:paraId="6C47F4A3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="1F80EFC7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Community Involvement
+w14:paraId="307B61C3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">97
+w14:paraId="08623FB9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can individuals contribute to their community?
+w14:paraId="181477C8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="6443FECF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Community Involvement
+w14:paraId="1F932C29" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">98
+w14:paraId="6C11D604" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you think artificial intelligence will impact our future?
+w14:paraId="218C880F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="274C7DEC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Community Involvement
+w14:paraId="3C878261" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">99
+w14:paraId="35A18D32" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is the role of ethics in the field of scientific research?
+w14:paraId="064CF4C3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="51568201" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Technological Predictions
+w14:paraId="7EC63DCC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">100
+w14:paraId="163DA85C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What technological advancements do you think will change the world in the next 10 years?
+w14:paraId="34B5C817" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="3CC9F4A5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Technological Predictions
+w14:paraId="2ABB3310" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">101
+w14:paraId="6AA2AD79" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can ethical principles impact political decision-making?
+w14:paraId="7979D5BB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">B2
+w14:paraId="520950CE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Technological Predictions
+w14:paraId="4A6DE200" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">102
+w14:paraId="7483FACE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can technology aid or disrupt daily routines?
+w14:paraId="6C723396" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="0046445B">
+w14:paraId="7431F986" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="3C3E8995" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Level
+w14:paraId="4630F55E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Grammar Point / Topic
+w14:paraId="5F41E1A0" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">#
+w14:paraId="7D79A617" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Question
+w14:paraId="0F275EFA" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="7473619A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Artificial Intelligence
+w14:paraId="09744769" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">103
+w14:paraId="4CE4415D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you think artificial intelligence will impact our future?
+w14:paraId="50B030DF" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="124FCB08" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Artificial Intelligence
+w14:paraId="1A2CBA97" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">104
+w14:paraId="40FEEDAD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How might someone's career influence their daily routine, and vice versa?
+w14:paraId="4763AFE6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="565FD721" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Artificial Intelligence
+w14:paraId="35CCFF41" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">105
+w14:paraId="14693A88" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you think technology has changed society?
+w14:paraId="5B6D7FD7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="12CE5012" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Future Possibilities
+w14:paraId="0FE28AC6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">106
+w14:paraId="00F2854E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Would you like to live on another planet if given the opportunity?
+w14:paraId="18AB71D9" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="043B58CB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Future Possibilities
+w14:paraId="73CA17BE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">107
+w14:paraId="2AFDD67A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How might global crises impact the travel industry?
+w14:paraId="62584900" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="6FF580B4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Future Possibilities
+w14:paraId="38577553" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">108
+w14:paraId="0E3CB56A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do societal expectations influence individuals' daily routines?
+w14:paraId="3FB853CB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="1D73682B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Job Market Changes
+w14:paraId="6F6FEFCB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">109
+w14:paraId="344F2519" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How will the job market change with advancing technology?
+w14:paraId="02F46C22" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="75E50C2C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Job Market Changes
+w14:paraId="6F10DA30" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">110
+w14:paraId="748F4B0F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">In what ways can global trends and shifts affect the notion of a daily routine?
+w14:paraId="78211072" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="2780D50F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Job Market Changes
+w14:paraId="147A6CCE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">111
+w14:paraId="37ACD1D6" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is the significance of diplomacy in resolving international conflicts?
+w14:paraId="5D710A8C" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="54AE7CB1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Renewable Energy
+w14:paraId="44F2785A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">112
+w14:paraId="24FFFDAC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What are your thoughts on the future of renewable energy?
+w14:paraId="7EA8895A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="22AA353D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Renewable Energy
+w14:paraId="76C91C3B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">113
+w14:paraId="1C4CF0AE" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can adaptability play a role in maintaining a consistent daily routine?
+w14:paraId="5407D842" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="4C003644" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Renewable Energy
+w14:paraId="3F2EA3D2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">114
+w14:paraId="7B4F9650" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can technology aid or disrupt daily routines?
+w14:paraId="248C61B1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="388C94AC" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Environmental Actions
+w14:paraId="04306E5E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">115
+w14:paraId="5106C47E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What measures do you think individuals can take to protect the environment?
+w14:paraId="07DB0465" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="784456E7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Environmental Actions
+w14:paraId="70C6CF4E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">116
+w14:paraId="160BD90D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can ethical principles impact political decision-making?
+w14:paraId="139E0D68" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="31750ACD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Environmental Actions
+w14:paraId="722C20E7" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">117
+w14:paraId="21F7343B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What role does adaptability play in maintaining a consistent daily routine?
+w14:paraId="21A67C85" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="0B03B956" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Global Environmental Issues
+w14:paraId="28E9C281" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">118
+w14:paraId="2AD7936D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What are the most pressing environmental issues globally?
+w14:paraId="3CE36D41" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="7BE32D87" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Global Environmental Issues
+w14:paraId="555688DB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">119
+w14:paraId="73CD1A4A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can technology aid or disrupt daily routines?
+w14:paraId="4193240D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="44DADEFD" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Global Environmental Issues
+w14:paraId="1BA968B4" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">120
+w14:paraId="4D227E3B" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How might space tourism change the future of travel and holidays?
+w14:paraId="362DE983" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="1A641D49" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Eco-Friendly Practices
+w14:paraId="0DC43311" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">121
+w14:paraId="3AE7D9D5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Do you follow any eco-friendly practices in your daily life?
+w14:paraId="737BB500" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="6BDBC8D8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Eco-Friendly Practices
+w14:paraId="69B4EC72" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">122
+w14:paraId="5CDFB37E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How might someone's career influence their daily routine, and vice versa?
+w14:paraId="4FA17FE2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="01B3D22E" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Eco-Friendly Practices
+w14:paraId="6A92D05A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">123
+w14:paraId="1D4FFBE5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can individuals contribute to their community?
+w14:paraId="4BD10E93" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="2E290A80" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Business and Sustainability
+w14:paraId="778495F5" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">124
+w14:paraId="3479C074" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How can businesses contribute to a more sustainable world?
+w14:paraId="497E0FE3" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="04346025" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Business and Sustainability
+w14:paraId="68591566" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">125
+w14:paraId="3C96DF78" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is the significance of diplomacy in resolving international conflicts?
+w14:paraId="5CE7A470" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="3D9C41B2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Business and Sustainability
+w14:paraId="2E910E73" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">126
+w14:paraId="0DE421E1" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do you see data analysis evolving in the future?
+w14:paraId="534EAC24" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="0C2ECB54" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Environmental Policies
+w14:paraId="7A3B1EB8" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">127
+w14:paraId="49166471" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What changes would you like to see in environmental policies?
+w14:paraId="6627B35D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="1C18D13A" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Environmental Policies
+w14:paraId="7F1F5AC2" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">128
+w14:paraId="70E9C99F" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">What is the role of ethics in the field of scientific research?
+w14:paraId="25909C39" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">C1
+w14:paraId="37C5FA25" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">Environmental Policies
+w14:paraId="411A2333" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">129
+w14:paraId="22C5397D" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="00000000">How do societal expectations influence individuals' daily routines?
+w14:paraId="135499AB" w14:textId="77777777" w:rsidR="0046445B" w:rsidRDefault="0046445B">
