@@ -3,6 +3,7 @@ import Sidebar from '../shared/Sidebar'
 import ExamBuilder from './ExamBuilder'
 import OralInterviewExam from './OralInterviewExam'
 import TeacherProfile from './TeacherProfile'
+import DiagnosticConfigManager from '../shared/DiagnosticConfigManager'
 import teacherAvatar from '../../assets/avatar_teacher.png'
 import {
   getAllUsers,
@@ -11,7 +12,9 @@ import {
   getOralEvaluations,
   getAcademicStructure,
   resetStudentEvaluation,
-  resetAllEvaluations
+  resetAllEvaluations,
+  deleteOralEvaluation,
+  getUserProfile
 } from '../../lib/dataService'
 
 export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView, onUpdateCurrentUser }) {
@@ -21,7 +24,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
   // Mantener sincronizado si user cambia
   useEffect(() => {
-    if (user) setCurrentTeacher(user)
+    if (user) {
+      setCurrentTeacher(prev => ({ ...(prev || {}), ...user }))
+    }
   }, [user])
 
   // Segmentos / Toggles de Grados, Secciones, Especialidad de Bachillerato y Filtro por Docente Asignado
@@ -54,18 +59,23 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   // Alumno activo que está siendo evaluado en la consola oral
   const [activeInterviewStudent, setActiveInterviewStudent] = useState(null)
 
-  // Cargar lista de alumnos, evaluaciones y estructura académica
+  // Cargar lista de alumnos, evaluaciones, estructura académica y datos frescos del docente
   const loadData = async () => {
     setLoadingStudents(true)
     try {
-      const [all, evals, struct] = await Promise.all([
+      const [all, evals, struct, freshTeacher] = await Promise.all([
         getAllUsers(),
         getOralEvaluations(),
-        getAcademicStructure()
+        getAcademicStructure(),
+        user?.email ? getUserProfile(user.email) : Promise.resolve(null)
       ])
       setStudents((all || []).filter(u => u.role === 'student'))
       setEvaluations(evals || [])
       if (struct) setAcademic(struct)
+      if (freshTeacher) {
+        setCurrentTeacher(prev => ({ ...(prev || {}), ...freshTeacher }))
+        onUpdateCurrentUser?.(freshTeacher)
+      }
     } catch (e) {
       console.error('Error cargando alumnos en vista docente:', e)
     } finally {
@@ -90,6 +100,18 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
       await loadData()
     } catch (e) {
       console.error('Error al resetear alumno:', e)
+    }
+  }
+
+  // Eliminar un acta de evaluación oral individual desde la pestaña Resultados
+  const handleDeleteEvaluation = async (ev) => {
+    if (!confirm(`¿Estás seguro de que deseas ELIMINAR permanentemente la evaluación de "${ev.studentName}"?\n\nEl alumno quedará nuevamente como "Sin Evaluar" para poder repetir su entrevista oral.`)) return
+    try {
+      await deleteOralEvaluation(ev.id, ev.studentEmail)
+      await loadData()
+    } catch (e) {
+      console.error('Error al eliminar evaluación:', e)
+      alert('Error al eliminar la evaluación: ' + e.message)
     }
   }
 
@@ -210,7 +232,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   const menuItems = [
     { key: 'interview', label: 'Entrevista Oral (A1-C1)', icon: 'record_voice_over', badge: `${students.length}` },
     { key: 'results', label: 'Resultados y Niveles', icon: 'military_tech', badge: `${evaluations.length}` },
-    { key: 'builder', label: 'Constructor de Examen', icon: 'quiz' },
+    { key: 'builder', label: 'Batería y Tests MCER', icon: 'auto_stories' },
+    { key: 'diagnostic_config', label: 'Ponderaciones y Cortes 2026', icon: 'tune' },
     { key: 'profile', label: 'Mi Perfil Docente', icon: 'account_circle' },
   ]
 
@@ -278,7 +301,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
           {activeInterviewStudent ? (
             <OralInterviewExam
               student={activeInterviewStudent}
-              teacher={user}
+              teacher={currentTeacher || user}
               onFinished={(res) => {
                 setActiveInterviewStudent(null)
                 loadData()
@@ -295,13 +318,14 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     <div className="flex items-center gap-4">
                       <img
                         src={currentTeacher?.photoUrl || teacherAvatar}
-                        alt={currentTeacher?.name || user.name}
+                        onError={(e) => { e.currentTarget.src = teacherAvatar }}
+                        alt={currentTeacher?.name || user?.name}
                         className="w-14 h-14 rounded-full object-cover ring-2 ring-primary/30 bg-slate-100"
                       />
                       <div>
                         <div className="flex items-center gap-2">
                           <h2 className="font-heading font-extrabold text-xl text-on-surface">
-                            {currentTeacher?.name || user.name}
+                            {currentTeacher?.name || user?.name}
                           </h2>
                           <button
                             type="button"
@@ -314,14 +338,37 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           </button>
                         </div>
                         <p className="text-xs text-on-surface-variant font-mono">
-                          {user.email} · {currentTeacher?.specialty || 'Consola de Entrevista Diagnóstica Oral (A1 - C1)'}
+                          {user?.email} · {currentTeacher?.specialty || 'Consola de Entrevista Diagnóstica Oral (A1 - C1)'}
                         </p>
                       </div>
                     </div>
+                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentSection('builder')}
+                          className="px-3.5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer"
+                          title="Ver y probar la batería oficial de tests estandarizados (Listening, Scramble 20, Reading, Cloze)"
+                        >
+                          <span className="material-symbols-outlined text-[17px]">auto_stories</span>
+                          <span>Batería de Tests MCER (4)</span>
+                        </button>
 
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Estudiantes Sincronizados</span>
-                      <span className="font-heading font-extrabold text-2xl text-[#2528b7]">{students.length} alumnos</span>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentSection('diagnostic_config')}
+                          className="px-3.5 py-2 rounded-2xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-bold transition-all border border-outline-variant/40 flex items-center gap-1.5 cursor-pointer"
+                          title="Ver y configurar ponderaciones de entrevista (40%) y plataforma (60%)"
+                        >
+                          <span className="material-symbols-outlined text-[17px] text-[#2528b7]">tune</span>
+                          <span className="hidden md:inline">Ponderaciones 2026</span>
+                        </button>
+                      </div>
+
+                      <div className="text-right pl-2 border-l border-gray-200">
+                        <span className="text-[10px] uppercase font-bold text-gray-400 block">Estudiantes</span>
+                        <span className="font-heading font-extrabold text-2xl text-[#2528b7]">{students.length}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -932,18 +979,19 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           <th className="pb-3 px-3">Duración</th>
                           <th className="pb-3 px-3">Docente Evaluador</th>
                           <th className="pb-3 px-3">Fecha</th>
+                          <th className="pb-3 px-3 text-right">Acción</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-outline-variant/20">
                         {evaluations.length === 0 ? (
                           <tr>
-                            <td colSpan="6" className="py-8 text-center text-gray-400 text-xs italic">
+                            <td colSpan="7" className="py-8 text-center text-gray-400 text-xs italic">
                               Aún no se han completado entrevistas orales.
                             </td>
                           </tr>
                         ) : (
                           evaluations.map((ev, i) => (
-                            <tr key={i} className="hover:bg-surface-container-low transition-colors">
+                            <tr key={ev.id || i} className="hover:bg-surface-container-low transition-colors">
                               <td className="py-3 px-3 font-semibold text-gray-900">{ev.studentName}</td>
                               <td className="py-3 px-3">{ev.grade} - {ev.section}</td>
                               <td className="py-3 px-3">
@@ -956,6 +1004,17 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               <td className="py-3 px-3 text-[11px] text-gray-400">
                                 {ev.completedAt ? new Date(ev.completedAt).toLocaleString() : 'Hoy'}
                               </td>
+                              <td className="py-3 px-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteEvaluation(ev)}
+                                  className="px-2.5 py-1.5 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                                  title={`Eliminar evaluación de ${ev.studentName} y reiniciar su estado a Sin Evaluar`}
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">delete</span>
+                                  <span>Eliminar</span>
+                                </button>
+                              </td>
                             </tr>
                           ))
                         )}
@@ -966,10 +1025,16 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
               )}
 
               {/* SECCIÓN 3: CONSTRUCTOR WIZARD */}
+              {/* SECCIÓN 3: CONSTRUCTOR DE EXAMEN */}
               {currentSection === 'builder' && (
                 <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm">
                   <ExamBuilder onPublished={() => setCurrentSection('interview')} />
                 </div>
+              )}
+
+              {/* SECCIÓN NUEVA: PONDERACIONES Y CORTES 2026 */}
+              {currentSection === 'diagnostic_config' && (
+                <DiagnosticConfigManager canEdit={true} />
               )}
 
               {/* SECCIÓN 4: MI PERFIL DOCENTE */}

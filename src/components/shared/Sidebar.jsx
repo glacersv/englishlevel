@@ -111,7 +111,10 @@ export default function Sidebar({
           {user?.photoUrl ? (
             <img
               src={user.photoUrl}
-              alt={user.name}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+              alt={user?.name || 'Usuario'}
               className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-primary/30"
             />
           ) : (

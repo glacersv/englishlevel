@@ -23,25 +23,39 @@ export default function AuthPortal({ onLoginSuccess }) {
     const cleanEmail = (userEmail || '').trim().toLowerCase()
     if (!cleanEmail) return null
 
-    // 1. Cuentas de Acceso Rápido Directo para Pruebas
+    // 1. Cuentas de Acceso Rápido Directo para Pruebas / Administradores
     if (cleanEmail === ADMIN_EMAIL || cleanEmail.startsWith('jose.marquez@')) {
+      const existingAdmin = await getUserProfile(cleanEmail)
       const adminData = {
+        ...(existingAdmin || {}),
         email: cleanEmail,
-        name: displayName || 'José Márquez',
+        name: existingAdmin?.name || displayName || 'José Márquez',
         role: 'admin',
         status: 'active',
         validatedBy: 'system',
-        id: 'ADMIN-CSSJ-01',
-        area: 'Coordinación / Dirección General'
+        id: existingAdmin?.id || 'ADMIN-CSSJ-01',
+        area: existingAdmin?.area || 'Coordinación / Dirección General',
+        photoUrl: existingAdmin?.photoUrl || '',
+        phone: existingAdmin?.phone || '',
+        specialty: existingAdmin?.specialty || 'Coordinación / Docencia de Inglés',
+        bio: existingAdmin?.bio || ''
       }
       await registerOrUpdateUser(adminData)
       return adminData
     }
 
-    if (cleanEmail === 'teacher@salesianosanjose.edu.sv' ||
-        cleanEmail === 'ronald.cardona@salesianosanjose.edu.sv' ||
-        cleanEmail === 'silvia.herrera@salesianosanjose.edu.sv' ||
-        cleanEmail === 'nelsi.ramos@salesianosanjose.edu.sv') {
+    const isKnownTeacher =
+      cleanEmail === 'teacher@salesianosanjose.edu.sv' ||
+      cleanEmail === 'docente@salesianosanjose.edu.sv' ||
+      cleanEmail === 'ronald.cardona@salesianosanjose.edu.sv' ||
+      cleanEmail === 'silvia.herrera@salesianosanjose.edu.sv' ||
+      cleanEmail === 'nelsi.ramos@salesianosanjose.edu.sv' ||
+      cleanEmail.includes('prof') ||
+      cleanEmail.includes('docente') ||
+      cleanEmail.includes('teacher') ||
+      cleanEmail.includes('ingles')
+
+    if (isKnownTeacher) {
       let tName = displayName || 'Docente de Inglés'
       let tId = 'DOC-CSSJ-99'
       if (cleanEmail.includes('ronald')) { tName = 'Ronald Cardona'; tId = 'DOC-CSSJ-01'; }
@@ -57,6 +71,7 @@ export default function AuthPortal({ onLoginSuccess }) {
         photoUrl: existingTeacher?.photoUrl || '',
         phone: existingTeacher?.phone || '',
         specialty: existingTeacher?.specialty || 'Departamento de Idiomas (Get Involved)',
+        bio: existingTeacher?.bio || '',
         role: 'teacher',
         status: 'active',
         validatedBy: 'system',
@@ -96,6 +111,23 @@ export default function AuthPortal({ onLoginSuccess }) {
         throw new Error('Esta cuenta ha sido inhabilitada temporalmente por la administración.')
       }
 
+      // Si ya está registrado como docente o directivo, preservar sus datos completos sin tratar como alumno
+      if (existing.role === 'teacher' || existing.role === 'admin' || existing.role === 'coordination') {
+        const staffData = {
+          ...existing,
+          email: cleanEmail,
+          name: existing.name || displayName || 'Docente de Inglés',
+          photoUrl: existing.photoUrl || '',
+          phone: existing.phone || '',
+          specialty: existing.specialty || 'Departamento de Idiomas (Get Involved)',
+          bio: existing.bio || '',
+          status: 'active',
+          updatedAt: new Date().toISOString()
+        }
+        await registerOrUpdateUser(staffData)
+        return staffData
+      }
+
       // Si existe pero está en el padrón del colegio y le faltan datos de docente o nivel actual
       const enrichedStudent = {
         ...existing,
@@ -129,8 +161,10 @@ export default function AuthPortal({ onLoginSuccess }) {
 
     if (cleanEmail.includes('coord') || cleanEmail.includes('director')) {
       defaultRole = 'coordination'
+      defaultStatus = 'active'
     } else if (cleanEmail.includes('prof') || cleanEmail.includes('docente') || cleanEmail.includes('teacher') || cleanEmail.includes('ingles')) {
       defaultRole = 'teacher'
+      defaultStatus = 'active'
     } else {
       defaultRole = 'student'
     }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import teacherAvatarDefault from '../../assets/avatar_teacher.png'
 import { registerOrUpdateUser } from '../../lib/dataService'
 
@@ -12,18 +12,60 @@ export default function TeacherProfile({ user, onProfileUpdated }) {
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Manejo de carga de foto con compresión automática a Canvas (evita superar límite de documento Firestore)
+  // Sincronizar campos cuando el usuario cargado o actualizado cambie
+  useEffect(() => {
+    if (user) {
+      if (user.name) setName(user.name)
+      if (user.phone !== undefined) setPhone(user.phone || '')
+      if (user.photoUrl !== undefined) setPhotoUrl(user.photoUrl || '')
+      if (user.specialty) setSpecialty(user.specialty)
+      if (user.bio !== undefined) setBio(user.bio || '')
+    }
+  }, [user])
+
+  // Función unificada de guardado en Firestore y almacenamiento local
+  const saveProfile = async (customPhotoUrl) => {
+    setSaving(true)
+    setSuccessMsg('')
+    setErrorMsg('')
+
+    try {
+      const activePhoto = customPhotoUrl !== undefined ? customPhotoUrl : photoUrl
+      const updatedData = {
+        ...(user || {}),
+        name: (name || user?.name || '').trim(),
+        phone: (phone || '').trim(),
+        photoUrl: activePhoto || '',
+        specialty: (specialty || 'Get Involved! (A1 - C1)').trim(),
+        bio: (bio || '').trim(),
+        updatedAt: new Date().toISOString()
+      }
+
+      await registerOrUpdateUser(updatedData)
+      setSaving(false)
+      setSuccessMsg('✅ ¡Tus datos personales y foto de perfil han sido actualizados con éxito!')
+      onProfileUpdated?.(updatedData)
+      setTimeout(() => setSuccessMsg(''), 4000)
+    } catch (err) {
+      console.error('Error al actualizar perfil de docente:', err)
+      setErrorMsg('Ocurrió un error al guardar los cambios: ' + err.message)
+      setSaving(false)
+    }
+  }
+
+  // Manejo de carga de foto con compresión automática a Canvas y guardado instantáneo
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setErrorMsg('')
+    setSuccessMsg('Optimizando y guardando imagen...')
     const reader = new FileReader()
     reader.onload = (evt) => {
       const img = new Image()
       img.onload = () => {
-        // Redimensionar a máx 400x400 para un avatar perfecto y liviano (< 60 KB)
-        const maxDim = 400
+        // Redimensionar a máx 360x360 para un avatar perfecto, nítido y ultraliviano (< 35 KB)
+        const maxDim = 360
         let w = img.width
         let h = img.height
         if (w > h) {
@@ -44,9 +86,12 @@ export default function TeacherProfile({ user, onProfileUpdated }) {
         const ctx = canvas.getContext('2d')
         ctx.drawImage(img, 0, 0, w, h)
 
-        // Convertir a JPEG comprimido de alta definición
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85)
+        // Convertir a JPEG comprimido estándar
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.82)
         setPhotoUrl(compressedBase64)
+
+        // Guardar de inmediato en Firestore y sesión para que nunca se pierda
+        saveProfile(compressedBase64)
       }
       img.onerror = () => {
         setErrorMsg('No se pudo procesar la imagen seleccionada.')
@@ -56,33 +101,9 @@ export default function TeacherProfile({ user, onProfileUpdated }) {
     reader.readAsDataURL(file)
   }
 
-  const handleSave = async (e) => {
-    e.preventDefault()
-    setSaving(true)
-    setSuccessMsg('')
-    setErrorMsg('')
-
-    try {
-      const updatedData = {
-        ...user,
-        name: name.trim(),
-        phone: phone.trim(),
-        photoUrl: photoUrl,
-        specialty: specialty.trim(),
-        bio: bio.trim(),
-        updatedAt: new Date().toISOString()
-      }
-
-      await registerOrUpdateUser(updatedData)
-      setSaving(false)
-      setSuccessMsg('✅ ¡Tus datos personales y foto de perfil han sido actualizados con éxito!')
-      onProfileUpdated?.(updatedData)
-      setTimeout(() => setSuccessMsg(''), 4000)
-    } catch (err) {
-      console.error('Error al actualizar perfil de docente:', err)
-      setErrorMsg('Ocurrió un error al guardar los cambios: ' + err.message)
-      setSaving(false)
-    }
+  const handleRemovePhoto = async () => {
+    setPhotoUrl('')
+    await saveProfile('')
   }
 
   return (
@@ -93,7 +114,8 @@ export default function TeacherProfile({ user, onProfileUpdated }) {
           <div className="relative group">
             <img
               src={photoUrl || teacherAvatarDefault}
-              alt={name || user.email}
+              onError={(e) => { e.currentTarget.src = teacherAvatarDefault }}
+              alt={name || user?.email}
               className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/20 shadow-md bg-slate-100"
             />
             <label
@@ -251,8 +273,8 @@ export default function TeacherProfile({ user, onProfileUpdated }) {
               {photoUrl && (
                 <button
                   type="button"
-                  onClick={() => setPhotoUrl('')}
-                  className="px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                  onClick={handleRemovePhoto}
+                  className="px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
                   title="Quitar foto personalizada"
                 >
                   Restaurar por Defecto

@@ -9,6 +9,7 @@
 import { db, isFirebaseConfigured } from './firebase'
 import { collection, getDocs, setDoc, getDoc, deleteDoc, doc, query, where } from 'firebase/firestore'
 import defaultSchoolStudents from '../data/studentsFromSchool.json'
+import { OFFICIAL_DIAGNOSTIC_EXAMS } from '../data/officialExamsData'
 
 const LS_USERS = 'el_users'
 const LS_ORAL_EVALS = 'el_oral_evals'
@@ -16,12 +17,76 @@ const LS_EXAMS = 'el_exams'
 const LS_RESULTS = 'el_results'
 const LS_ACADEMIC = 'el_academic_structure'
 
-const readLS = k => JSON.parse(localStorage.getItem(k) || '[]')
-const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v))
+const readLS = k => {
+  try {
+    return JSON.parse(localStorage.getItem(k) || '[]')
+  } catch {
+    return []
+  }
+}
+const writeLS = (k, v) => {
+  try {
+    localStorage.setItem(k, JSON.stringify(v))
+  } catch (err) {
+    console.warn(`Error al guardar en localStorage key "${k}":`, err)
+  }
+}
 
 export const sanitizeDocId = email => (email || '').trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '_')
 
 // ---------- CONFIGURACIÓN DINÁMICA DE GRADOS, SECCIONES Y NIVELES ----------
+
+const DEFAULT_DIAGNOSTIC_CONFIG = {
+  // Ponderaciones globales sugeridas (100% total)
+  weights: {
+    oral: 40,        // Entrevista oral con docente
+    platform: 60     // Pruebas en plataforma (listening, reading, scramble, cloze...)
+  },
+  // Umbrales de corte porcentual sugeridos para clasificación
+  cutoffs: {
+    basicMax: 45,       // 0% a 45%: Básico
+    intermediateMax: 74 // 46% a 74%: Intermedio, 75%+: Avanzado
+  },
+  // Matriz de grupos de destino según el grado al que pasa el alumno (2026)
+  gradeDestinations: {
+    '7': {
+      label: '7° Grado (vienen de 6°)',
+      basic: { code: 'L1-A', label: 'Básico (Libro 1 Inicial)' },
+      intermediate: { code: 'L1-B', label: 'Intermedio (Libro 1 Regular)' },
+      advanced: { code: 'L2', label: 'Avanzado (Libro 2 Adelantado)' }
+    },
+    '8': {
+      label: '8° Grado (vienen de 7°)',
+      basic: { code: 'L2-A', label: 'Básico (Libro 2 Inicial)' },
+      intermediate: { code: 'L2-B', label: 'Intermedio (Libro 2 Regular)' },
+      advanced: { code: 'L3', label: 'Avanzado (Libro 3 Adelantado)' }
+    },
+    '9': {
+      label: '9° Grado (vienen de 8°)',
+      basic: { code: 'L2-A', label: 'Básico (Libro 2 Nivelación)' },
+      intermediate: { code: 'L2-B', label: 'Intermedio (Libro 2 Regular)' },
+      advanced: { code: 'L3', label: 'Avanzado (Libro 3 Adelantado)' }
+    },
+    '10': {
+      label: '1° Bachillerato (vienen de 9°)',
+      basic: { code: 'L3-A', label: 'Básico (Libro 3 Básico)' },
+      intermediate: { code: 'L3-B', label: 'Intermedio (Libro 3 Regular)' },
+      advanced: { code: 'L4-A', label: 'Avanzado (Libro 4 Avanzado)' }
+    },
+    '11': {
+      label: '2° Bachillerato (vienen de 10°)',
+      basic: { code: 'L4-A', label: 'Básico/Intermedio (Libro 4 Consolidado)' },
+      intermediate: { code: 'L4-A', label: 'Intermedio (Libro 4 Consolidado)' },
+      advanced: { code: 'L5-A', label: 'Avanzado (Libro 5 / Nivel C1)' }
+    },
+    '12': {
+      label: '3° Bachillerato Técnico (vienen de 11° Técnico)',
+      basic: { code: 'L4-A', label: 'Básico/Refuerzo (Libro 4)' },
+      intermediate: { code: 'L5-A', label: 'Intermedio (Libro 5)' },
+      advanced: { code: 'L5-B', label: 'Avanzado Especialidad Técnica (Libro 5 / C1+)' }
+    }
+  }
+}
 
 const DEFAULT_ACADEMIC = {
   grades: [
@@ -41,7 +106,73 @@ const DEFAULT_ACADEMIC = {
     { id: 'B1', name: 'B1 - Pre-Intermedio / Umbral', color: '#3b82f6' },
     { id: 'B2', name: 'B2 - Intermedio Alto / Avanzado', color: '#8b5cf6' },
     { id: 'C1', name: 'C1 - Dominio Operativo Eficaz', color: '#ec4899' }
-  ]
+  ],
+  diagnosticConfig: DEFAULT_DIAGNOSTIC_CONFIG
+}
+
+const LS_DIAG_CONFIG = 'el_diagnostic_config'
+
+export async function getDiagnosticConfig() {
+  if (isFirebaseConfigured()) {
+    try {
+      const snap = await getDoc(doc(db, 'academicStructure', 'diagnosticConfig'))
+      if (snap.exists()) {
+        return { ...DEFAULT_DIAGNOSTIC_CONFIG, ...snap.data() }
+      }
+    } catch (e) {
+      console.warn('Error leyendo diagnosticConfig de Firestore:', e)
+    }
+  }
+  const local = JSON.parse(localStorage.getItem(LS_DIAG_CONFIG) || 'null')
+  if (local) return { ...DEFAULT_DIAGNOSTIC_CONFIG, ...local }
+  saveDiagnosticConfig(DEFAULT_DIAGNOSTIC_CONFIG)
+  return DEFAULT_DIAGNOSTIC_CONFIG
+}
+
+export async function saveDiagnosticConfig(config) {
+  if (isFirebaseConfigured()) {
+    try {
+      await setDoc(doc(db, 'academicStructure', 'diagnosticConfig'), config, { merge: true })
+    } catch (e) {
+      console.warn('Error guardando diagnosticConfig en Firestore:', e)
+    }
+  }
+  localStorage.setItem(LS_DIAG_CONFIG, JSON.stringify(config))
+  return config
+}
+
+/**
+ * Calcula la sugerencia de grupo y nivel para un alumno según su grado destino y puntajes.
+ * @param {string|number} targetGrade - Grado al que pasa el alumno (ej: '7', '8', '9', '10', '11')
+ * @param {number} oralScorePercent - % obtenido en entrevista oral (0 - 100)
+ * @param {number} platformScorePercent - % obtenido en pruebas de plataforma (0 - 100)
+ * @param {object} customConfig - Configuración opcional de pesos y cortes
+ */
+export function calculatePlacementSuggestion(targetGrade, oralScorePercent = 0, platformScorePercent = 0, customConfig = null) {
+  const cfg = customConfig || DEFAULT_DIAGNOSTIC_CONFIG
+  const wOral = (cfg.weights?.oral ?? 40) / 100
+  const wPlat = (cfg.weights?.platform ?? 60) / 100
+
+  const totalScore = Math.round((oralScorePercent * wOral) + (platformScorePercent * wPlat))
+  const cleanGrade = String(targetGrade || '').replace(/\D/g, '')
+
+  const cutoffs = cfg.cutoffs || { basicMax: 45, intermediateMax: 74 }
+  let category = 'intermediate'
+  if (totalScore <= cutoffs.basicMax) category = 'basic'
+  else if (totalScore <= cutoffs.intermediateMax) category = 'intermediate'
+  else category = 'advanced'
+
+  const destInfo = cfg.gradeDestinations?.[cleanGrade] || cfg.gradeDestinations?.['7']
+  const assigned = destInfo ? destInfo[category] : { code: 'Sin Nivel', label: 'Sin Definir' }
+
+  return {
+    totalScore,
+    category, // 'basic' | 'intermediate' | 'advanced'
+    categoryLabel: category === 'basic' ? 'Básico' : category === 'intermediate' ? 'Intermedio' : 'Avanzado',
+    suggestedGroup: assigned.code,
+    suggestedLabel: assigned.label,
+    targetGrade: cleanGrade
+  }
 }
 
 export async function getAcademicStructure() {
@@ -96,6 +227,7 @@ export async function getUserProfile(email) {
 
 export async function registerOrUpdateUser(userData) {
   const cleanEmail = (userData.email || '').trim().toLowerCase()
+  if (!cleanEmail) return userData
   const docId = sanitizeDocId(cleanEmail)
 
   const record = {
@@ -113,13 +245,23 @@ export async function registerOrUpdateUser(userData) {
   }
 
   const all = readLS(LS_USERS)
-  const idx = all.findIndex(u => u.email.toLowerCase() === cleanEmail)
+  const idx = all.findIndex(u => (u.email || '').toLowerCase() === cleanEmail)
   if (idx >= 0) {
     all[idx] = { ...all[idx], ...record }
   } else {
     all.push(record)
   }
   writeLS(LS_USERS, all)
+
+  // Sincronizar automáticamente la sesión activa si corresponde al mismo usuario
+  try {
+    const curSession = JSON.parse(localStorage.getItem('el_session_user') || 'null')
+    if (curSession && (curSession.email || '').toLowerCase() === cleanEmail) {
+      localStorage.setItem('el_session_user', JSON.stringify({ ...curSession, ...record }))
+    }
+  } catch (e) {
+    console.warn('Error sincronizando sesión en LocalStorage:', e)
+  }
 
   return record
 }
@@ -383,38 +525,115 @@ export async function batchSyncStudents(studentsList, validatedByEmail) {
 // ---------- EXÁMENES Y RESULTADOS ESCRITOS ----------
 
 export async function saveExam(exam) {
+  const prepared = {
+    ...exam,
+    weight: typeof exam.weight === 'number' ? exam.weight : (parseInt(exam.weight, 10) || 20),
+    timeLimitMinutes: typeof exam.timeLimitMinutes === 'number' ? exam.timeLimitMinutes : (parseInt(exam.timeLimitMinutes, 10) || 15),
+    toolType: exam.toolType || exam.type || 'multipleChoice',
+    active: exam.active !== false,
+    updatedAt: new Date().toISOString()
+  }
+
   if (isFirebaseConfigured()) {
-    await setDoc(doc(db, 'exams', exam.id), exam)
+    await setDoc(doc(db, 'exams', exam.id), prepared, { merge: true })
   } else {
     const all = readLS(LS_EXAMS)
     const i = all.findIndex(e => e.id === exam.id)
-    i >= 0 ? (all[i] = exam) : all.push(exam)
+    i >= 0 ? (all[i] = prepared) : all.push(prepared)
     writeLS(LS_EXAMS, all)
   }
-  return exam
+  return prepared
 }
 
 export async function getExams(levelId, grade) {
-  let all
+  let all = []
   if (isFirebaseConfigured()) {
-    const q = query(collection(db, 'exams'), where('level', '==', levelId))
-    all = (await getDocs(q)).docs.map(d => d.data())
+    try {
+      const snap = await getDocs(collection(db, 'exams'))
+      all = snap.docs.map(d => d.data())
+    } catch (e) {
+      console.warn('Error leyendo exams de Firestore:', e)
+      all = readLS(LS_EXAMS)
+    }
   } else {
     all = readLS(LS_EXAMS)
   }
-  return all.filter(e => e.active !== false && (!grade || e.grade === grade))
+
+  // Si la colección está vacía, auto-precargar la batería estandarizada oficial inmediatamente
+  if (!all || all.length === 0) {
+    all = OFFICIAL_DIAGNOSTIC_EXAMS
+    writeLS(LS_EXAMS, OFFICIAL_DIAGNOSTIC_EXAMS)
+    if (isFirebaseConfigured()) {
+      // Auto-sembrado asíncrono para que persista para todos los usuarios
+      Promise.all(
+        OFFICIAL_DIAGNOSTIC_EXAMS.map(ex => setDoc(doc(db, 'exams', ex.id), ex, { merge: true }))
+      ).catch(err => console.warn('Auto-seed Firestore exams notice:', err))
+    }
+  }
+
+  return all.filter(e => {
+    if (e.active === false) return false
+    if (levelId && e.level !== levelId) return false
+    if (grade && e.grade && e.grade !== grade && e.grade !== 'all') return false
+    return true
+  })
+}
+
+export async function getAllExamsForTeacher(teacherEmail) {
+  let all = []
+  if (isFirebaseConfigured()) {
+    try {
+      const snap = await getDocs(collection(db, 'exams'))
+      all = snap.docs.map(d => d.data())
+    } catch {
+      all = readLS(LS_EXAMS)
+    }
+  } else {
+    all = readLS(LS_EXAMS)
+  }
+
+  if (!all || all.length === 0) {
+    all = OFFICIAL_DIAGNOSTIC_EXAMS
+  }
+
+  if (!teacherEmail) return all
+  return all.filter(e => !e.createdBy || e.createdBy.toLowerCase() === teacherEmail.toLowerCase())
 }
 
 export async function saveResult(result) {
+  const payload = {
+    ...result,
+    id: result.id || `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    completedAt: result.completedAt || new Date().toISOString()
+  }
+
   if (isFirebaseConfigured()) {
-    await setDoc(doc(db, 'results', result.id), result, { merge: true })
+    await setDoc(doc(db, 'results', payload.id), payload, { merge: true })
   } else {
     const all = readLS(LS_RESULTS)
-    const i = all.findIndex(r => r.id === result.id)
-    i >= 0 ? (all[i] = result) : all.push(result)
+    const i = all.findIndex(r => r.id === payload.id)
+    i >= 0 ? (all[i] = payload) : all.push(payload)
     writeLS(LS_RESULTS, all)
   }
-  return result
+  return payload
+}
+
+export async function getStudentResults(studentEmail) {
+  const cleanEmail = (studentEmail || '').trim().toLowerCase()
+  if (!cleanEmail) return []
+
+  let all
+  if (isFirebaseConfigured()) {
+    try {
+      const snap = await getDocs(collection(db, 'results'))
+      all = snap.docs.map(d => d.data())
+    } catch {
+      all = readLS(LS_RESULTS)
+    }
+  } else {
+    all = readLS(LS_RESULTS)
+  }
+  return all.filter(r => (r.studentEmail || '').toLowerCase() === cleanEmail)
 }
 
 export function classify(attempts) {
@@ -453,9 +672,14 @@ export async function saveOralEvaluation(evalData) {
   writeLS(LS_ORAL_EVALS, all)
 
   if (evalData.studentEmail) {
+    const oralPercent = typeof evalData.oralScorePercent === 'number'
+      ? evalData.oralScorePercent
+      : (typeof evalData.scorePercent === 'number' ? evalData.scorePercent : null)
+
     await registerOrUpdateUser({
       email: evalData.studentEmail,
       assignedLevel: evalData.finalLevel,
+      oralScorePercent: oralPercent,
       evaluationCompleted: true,
       lastEvaluatedAt: payload.createdAt,
       evaluatedByTeacher: evalData.teacherEmail
@@ -520,6 +744,42 @@ export async function resetStudentEvaluation(studentEmail) {
 
   const evals = readLS(LS_ORAL_EVALS).filter(e => e.studentEmail?.toLowerCase() !== cleanEmail)
   writeLS(LS_ORAL_EVALS, evals)
+}
+
+// Eliminar un acta de evaluación oral individual
+export async function deleteOralEvaluation(evalId, studentEmail) {
+  if (isFirebaseConfigured() && evalId) {
+    try {
+      await deleteDoc(doc(db, 'oralEvaluations', evalId))
+    } catch (err) {
+      console.warn('Error eliminando evaluación oral en Firestore:', err)
+    }
+  }
+
+  // Eliminar en localStorage
+  const evals = readLS(LS_ORAL_EVALS).filter(e => e.id !== evalId && (!studentEmail || e.studentEmail?.toLowerCase() !== studentEmail.toLowerCase()))
+  writeLS(LS_ORAL_EVALS, evals)
+
+  // Si se pasa studentEmail, resetear además el nivel del alumno a "Sin Evaluar"
+  if (studentEmail) {
+    await resetStudentEvaluation(studentEmail)
+  }
+}
+
+// Eliminar un examen de la batería
+export async function deleteExam(examId) {
+  if (!examId) return
+  if (isFirebaseConfigured()) {
+    try {
+      await deleteDoc(doc(db, 'exams', examId))
+    } catch (err) {
+      console.warn('Error eliminando examen en Firestore:', err)
+    }
+  }
+
+  const all = readLS(LS_EXAMS).filter(e => e.id !== examId)
+  writeLS(LS_EXAMS, all)
+  return all
 }
 
 // Resetear TODAS las evaluaciones de alumnos (modo pruebas)

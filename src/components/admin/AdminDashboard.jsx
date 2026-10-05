@@ -15,6 +15,7 @@ import {
   resetAllEvaluations
 } from '../../lib/dataService'
 import bundledStudents from '../../data/studentsFromSchool.json'
+import DiagnosticConfigManager from '../shared/DiagnosticConfigManager'
 
 export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }) {
   const [currentSection, setCurrentSection] = useState('overview')
@@ -564,7 +565,7 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     { key: 'students_manager', label: 'Gestión de Alumnos', icon: 'groups', badge: `${studentsList.length}` },
     { key: 'academic_structure', label: 'Grados y Secciones', icon: 'category', badge: `${academic.grades.length}G / ${academic.sections.length}S` },
     { key: 'teachers', label: 'Gestión de Docentes', icon: 'school', badge: `${teachersList.length}` },
-    { key: 'thresholds', label: 'Umbrales MCER', icon: 'tune' },
+    { key: 'thresholds', label: 'Ponderaciones y Cortes 2026', icon: 'tune' },
     { key: 'reports', label: 'Reportes y Cierre', icon: 'assessment' },
   ]
 
@@ -1761,7 +1762,22 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                     ) : (
                       teachersList.map((t) => (
                         <tr key={t.email} className="hover:bg-surface-container-low transition-colors">
-                          <td className="py-3 px-3 font-semibold text-on-surface">{t.name}</td>
+                          <td className="py-3 px-3 font-semibold text-on-surface">
+                            <div className="flex items-center gap-2.5">
+                              {t.photoUrl ? (
+                                <img
+                                  src={t.photoUrl}
+                                  alt={t.name}
+                                  className="w-7 h-7 rounded-full object-cover ring-1 ring-primary/20 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
+                                  {t.name ? t.name.substring(0, 2).toUpperCase() : 'DOC'}
+                                </div>
+                              )}
+                              <span>{t.name}</span>
+                            </div>
+                          </td>
                           <td className="py-3 px-3 text-on-surface-variant font-mono">{t.email}</td>
                           <td className="py-3 px-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1787,29 +1803,9 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
             </div>
           )}
 
-          {/* SECCIÓN 4: UMBRALES MCER */}
+          {/* SECCIÓN 4: PONDERACIONES Y CORTES DIAGNÓSTICO 2026 */}
           {currentSection === 'thresholds' && (
-            <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm max-w-2xl space-y-4">
-              <h2 className="font-heading font-bold text-lg text-on-surface">Criterios de Avance de Nivel (MCER)</h2>
-              <div className="space-y-4 pt-2">
-                {[
-                  { level: 'Básico (A1 → A2)', min: 3, total: 5, desc: 'Vocabulario cotidiano, pronombres y frases directas' },
-                  { level: 'Intermedio (A2 → B1)', min: 4, total: 6, desc: 'Gramática de tiempos verbales, listening y redacción' },
-                  { level: 'Avanzado (B1 → B2)', min: 5, total: 6, desc: 'Fluidez oral (speaking), conectores y comprensión analítica' },
-                ].map((th, i) => (
-                  <div key={i} className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-heading font-bold text-sm text-on-surface">{th.level}</h4>
-                      <p className="text-xs text-on-surface-variant mt-0.5">{th.desc}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-heading font-extrabold text-base text-primary">{th.min} / {th.total}</span>
-                      <span className="block text-[10px] text-on-surface-variant">Aciertos Mínimos</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <DiagnosticConfigManager canEdit={true} />
           )}
 
           {/* SECCIÓN 5: REPORTES */}

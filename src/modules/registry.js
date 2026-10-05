@@ -6,9 +6,11 @@
 // ============================================================
 
 export const LEVELS = [
-  { id: 'basico',      name: 'Básico',      color: '#58cc02', minCorrect: 4 },
-  { id: 'intermedio',  name: 'Intermedio',  color: '#1cb0f6', minCorrect: 4 },
-  { id: 'avanzado',    name: 'Avanzado',    color: '#ce82ff', minCorrect: 3 },
+  { id: 'A1', name: 'A1 - Principiante', color: '#10b981', minCorrect: 3 },
+  { id: 'A2', name: 'A2 - Básico', color: '#06b6d4', minCorrect: 3 },
+  { id: 'B1', name: 'B1 - Pre-Intermedio', color: '#3b82f6', minCorrect: 3 },
+  { id: 'B2', name: 'B2 - Intermedio Alto', color: '#8b5cf6', minCorrect: 3 },
+  { id: 'C1', name: 'C1 - Avanzado', color: '#ec4899', minCorrect: 3 },
 ]
 
 export const MODULES = {
@@ -20,11 +22,27 @@ export const MODULES = {
     desc: 'El alumno elige una respuesta entre varias opciones.',
     makeEmpty: () => ({
       type: 'multipleChoice',
-      prompt: '¿Cuál es la traducción de "La niña está comiendo"?',
-      options: ['The girl is eating', 'The boy is eating', 'The girl eats apple'],
+      prompt: 'Choose the correct option to complete the sentence:',
+      options: ['Option A', 'Option B', 'Option C'],
       correctIndex: 0,
     }),
     checkAnswer: (q, studentAnswer) => studentAnswer === q.correctIndex,
+  },
+
+  // ---------- 1.B FALSO O VERDADERO CON LECTURA ----------
+  trueFalse: {
+    id: 'trueFalse',
+    name: 'Verdadero o Falso',
+    icon: '✅',
+    desc: 'El alumno lee un fragmento o regla y valida si una afirmación es True o False.',
+    makeEmpty: () => ({
+      type: 'trueFalse',
+      readingText: 'The library is open from 8:30 AM to 4:30 PM. Only bottled water is allowed.',
+      prompt: 'Students can drink soda inside the library.',
+      correct: false,
+      explanation: 'Only bottled water is allowed inside the library.'
+    }),
+    checkAnswer: (q, studentAnswer) => studentAnswer === q.correct,
   },
 
   // ---------- 2. ORDENAR ORACIÓN (arrastrar palabras) ----------

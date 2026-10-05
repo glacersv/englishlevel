@@ -9,21 +9,29 @@ export function speak(text) {
   window.speechSynthesis.speak(u)
 }
 
-export default function QuestionPlayer({ question, onResult }) {
+export default function QuestionPlayer({ question, onResult, onAnswerChange, showFeedback = false }) {
   const [answer, setAnswer] = useState(null)
   const [checked, setChecked] = useState(false)
   const [correct, setCorrect] = useState(false)
+
+  // Actualizar respuesta y notificar automáticamente
+  const handleUpdateAnswer = (newVal) => {
+    setAnswer(newVal)
+    onAnswerChange?.(newVal)
+    const isCorrect = QUESTION_CHECKERS[question.type](question, newVal)
+    onResult?.(isCorrect, newVal)
+  }
 
   const check = () => {
     const ok = QUESTION_CHECKERS[question.type](question, answer)
     setCorrect(ok)
     setChecked(true)
-    onResult(ok)
+    onResult?.(ok, answer)
   }
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl p-6 md:p-8 border border-outline-variant/40 shadow-sm relative overflow-hidden">
-      {/* Tag del tipo de interactividad */}
+      {/* Interaction type tag */}
       <div className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider mb-2">
         <span className="material-symbols-outlined text-[18px]">
           {MODULE_ICONS[question.type] || 'help'}
@@ -35,38 +43,40 @@ export default function QuestionPlayer({ question, onResult }) {
         {question.prompt}
       </p>
 
-      {/* Vista de interacción según el tipo de ejercicio */}
+      {/* Interaction view per question type */}
       <div className="mb-6">
-        {QUESTION_VIEWS[question.type](question, answer, setAnswer, checked)}
+        {QUESTION_VIEWS[question.type](question, answer, handleUpdateAnswer, showFeedback && checked)}
       </div>
 
-      {/* Botón de Comprobación y Feedback */}
-      {!checked ? (
-        <button
-          onClick={check}
-          disabled={answer == null}
-          className="w-full py-3 px-4 rounded-xl bg-secondary text-white font-heading font-bold text-sm tracking-wide shadow-md hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          Comprobar Respuesta
-        </button>
-      ) : (
-        <div
-          className={`p-4 rounded-xl flex items-center justify-between gap-3 text-sm font-bold animate-fadeIn ${
-            correct
-              ? 'bg-secondary-container/40 text-on-secondary-container border border-secondary/30'
-              : 'bg-error-container/60 text-on-error-container border border-error/30'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[24px]">
-              {correct ? 'check_circle' : 'cancel'}
-            </span>
-            <div>
-              <p>{correct ? '¡Excelente trabajo! +10 XP' : 'No exactamente.'}</p>
-              {!correct && <p className="text-xs font-normal mt-0.5">{explain(question)}</p>}
+      {/* Solo si se habilita retroalimentación explícita (modo práctica o modo docente con feedback) */}
+      {showFeedback && (
+        !checked ? (
+          <button
+            onClick={check}
+            disabled={answer == null}
+            className="w-full py-3 px-4 rounded-xl bg-[#2528b7] text-white font-heading font-bold text-sm tracking-wide shadow-md hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+          >
+            Check Answer
+          </button>
+        ) : (
+          <div
+            className={`p-4 rounded-xl flex items-center justify-between gap-3 text-sm font-bold animate-fadeIn ${
+              correct
+                ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                : 'bg-rose-50 text-rose-900 border border-rose-200'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[24px]">
+                {correct ? 'check_circle' : 'cancel'}
+              </span>
+              <div>
+                <p>{correct ? 'Correct! Well done.' : 'Incorrect.'}</p>
+                {!correct && <p className="text-xs font-normal mt-0.5">{explain(question)}</p>}
+              </div>
             </div>
           </div>
-        </div>
+        )
       )}
     </div>
   )
@@ -74,6 +84,7 @@ export default function QuestionPlayer({ question, onResult }) {
 
 const MODULE_ICONS = {
   multipleChoice: 'radio_button_checked',
+  trueFalse: 'check_circle',
   orderSentence: 'format_align_left',
   fillParagraph: 'edit_note',
   listening: 'volume_up',
@@ -82,21 +93,26 @@ const MODULE_ICONS = {
 }
 
 const MODULE_LABEL = {
-  multipleChoice: 'Opción Múltiple',
-  orderSentence: 'Ordena la Oración',
-  fillParagraph: 'Completa los Huecos',
-  listening: 'Comprensión Auditiva',
-  speaking: 'Expresión Oral (Speaking)',
-  writing: 'Escritura Guiada'
+  multipleChoice: 'Multiple Choice',
+  trueFalse: 'True or False',
+  orderSentence: 'Sentence Scramble',
+  fillParagraph: 'Gap Fill / Cloze',
+  listening: 'Listening Comprehension',
+  speaking: 'Speaking Evaluation',
+  writing: 'Guided Writing'
 }
 
 const explain = q => {
-  if (q.type === 'multipleChoice') return `Respuesta correcta: ${q.options[q.correctIndex]}`
-  if (q.type === 'orderSentence') return `Orden correcto: ${q.words.join(' ')}`
-  if (q.type === 'fillParagraph') return `Respuestas: ${q.blanks.map(b => b.answer).join(', ')}`
-  if (q.type === 'listening') return `Respuesta correcta: ${q.options[q.correctIndex]}`
-  if (q.type === 'speaking') return `Debías pronunciar: "${q.targetText}"`
-  if (q.type === 'writing') return `Respuesta esperada: ${q.acceptedAnswers[0]}`
+  if (q.type === 'multipleChoice') return `Correct answer: ${q.options[q.correctIndex]}`
+  if (q.type === 'trueFalse') {
+    const isT = q.isTrue !== undefined ? q.isTrue : q.correct
+    return `Correct answer: ${isT ? 'True' : 'False'}. ${q.explanation || ''}`
+  }
+  if (q.type === 'orderSentence') return `Correct order: ${q.correctSentence || q.words.join(' ')}`
+  if (q.type === 'fillParagraph') return `Answers: ${q.blanks.map(b => b.answer).join(', ')}`
+  if (q.type === 'listening') return `Correct answer: ${q.options[q.correctIndex]}`
+  if (q.type === 'speaking') return `Target phrase: "${q.targetText}"`
+  if (q.type === 'writing') return `Expected answer: ${q.acceptedAnswers[0]}`
   return ''
 }
 
@@ -118,9 +134,53 @@ const QUESTION_CHECKERS = {
     const clean = s => s.trim().toLowerCase().replace(/[.,!?;:]/g, '')
     return q.acceptedAnswers.some(ans => clean(ans) === clean(a))
   },
+  trueFalse: (q, a) => {
+    const expected = q.isTrue !== undefined ? q.isTrue : q.correct
+    return a === expected
+  },
 }
 
 const QUESTION_VIEWS = {
+  trueFalse: (q, answer, setAnswer, checked) => (
+    <div className="space-y-4">
+      {(q.readingContext || q.readingText) && (
+        <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 text-xs md:text-sm text-gray-800 leading-relaxed italic whitespace-pre-line">
+          <div className="font-bold text-indigo-900 not-italic flex items-center gap-1.5 mb-1.5">
+            <span className="material-symbols-outlined text-[16px]">menu_book</span>
+            <span>Read the following passage / rule:</span>
+          </div>
+          "{q.readingContext || q.readingText}"
+        </div>
+      )}
+      {q.statement && (
+        <p className="font-bold text-sm md:text-base text-gray-900 px-1">
+          {q.statement}
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-3 pt-2">
+        {[
+          { val: true, label: 'True', icon: 'check_circle', color: 'emerald' },
+          { val: false, label: 'False', icon: 'cancel', color: 'red' }
+        ].map(item => (
+          <button
+            key={String(item.val)}
+            type="button"
+            disabled={checked}
+            onClick={() => setAnswer(item.val)}
+            className={`p-4 rounded-xl border-2 font-bold text-sm md:text-base flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              answer === item.val
+                ? 'border-indigo-600 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-300 shadow-sm'
+                : 'border-gray-200 bg-white hover:bg-slate-50 text-gray-700'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  ),
+
   multipleChoice: (q, answer, setAnswer, checked) => (
     <div className="flex flex-col gap-2.5">
       {q.options.map((opt, i) => (
@@ -156,17 +216,17 @@ const QUESTION_VIEWS = {
     }
     return (
       <div className="space-y-4">
-        {/* Línea de armado de respuesta */}
+        {/* Sentence construction slot */}
         <div className="min-h-[56px] p-3 rounded-xl border-2 border-dashed border-outline-variant/60 bg-surface-container-low flex flex-wrap gap-2 items-center">
           {chosen.length === 0 ? (
-            <span className="text-xs text-outline italic">Toca las palabras en el orden correcto...</span>
+            <span className="text-xs text-outline italic">Tap or click words in the correct order...</span>
           ) : (
             chosen.map(idx => (
               <button
                 key={idx}
                 disabled={checked}
                 onClick={() => toggle(idx)}
-                className="px-3.5 py-2 rounded-xl bg-primary text-white font-semibold text-sm shadow-sm transition-all animate-scaleIn"
+                className="px-3.5 py-2 rounded-xl bg-[#2528b7] text-white font-semibold text-sm shadow-sm transition-all animate-scaleIn cursor-pointer"
               >
                 {q.words[idx]}
               </button>
@@ -174,7 +234,7 @@ const QUESTION_VIEWS = {
           )}
         </div>
 
-        {/* Banco de palabras disponibles */}
+        {/* Word bank */}
         <div className="flex flex-wrap gap-2 pt-2">
           {q.words.map((w, idx) => {
             const used = chosen.includes(idx)
@@ -183,7 +243,7 @@ const QUESTION_VIEWS = {
                 key={idx}
                 disabled={checked || used}
                 onClick={() => toggle(idx)}
-                className={`px-3.5 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                className={`px-3.5 py-2 rounded-xl text-sm font-semibold border transition-all cursor-pointer ${
                   used
                     ? 'opacity-30 border-transparent bg-surface-container-high cursor-not-allowed'
                     : 'border-outline-variant/60 bg-surface-container-lowest text-on-surface hover:border-primary shadow-sm'
@@ -220,9 +280,9 @@ const QUESTION_VIEWS = {
               disabled={checked}
               value={ans[bIdx] || ''}
               onChange={e => setBlank(bIdx, e.target.value)}
-              className="inline-block mx-1.5 px-3 py-1 text-sm font-bold rounded-lg border border-primary/50 bg-surface-container-low text-primary focus:outline-none"
+              className="inline-block mx-1.5 px-3 py-1 text-sm font-bold rounded-lg border border-primary/50 bg-surface-container-low text-primary focus:outline-none cursor-pointer"
             >
-              <option value="">(elegir)</option>
+              <option value="">(select)</option>
               {blank.options.map((opt, oIdx) => (
                 <option key={oIdx} value={opt}>
                   {opt}
@@ -235,37 +295,98 @@ const QUESTION_VIEWS = {
     )
   },
 
-  listening: (q, answer, setAnswer, checked) => (
-    <div className="space-y-4">
-      <div className="flex justify-center p-4">
-        <button
-          type="button"
-          onClick={() => speak(q.audioText)}
-          className="flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-95 transition-all"
-        >
-          <span className="material-symbols-outlined text-[24px]">volume_up</span>
-          <span>Reproducir Audio</span>
-        </button>
-      </div>
+  listening: (q, answer, setAnswer, checked) => {
+    const [showTranscript, setShowTranscript] = React.useState(false)
 
-      <div className="flex flex-col gap-2.5">
-        {q.options.map((opt, i) => (
-          <button
-            key={i}
-            disabled={checked}
-            onClick={() => setAnswer(i)}
-            className={`w-full text-left p-4 rounded-xl border text-sm font-semibold transition-all ${
-              answer === i
-                ? 'border-primary bg-primary-fixed/30 text-primary shadow-sm'
-                : 'border-outline-variant/50 bg-surface-container-low hover:bg-surface-container text-on-surface'
-            }`}
-          >
-            {opt}
-          </button>
-        ))}
+    return (
+      <div className="space-y-4">
+        {q.audioUrl ? (
+          <div className="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200 flex flex-col items-center gap-3">
+            <div className="flex items-center justify-between w-full max-w-md">
+              <div className="flex items-center gap-2 text-xs font-black text-indigo-900">
+                <span className="material-symbols-outlined text-[20px] text-indigo-600">headphones</span>
+                <span>Official Audio Track (MP3)</span>
+              </div>
+              {q.audioText && (
+                <button
+                  type="button"
+                  onClick={() => setShowTranscript(s => !s)}
+                  className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[15px]">description</span>
+                  <span>{showTranscript ? 'Hide Transcript' : 'View Transcript'}</span>
+                </button>
+              )}
+            </div>
+            <audio controls src={q.audioUrl} className="w-full max-w-md h-10">
+              Your browser does not support audio playback.
+            </audio>
+            {showTranscript && q.audioText && (
+              <div className="w-full max-w-md p-3.5 bg-white/90 rounded-xl border border-indigo-100 text-xs text-gray-700 italic leading-relaxed animate-fadeIn">
+                <span className="not-italic font-bold text-indigo-900 block mb-1">Transcript:</span>
+                "{q.audioText}"
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 p-4">
+            <button
+              type="button"
+              onClick={() => speak(q.audioText)}
+              className="flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-95 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[24px]">volume_up</span>
+              <span>Play Audio</span>
+            </button>
+            {q.audioText && (
+              <button
+                type="button"
+                onClick={() => setShowTranscript(s => !s)}
+                className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 mt-1 cursor-pointer"
+              >
+                {showTranscript ? 'Hide Transcript' : 'View Transcript'}
+              </button>
+            )}
+            {showTranscript && q.audioText && (
+              <div className="w-full max-w-md p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs text-gray-700 italic leading-relaxed animate-fadeIn">
+                "{q.audioText}"
+              </div>
+            )}
+          </div>
+        )}
+
+        {q.question && (
+          <p className="font-bold text-sm md:text-base text-gray-900 px-1">
+            {q.question}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-2.5">
+          {q.options.map((opt, i) => (
+            <button
+              key={i}
+              disabled={checked}
+              onClick={() => setAnswer(i)}
+              className={`w-full text-left p-4 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                answer === i
+                  ? 'border-indigo-600 bg-indigo-50/80 text-indigo-900 shadow-sm ring-1 ring-indigo-500'
+                  : 'border-gray-200 bg-white hover:bg-slate-50 text-gray-800'
+              }`}
+            >
+              <span>{opt}</span>
+              <span
+                className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                  answer === i ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300'
+                }`}
+              >
+                {answer === i && <span className="w-2 h-2 rounded-full bg-white"></span>}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  ),
+    )
+  },
 
   speaking: (q, answer, setAnswer, checked) => {
     const [recording, setRecording] = useState(false)

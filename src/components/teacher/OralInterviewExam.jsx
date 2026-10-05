@@ -249,6 +249,42 @@ export default function OralInterviewExam({ student, teacher, onFinished, onCanc
         </div>
       </div>
 
+      {/* ================= PISTA DE AUDIO OFICIAL PARA EL DOCENTE (A1 / A2) ================= */}
+      {(currentLevel === 'A1' || currentLevel === 'A2') && (
+        <div className="bg-indigo-900 text-white px-6 py-3.5 flex flex-col md:flex-row items-center justify-between gap-3 border-b border-indigo-950 shadow-inner">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-indigo-300 text-[20px]">headphones</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+                  Audio Listening {currentLevel}
+                </span>
+                <span className="text-xs font-extrabold text-white">
+                  {currentLevel === 'A1' ? 'First Day at School (A1 Dialogue)' : 'Giving Directions (A2 Dialogues)'}
+                </span>
+              </div>
+              <p className="text-[11px] text-indigo-200">
+                {currentLevel === 'A1'
+                  ? 'Diálogo Tania & Jing en la escuela (Class 1B, Mr Smith).'
+                  : 'Indicaciones de ruta en la ciudad (Speakers A, B, C, D).'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <audio
+              controls
+              src={currentLevel === 'A1' ? '/material_evaluaciones/A1_first_day_at_schoolA1.mp3' : '/material_evaluaciones/A2_giving_directionsA2.mp3'}
+              className="h-8 max-w-xs w-full"
+            >
+              Tu navegador no soporta audio.
+            </audio>
+          </div>
+        </div>
+      )}
+
       {/* ================= CONTENIDO: PREGUNTAS PASO A PASO (SIN SCROLL, CON SIGUIENTE) ================= */}
       <div className="p-6 md:p-8 space-y-5 bg-slate-50/50">
         

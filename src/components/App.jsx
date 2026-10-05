@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import AuthPortal from './auth/AuthPortal'
 import AdminDashboard from './admin/AdminDashboard'
 import TeacherWorkspace from './teacher/TeacherWorkspace'
 import StudentGamifiedExam from './student/StudentGamifiedExam'
 import { logoutMicrosoft } from '../lib/authAzure'
+import { getUserProfile } from '../lib/dataService'
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -25,6 +26,28 @@ export default function App() {
   })
   // Alumno seleccionado específicamente para simular o ver en el portal
   const [simulatedStudent, setSimulatedStudent] = useState(null)
+
+  // Sincronizar y refrescar perfil fresco desde Firestore al iniciar o recargar la app
+  useEffect(() => {
+    async function syncProfile() {
+      if (currentUser?.email) {
+        try {
+          const fresh = await getUserProfile(currentUser.email)
+          if (fresh) {
+            setCurrentUser(prev => ({ ...prev, ...fresh }))
+            try {
+              localStorage.setItem('el_session_user', JSON.stringify({ ...currentUser, ...fresh }))
+            } catch (err) {
+              console.warn(err)
+            }
+          }
+        } catch (e) {
+          console.warn('Error sincronizando perfil fresco en App:', e)
+        }
+      }
+    }
+    syncProfile()
+  }, [currentUser?.email])
 
   const handleLoginSuccess = (user) => {
     try {
@@ -96,8 +119,18 @@ export default function App() {
               if (student && student.email) setSimulatedStudent(student)
               setActiveRoleView('student')
             }}
-            onSwitchToTeacherView={() => {
+            onSwitchToTeacherView={async () => {
               setActiveRoleView('teacher')
+              if (currentUser?.email) {
+                try {
+                  const fresh = await getUserProfile(currentUser.email)
+                  if (fresh) {
+                    setCurrentUser(prev => ({ ...prev, ...fresh }))
+                  }
+                } catch (e) {
+                  console.warn(e)
+                }
+              }
             }}
           />
         </div>
