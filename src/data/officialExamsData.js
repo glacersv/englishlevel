@@ -708,5 +708,137 @@ export const OFFICIAL_DIAGNOSTIC_EXAMS = [
         ]
       }
     ]
+  },
+
+  // ==========================================================================
+  // TEST 5: INTERMEDIATE LISTENING: THE WEEKEND & PLANS (CEFR B1)
+  // Audio: /material_evaluaciones/B1_the_weekendB1.mp3
+  // ==========================================================================
+  {
+    id: 'exam_official_b1_weekend_listening',
+    title: 'Diagnostic Test 5: Intermediate Listening - The Weekend & Plans (B1)',
+    grade: 'all',
+    level: 'B1',
+    weight: 20,
+    timeLimitMinutes: 15,
+    toolType: 'listening',
+    active: true,
+    description: 'Specialized B1 listening test evaluating weekend plans, outdoor activities, travel suggestions, and casual dialogue.',
+    questions: [
+      {
+        id: 'q_b1_wk_1',
+        type: 'listening',
+        level: 'B1',
+        prompt: 'Listen to the weekend discussion audio and answer the question:',
+        audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
+        audioText: 'Speaker A: So, what are your plans for this weekend? Speaker B: Well, if the weather stays sunny, I am planning to go mountain biking with my brother up in the hills. We usually leave early around 7:30 AM.',
+        question: 'What outdoor activity is planned if the weather conditions remain good?',
+        options: ['Mountain biking in the hills', 'Camping near the lake', 'Going to a water park', 'Playing indoor tennis'],
+        correctIndex: 0,
+        explanation: 'Speaker B mentions: "I am planning to go mountain biking with my brother up in the hills."'
+      },
+      {
+        id: 'q_b1_wk_2',
+        type: 'listening',
+        level: 'B1',
+        prompt: 'Listen to the departure schedule details:',
+        audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
+        audioText: 'Speaker B: We usually leave early around 7:30 AM so we can avoid the noon heat. My brother is bringing the water bottles and I am taking the first-aid kit.',
+        question: 'Why do the speakers prefer to set off early at 7:30 AM?',
+        options: ['To avoid the noon heat', 'To catch the morning train', 'Because the park closes at noon', 'To meet their friends for breakfast'],
+        correctIndex: 0,
+        explanation: 'The speaker explicitly states: "so we can avoid the noon heat."'
+      },
+      {
+        id: 'q_b1_wk_3',
+        type: 'listening',
+        level: 'B1',
+        prompt: 'Listen to the alternative plan if it rains:',
+        audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
+        audioText: 'Speaker A: And what if it rains? Speaker B: In that case, we will probably stay indoors, stream a documentary series, and finish our science project.',
+        question: 'What is the alternative contingency plan if weather conditions turn rainy?',
+        options: ['Stay indoors, stream documentaries, and work on a science project', 'Go to the cinema downtown', 'Visit their grandparents in the countryside', 'Postpone the project and sleep'],
+        correctIndex: 0,
+        explanation: 'Speaker B clarifies: "we will probably stay indoors, stream a documentary series, and finish our science project."'
+      },
+      {
+        id: 'q_b1_wk_4',
+        type: 'listening',
+        level: 'B1',
+        prompt: 'Listen to the travel recommendation discussion:',
+        audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
+        audioText: 'Speaker A: Sounds like a solid plan. Make sure to wear your helmets and pack some energy bars. Speaker B: Definitely, safety comes first.',
+        question: 'What crucial safety advice does Speaker A emphasize?',
+        options: ['Wearing safety helmets and packing energy bars', 'Staying on paved highways only', 'Returning before sunset', 'Hiring a professional tour guide'],
+        correctIndex: 0,
+        explanation: 'Speaker A highlights: "Make sure to wear your helmets and pack some energy bars."'
+      }
+    ]
+  },
+
+  // ==========================================================================
+  // TEST 6: ADVANCED LISTENING: INVENTIONS & SOCIAL ACTION (CEFR B2 - C1)
+  // Audios: /material_evaluaciones/B2_new_inventions.mp3 & C1_help_others_help_yourself.mp3
+  // ==========================================================================
+  {
+    id: 'exam_official_advanced_listening_b2_c1',
+    title: 'Diagnostic Test 6: Advanced Listening - Tech Inventions & Social Impact (B2 - C1)',
+    grade: 'all',
+    level: 'B2',
+    weight: 20,
+    timeLimitMinutes: 20,
+    toolType: 'listening',
+    active: true,
+    description: 'Advanced listening comprehension focusing on technological innovation (B2 New Inventions) and community psychology (C1 Help Others, Help Yourself).',
+    questions: [
+      {
+        id: 'q_adv_list_1',
+        type: 'listening',
+        level: 'B2',
+        prompt: 'Listen to the science correspondent discussing novel engineering prototypes:',
+        audioUrl: '/material_evaluaciones/B2_new_inventions.mp3',
+        audioText: 'Host: Welcome to Science and Engineering Today. Our correspondent Jed is here to showcase three remarkable sustainable inventions. Jed: Thanks! First up is a biodegradable packaging material synthesized entirely from seaweed and agricultural waste.',
+        question: 'What is the primary organic source material used to synthesize the new packaging invention?',
+        options: ['Seaweed and agricultural waste', 'Recycled petroleum plastics', 'Synthetic carbon polymers', 'Industrial wood pulp'],
+        correctIndex: 0,
+        explanation: 'Jed explains that the material is synthesized entirely from seaweed and agricultural waste.'
+      },
+      {
+        id: 'q_adv_list_2',
+        type: 'listening',
+        level: 'B2',
+        prompt: 'Listen to the environmental efficiency analysis:',
+        audioUrl: '/material_evaluaciones/B2_new_inventions.mp3',
+        audioText: 'Jed: Unlike traditional single-use polymers that persist in oceans for centuries, this prototype decomposes in soil within four to six weeks without toxic residue.',
+        question: 'How quickly does the biodegradable prototype break down naturally in soil?',
+        options: ['Within 4 to 6 weeks', 'In approximately 6 months', 'After 1 to 2 years', 'In less than 24 hours'],
+        correctIndex: 0,
+        explanation: 'Jed states that it decomposes in soil within four to six weeks.'
+      },
+      {
+        id: 'q_adv_list_3',
+        type: 'listening',
+        level: 'C1',
+        prompt: 'Listen to the interview on volunteer initiatives and personal development in Dialogue C1:',
+        audioUrl: '/material_evaluaciones/C1_help_others_help_yourself.mp3',
+        audioText: 'Host: Today we discuss altruism and emotional wellbeing. Debbie, who spent two years leading youth mentoring groups, shares how helping others transformed her career trajectory.',
+        question: 'What was Debbie volunteer role before she transitioned into professional community management?',
+        options: ['Leading youth mentoring groups for two years', 'Organizing international medical fundraisers', 'Teaching elementary school mathematics', 'Managing corporate public relations'],
+        correctIndex: 0,
+        explanation: 'The host introduces Debbie as someone who spent two years leading youth mentoring groups.'
+      },
+      {
+        id: 'q_adv_list_4',
+        type: 'listening',
+        level: 'C1',
+        prompt: 'Listen to the psychological benefits of community involvement:',
+        audioUrl: '/material_evaluaciones/C1_help_others_help_yourself.mp3',
+        audioText: 'Debbie: Engaging in grassroots community support does not merely benefit recipients; neurochemical studies show it actively reinforces resilience and mitigates chronic stress in volunteers.',
+        question: 'According to neurochemical studies discussed, what key personal benefit do volunteers experience?',
+        options: ['Reinforced psychological resilience and lower chronic stress', 'Immediate guaranteed career promotions', 'Complete immunity to fatigue', 'Higher economic compensation'],
+        correctIndex: 0,
+        explanation: 'Debbie points out that it actively reinforces resilience and mitigates chronic stress.'
+      }
+    ]
   }
 ]

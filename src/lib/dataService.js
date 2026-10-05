@@ -703,6 +703,86 @@ export async function getOralEvaluations() {
   return readLS(LS_ORAL_EVALS)
 }
 
+// ---------- BANCO DE PREGUNTAS DE ENTREVISTA ORAL (A1 - C1) ----------
+const LS_INTERVIEW_QUESTIONS = 'el_interview_questions'
+
+export async function getInterviewQuestions() {
+  let questions = null
+  if (isFirebaseConfigured()) {
+    try {
+      const snap = await getDoc(doc(db, 'academicStructure', 'interviewQuestions'))
+      if (snap.exists() && Array.isArray(snap.data().list) && snap.data().list.length > 0) {
+        questions = snap.data().list
+      }
+    } catch (e) {
+      console.warn('Error leyendo interviewQuestions de Firestore:', e)
+    }
+  }
+
+  if (!questions) {
+    const local = localStorage.getItem(LS_INTERVIEW_QUESTIONS)
+    if (local) {
+      try {
+        questions = JSON.parse(local)
+      } catch (err) {
+        console.warn('Error parseando preguntas locales:', err)
+      }
+    }
+  }
+
+  // Si aún no existen, cargar desde archivo base
+  if (!questions || questions.length === 0) {
+    try {
+      const raw = await import('../data/interviewQuestions.json')
+      questions = (raw.default || raw).map((q, idx) => ({
+        ...q,
+        id: q.id || `q_${q.level || 'A1'}_${idx + 1}`
+      }))
+      // Guardar localmente
+      localStorage.setItem(LS_INTERVIEW_QUESTIONS, JSON.stringify(questions))
+    } catch (err) {
+      console.error('Error importando preguntas base:', err)
+      questions = []
+    }
+  }
+
+  return questions
+}
+
+export async function saveInterviewQuestions(questionsList) {
+  if (!Array.isArray(questionsList)) return questionsList
+
+  // Guardar en Firestore para que todos los docentes compartan el banco
+  if (isFirebaseConfigured()) {
+    try {
+      await setDoc(doc(db, 'academicStructure', 'interviewQuestions'), {
+        list: questionsList,
+        updatedAt: new Date().toISOString()
+      }, { merge: true })
+    } catch (e) {
+      console.warn('Error guardando interviewQuestions en Firestore:', e)
+    }
+  }
+
+  localStorage.setItem(LS_INTERVIEW_QUESTIONS, JSON.stringify(questionsList))
+  return questionsList
+}
+
+export async function resetInterviewQuestionsToDefault() {
+  try {
+    const raw = await import('../data/interviewQuestions.json')
+    const defaults = (raw.default || raw).map((q, idx) => ({
+      ...q,
+      id: q.id || `q_${q.level || 'A1'}_${idx + 1}`
+    }))
+    await saveInterviewQuestions(defaults)
+    return defaults
+  } catch (err) {
+    console.error('Error reseteando preguntas:', err)
+    return []
+  }
+}
+
 // Resetear evaluación de un estudiante individual
 export async function resetStudentEvaluation(studentEmail) {
   const cleanEmail = (studentEmail || '').trim().toLowerCase()
@@ -819,3 +899,50 @@ export async function resetAllEvaluations() {
   writeLS(LS_USERS, users)
   writeLS(LS_ORAL_EVALS, [])
 }
+
+// ================= GESTIÓN DE PERMISOS Y MÓDULOS PARA COORDINACIÓN =================
+const LS_MODULE_PERMISSIONS = 'el_module_permissions'
+export const DEFAULT_COORDINATION_MODULES = {
+  overview: { id: 'overview', label: 'Supervisión General', desc: 'Panel central con KPIs, estados de alumnos y conteo global.', enabled: true, icon: 'dashboard' },
+  analytics: { id: 'analytics', label: 'Dashboard Analítico', desc: 'Métricas de nivelación por grado, sección y distribución MCER.', enabled: true, icon: 'analytics' },
+  students_manager: { id: 'students_manager', label: 'Gestión de Alumnos', desc: 'Habilitación de accesos, edición de datos y filtros por grado.', enabled: true, icon: 'groups' },
+  academic_structure: { id: 'academic_structure', label: 'Grados y Secciones', desc: 'Creación y mantenimiento del padrón de grados y secciones.', enabled: true, icon: 'category' },
+  teachers: { id: 'teachers', label: 'Docentes y Coordinación', desc: 'Control de cuentas docentes, permisos y altas de personal.', enabled: true, icon: 'school' },
+  thresholds: { id: 'thresholds', label: 'Ponderaciones y Cortes 2026', desc: 'Reglas de cálculo del examen diagnóstico y porcentajes.', enabled: true, icon: 'tune' },
+  interview_console: { id: 'interview_console', label: 'Consola de Entrevista Oral', desc: 'Acceso para aplicar la entrevista oral directa a alumnos.', enabled: true, icon: 'record_voice_over' },
+  question_bank: { id: 'question_bank', label: 'Banco de Preguntas MCER', desc: 'Revisión y edición del banco de preguntas orales A1-C1.', enabled: true, icon: 'quiz' },
+  test_builder: { id: 'test_builder', label: 'Batería de Tests y Pruebas', desc: 'Configuración y prueba de exámenes estandarizados.', enabled: true, icon: 'auto_stories' },
+  reports: { id: 'reports', label: 'Reportes y Cierre', desc: 'Generación y exportación de sábanas oficiales de notas.', enabled: true, icon: 'assessment' }
+}
+
+export async function getCoordinationModulesConfig() {
+  if (isFirebaseConfigured()) {
+    try {
+      const snap = await getDoc(doc(db, 'systemSettings', 'coordinationModules'))
+      if (snap.exists()) {
+        return { ...DEFAULT_COORDINATION_MODULES, ...(snap.data().modules || {}) }
+      }
+    } catch (e) {
+      console.warn('Error leyendo permisos de módulos en Firestore:', e)
+    }
+  }
+  const local = JSON.parse(localStorage.getItem(LS_MODULE_PERMISSIONS) || 'null')
+  if (local) return { ...DEFAULT_COORDINATION_MODULES, ...local }
+  return DEFAULT_COORDINATION_MODULES
+}
+
+export async function saveCoordinationModulesConfig(modulesConfig) {
+  if (isFirebaseConfigured()) {
+    try {
+      await setDoc(doc(db, 'systemSettings', 'coordinationModules'), {
+        modules: modulesConfig,
+        updatedAt: new Date().toISOString()
+      }, { merge: true })
+    } catch (e) {
+      console.warn('Error guardando permisos de módulos en Firestore:', e)
+    }
+  }
+  localStorage.setItem(LS_MODULE_PERMISSIONS, JSON.stringify(modulesConfig))
+  return modulesConfig
+}
+

@@ -4,6 +4,7 @@ import ExamBuilder from './ExamBuilder'
 import OralInterviewExam from './OralInterviewExam'
 import TeacherProfile from './TeacherProfile'
 import DiagnosticConfigManager from '../shared/DiagnosticConfigManager'
+import InterviewQuestionsBankManager from './InterviewQuestionsBankManager'
 import teacherAvatar from '../../assets/avatar_teacher.png'
 import {
   getAllUsers,
@@ -17,7 +18,7 @@ import {
   getUserProfile
 } from '../../lib/dataService'
 
-export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView, onUpdateCurrentUser }) {
+export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView, onSwitchToAdminView, onUpdateCurrentUser }) {
   const [currentSection, setCurrentSection] = useState('interview')
   const [collapsed, setCollapsed] = useState(false)
   const [currentTeacher, setCurrentTeacher] = useState(user)
@@ -58,6 +59,17 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
   // Alumno activo que está siendo evaluado en la consola oral
   const [activeInterviewStudent, setActiveInterviewStudent] = useState(null)
+
+  // Estado para modal de detalle de rúbrica en Resultados
+  const [selectedEvaluationDetail, setSelectedEvaluationDetail] = useState(null)
+
+  // Filtros del Dashboard de Resultados
+  const [resultsSearch, setResultsSearch] = useState('')
+  const [resultsLevelFilter, setResultsLevelFilter] = useState('all')
+  const [resultsGradeFilter, setResultsGradeFilter] = useState('all')
+  const [resultsTeacherFilter, setResultsTeacherFilter] = useState('all')
+  const [resultsPage, setResultsPage] = useState(1)
+  const resultsPageSize = 10
 
   // Cargar lista de alumnos, evaluaciones, estructura académica y datos frescos del docente
   const loadData = async () => {
@@ -229,8 +241,53 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1
   const paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
+  // Filtrado de Evaluaciones en Sección Resultados
+  const filteredEvaluations = evaluations.filter(ev => {
+    // Nivel
+    if (resultsLevelFilter !== 'all' && (ev.finalLevel || '').toUpperCase() !== resultsLevelFilter.toUpperCase()) {
+      return false
+    }
+    // Grado
+    if (resultsGradeFilter !== 'all') {
+      const gStr = String(ev.grade || '')
+      if (!gStr.includes(resultsGradeFilter)) return false
+    }
+    // Docente
+    if (resultsTeacherFilter !== 'all') {
+      const tKey = resultsTeacherFilter.toLowerCase()
+      const tName = (ev.teacherName || '').toLowerCase()
+      const tMail = (ev.teacherEmail || '').toLowerCase()
+      if (!tName.includes(tKey) && !tMail.includes(tKey)) return false
+    }
+    // Búsqueda
+    if (resultsSearch) {
+      const s = resultsSearch.toLowerCase()
+      const match =
+        (ev.studentName && ev.studentName.toLowerCase().includes(s)) ||
+        (ev.studentCarnet && ev.studentCarnet.toLowerCase().includes(s)) ||
+        (ev.studentEmail && ev.studentEmail.toLowerCase().includes(s)) ||
+        (ev.teacherName && ev.teacherName.toLowerCase().includes(s))
+      if (!match) return false
+    }
+    return true
+  })
+
+  const resultsTotalPages = Math.ceil(filteredEvaluations.length / resultsPageSize) || 1
+  const paginatedEvaluations = filteredEvaluations.slice((resultsPage - 1) * resultsPageSize, resultsPage * resultsPageSize)
+
+  // Métricas del Dashboard de Resultados
+  const levelCounts = evaluations.reduce((acc, ev) => {
+    const lvl = (ev.finalLevel || 'Otros').toUpperCase()
+    acc[lvl] = (acc[lvl] || 0) + 1
+    return acc
+  }, {})
+
+  const totalEvaluatedTime = evaluations.reduce((sum, ev) => sum + (ev.totalDurationSeconds || 0), 0)
+  const avgDurationMinutes = evaluations.length ? Math.round(totalEvaluatedTime / evaluations.length / 60) : 0
+
   const menuItems = [
     { key: 'interview', label: 'Entrevista Oral (A1-C1)', icon: 'record_voice_over', badge: `${students.length}` },
+    { key: 'interview_questions', label: 'Banco de Preguntas Orales', icon: 'quiz' },
     { key: 'results', label: 'Resultados y Niveles', icon: 'military_tech', badge: `${evaluations.length}` },
     { key: 'builder', label: 'Batería y Tests MCER', icon: 'auto_stories' },
     { key: 'diagnostic_config', label: 'Ponderaciones y Cortes 2026', icon: 'tune' },
@@ -273,6 +330,17 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
               >
                 <span className="material-symbols-outlined text-[16px]">restart_alt</span>
                 <span>Restaurar / Ver Niveles</span>
+              </button>
+            )}
+
+            {onSwitchToAdminView && (
+              <button
+                onClick={onSwitchToAdminView}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-all border border-indigo-200 cursor-pointer"
+                title="Volver a la consola de Coordinación / Administración"
+              >
+                <span className="material-symbols-outlined text-[16px] text-[#2528b7]">admin_panel_settings</span>
+                <span className="hidden sm:inline">Panel Admin/Coord</span>
               </button>
             )}
 
@@ -956,75 +1024,575 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                 </div>
               )}
 
-              {/* SECCIÓN 2: RESULTADOS Y HISTORIAL */}
+              {/* SECCIÓN 2: RESULTADOS Y NIVELES (DASHBOARD COMPLETO) */}
               {currentSection === 'results' && (
-                <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h2 className="font-heading font-bold text-lg text-on-surface">Actas de Entrevistas Orales</h2>
-                      <p className="text-xs text-on-surface-variant">Historial de evaluaciones orales completadas con rúbrica y tiempo registrado.</p>
+                <div className="space-y-6">
+                  {/* KPI DASHBOARD CARDS */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+                    {/* Tarjeta Total Evaluados */}
+                    <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Evaluados</span>
+                        <div className="w-8 h-8 rounded-xl bg-indigo-50 text-[#2528b7] flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[18px]">verified</span>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <span className="font-heading font-black text-2xl text-gray-900">{evaluations.length}</span>
+                        <span className="text-[11px] text-gray-400 block mt-0.5">de {students.length} alumnos</span>
+                      </div>
                     </div>
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-200">
-                      {evaluations.length} evaluados
-                    </span>
+
+                    {/* Tarjeta Nivel A1 */}
+                    <div className="bg-white rounded-2xl p-4 border border-emerald-100 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Nivel A1</span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="font-heading font-black text-2xl text-emerald-800">{levelCounts['A1'] || 0}</span>
+                        <span className="text-[11px] text-emerald-600 font-medium block mt-0.5">
+                          {evaluations.length ? Math.round(((levelCounts['A1'] || 0) / evaluations.length) * 100) : 0}% del total
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tarjeta Nivel A2 */}
+                    <div className="bg-white rounded-2xl p-4 border border-cyan-100 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-700">Nivel A2</span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="font-heading font-black text-2xl text-cyan-800">{levelCounts['A2'] || 0}</span>
+                        <span className="text-[11px] text-cyan-600 font-medium block mt-0.5">
+                          {evaluations.length ? Math.round(((levelCounts['A2'] || 0) / evaluations.length) * 100) : 0}% del total
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tarjeta Nivel B1 */}
+                    <div className="bg-white rounded-2xl p-4 border border-blue-100 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Nivel B1</span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="font-heading font-black text-2xl text-blue-800">{levelCounts['B1'] || 0}</span>
+                        <span className="text-[11px] text-blue-600 font-medium block mt-0.5">
+                          {evaluations.length ? Math.round(((levelCounts['B1'] || 0) / evaluations.length) * 100) : 0}% del total
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tarjeta Nivel B2 / C1 */}
+                    <div className="bg-white rounded-2xl p-4 border border-purple-100 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Nivel B2 / C1</span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="font-heading font-black text-2xl text-purple-800">
+                          {(levelCounts['B2'] || 0) + (levelCounts['C1'] || 0)}
+                        </span>
+                        <span className="text-[11px] text-purple-600 font-medium block mt-0.5">Avanzados</span>
+                      </div>
+                    </div>
+
+                    {/* Tarjeta Tiempo Promedio */}
+                    <div className="bg-white rounded-2xl p-4 border border-amber-100 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Duración Prom.</span>
+                        <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[18px]">timer</span>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <span className="font-heading font-black text-2xl text-amber-900">
+                          {avgDurationMinutes > 0 ? `${avgDurationMinutes} min` : `${Math.round(totalEvaluatedTime / (evaluations.length || 1))}s`}
+                        </span>
+                        <span className="text-[11px] text-amber-600 font-medium block mt-0.5">por entrevista oral</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs md:text-sm">
-                      <thead>
-                        <tr className="border-b border-outline-variant/30 text-[11px] font-bold uppercase text-on-surface-variant">
-                          <th className="pb-3 px-3">Estudiante</th>
-                          <th className="pb-3 px-3">Grado</th>
-                          <th className="pb-3 px-3">Nivel Final</th>
-                          <th className="pb-3 px-3">Duración</th>
-                          <th className="pb-3 px-3">Docente Evaluador</th>
-                          <th className="pb-3 px-3">Fecha</th>
-                          <th className="pb-3 px-3 text-right">Acción</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-outline-variant/20">
-                        {evaluations.length === 0 ? (
-                          <tr>
-                            <td colSpan="7" className="py-8 text-center text-gray-400 text-xs italic">
-                              Aún no se han completado entrevistas orales.
-                            </td>
+                  {/* BARRA DE FILTROS Y BÚSQUEDA */}
+                  <div className="bg-white rounded-3xl p-5 border border-outline-variant/30 shadow-xs space-y-3.5">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div>
+                        <h2 className="font-heading font-black text-base text-gray-900 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[#2528b7] text-[22px]">bar_chart</span>
+                          <span>Panel de Resultados y Niveles Oficiales</span>
+                        </h2>
+                        <p className="text-xs text-gray-500">
+                          Filtra por nivel asignado, grado o docente evaluador y haz clic en <strong>"Ver Detalles"</strong> para auditar cada criterio de la rúbrica.
+                        </p>
+                      </div>
+
+                      {/* Buscador de alumnos en resultados */}
+                      <div className="relative w-full md:w-72">
+                        <input
+                          type="text"
+                          value={resultsSearch}
+                          onChange={(e) => {
+                            setResultsSearch(e.target.value)
+                            setResultsPage(1)
+                          }}
+                          placeholder="Buscar por nombre, carnet..."
+                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30 bg-gray-50/50"
+                        />
+                        <span className="material-symbols-outlined text-[18px] text-gray-400 absolute left-3 top-1/2 -translate-y-1/2">
+                          search
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* SELECTORES DE FILTRO RÁPIDO */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
+                      {/* Filtro por Nivel Oficial */}
+                      <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-gray-200/70">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase px-2">Nivel:</span>
+                        {['all', 'A1', 'A2', 'B1', 'B2', 'C1'].map((lvl) => (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => {
+                              setResultsLevelFilter(lvl)
+                              setResultsPage(1)
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                              resultsLevelFilter === lvl
+                                ? 'bg-[#2528b7] text-white shadow-xs'
+                                : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                            }`}
+                          >
+                            {lvl === 'all' ? 'Todos' : lvl}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Filtro por Grado */}
+                      <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-gray-200/70">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase px-2">Grado:</span>
+                        {['all', '6', '7', '8', '9', '10', '11'].map((gr) => (
+                          <button
+                            key={gr}
+                            type="button"
+                            onClick={() => {
+                              setResultsGradeFilter(gr)
+                              setResultsPage(1)
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                              resultsGradeFilter === gr
+                                ? 'bg-indigo-900 text-white shadow-xs'
+                                : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                            }`}
+                          >
+                            {gr === 'all' ? 'Todos' : `${gr}°`}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Filtro por Docente Evaluador */}
+                      <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-gray-200/70">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase px-2">Docente:</span>
+                        {[
+                          { key: 'all', label: 'Todos' },
+                          { key: 'ronald', label: 'Ronald' },
+                          { key: 'silvia', label: 'Silvia' },
+                          { key: 'nelsi', label: 'Nelsi' }
+                        ].map((t) => (
+                          <button
+                            key={t.key}
+                            type="button"
+                            onClick={() => {
+                              setResultsTeacherFilter(t.key)
+                              setResultsPage(1)
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                              resultsTeacherFilter === t.key
+                                ? 'bg-slate-800 text-white shadow-xs'
+                                : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                            }`}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Reset Filtros */}
+                      {(resultsLevelFilter !== 'all' || resultsGradeFilter !== 'all' || resultsTeacherFilter !== 'all' || resultsSearch) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setResultsLevelFilter('all')
+                            setResultsGradeFilter('all')
+                            setResultsTeacherFilter('all')
+                            setResultsSearch('')
+                            setResultsPage(1)
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold text-gray-500 hover:text-red-600 hover:bg-red-50 flex items-center gap-1 transition-all"
+                        >
+                          <span className="material-symbols-outlined text-[15px]">clear</span>
+                          Limpiar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* TABLA DE EVALUACIONES CON BOTÓN DE DETALLES */}
+                  <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-heading font-bold text-sm text-gray-900">
+                          Actas de Evaluación ({filteredEvaluations.length})
+                        </h3>
+                        <span className="text-[11px] text-gray-500">
+                          {filteredEvaluations.length === evaluations.length ? 'Total registradas' : `Filtradas de ${evaluations.length}`}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 hidden sm:inline">
+                        Haz clic en <strong>"Ver Detalles"</strong> para consultar el desglose pregunta por pregunta.
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs md:text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-white">
+                            <th className="py-3 px-3">Carnet</th>
+                            <th className="py-3 px-3">Estudiante</th>
+                            <th className="py-3 px-3 text-center">Grado</th>
+                            <th className="py-3 px-3 text-center">Nivel Obtenido</th>
+                            <th className="py-3 px-3">Docente Evaluador</th>
+                            <th className="py-3 px-3 text-center">Duración</th>
+                            <th className="py-3 px-3">Fecha y Hora</th>
+                            <th className="py-3 px-3 text-right">Acciones</th>
                           </tr>
-                        ) : (
-                          evaluations.map((ev, i) => (
-                            <tr key={ev.id || i} className="hover:bg-surface-container-low transition-colors">
-                              <td className="py-3 px-3 font-semibold text-gray-900">{ev.studentName}</td>
-                              <td className="py-3 px-3">{ev.grade} - {ev.section}</td>
-                              <td className="py-3 px-3">
-                                <span className="px-3 py-0.5 rounded-full font-bold text-xs bg-indigo-100 text-[#2528b7]">
-                                  {ev.finalLevel}
-                                </span>
-                              </td>
-                              <td className="py-3 px-3 font-mono text-gray-600">{ev.durationFormatted || `${ev.totalDurationSeconds}s`}</td>
-                              <td className="py-3 px-3 text-gray-600">{ev.teacherName || ev.teacherEmail}</td>
-                              <td className="py-3 px-3 text-[11px] text-gray-400">
-                                {ev.completedAt ? new Date(ev.completedAt).toLocaleString() : 'Hoy'}
-                              </td>
-                              <td className="py-3 px-3 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteEvaluation(ev)}
-                                  className="px-2.5 py-1.5 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
-                                  title={`Eliminar evaluación de ${ev.studentName} y reiniciar su estado a Sin Evaluar`}
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">delete</span>
-                                  <span>Eliminar</span>
-                                </button>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {paginatedEvaluations.length === 0 ? (
+                            <tr>
+                              <td colSpan="8" className="py-12 text-center text-gray-400 text-xs italic">
+                                No se encontraron actas con los filtros aplicados.
                               </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ) : (
+                            paginatedEvaluations.map((ev, i) => {
+                              const badgeColors = {
+                                A1: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+                                A2: 'bg-cyan-50 text-cyan-800 border-cyan-300',
+                                B1: 'bg-blue-50 text-blue-800 border-blue-300',
+                                B2: 'bg-purple-50 text-purple-800 border-purple-300',
+                                C1: 'bg-pink-50 text-pink-800 border-pink-300',
+                              }
+                              const colorClass = badgeColors[ev.finalLevel] || 'bg-indigo-50 text-indigo-800 border-indigo-200'
+
+                              return (
+                                <tr key={ev.id || i} className="hover:bg-indigo-50/30 transition-colors">
+                                  <td className="py-3.5 px-3 font-mono font-bold text-gray-700">
+                                    {ev.studentCarnet || 'N/A'}
+                                  </td>
+                                  <td className="py-3.5 px-3">
+                                    <div className="font-semibold text-gray-900">{ev.studentName}</div>
+                                    <div className="text-[11px] text-gray-400 font-mono truncate max-w-xs">{ev.studentEmail}</div>
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center">
+                                    <span className="inline-block px-2.5 py-0.5 rounded-lg bg-slate-100 font-black text-xs text-slate-800 border border-slate-200">
+                                      {ev.grade} - Secc. {ev.section}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center">
+                                    <span className={`inline-block px-3 py-1 rounded-full font-black text-xs border shadow-2xs ${colorClass}`}>
+                                      {ev.finalLevel}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-3">
+                                    <div className="font-medium text-gray-800 flex items-center gap-1">
+                                      <span className="text-xs">👨‍🏫</span>
+                                      <span>{ev.teacherName || ev.teacherEmail}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center font-mono text-xs text-gray-600">
+                                    {ev.durationFormatted || `${ev.totalDurationSeconds}s`}
+                                  </td>
+                                  <td className="py-3.5 px-3 text-[11px] text-gray-500 whitespace-nowrap">
+                                    {ev.completedAt ? new Date(ev.completedAt).toLocaleString('es-SV') : 'Hoy'}
+                                  </td>
+                                  <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      {/* BOTÓN VER DETALLES DE RÚBRICA */}
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedEvaluationDetail(ev)}
+                                        className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-[#2528b7] font-bold text-xs border border-indigo-200/80 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                        title="Ver preguntas y desglose de rúbrica"
+                                      >
+                                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                        <span>Detalles</span>
+                                      </button>
+
+                                      {/* BOTÓN ELIMINAR EVALUACIÓN */}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteEvaluation(ev)}
+                                        className="p-1.5 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                                        title={`Eliminar evaluación de ${ev.studentName} y resetear a Sin Evaluar`}
+                                      >
+                                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* PAGINACIÓN DE RESULTADOS */}
+                    <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+                      <span className="text-xs text-gray-500">
+                        Página <strong>{resultsPage}</strong> de <strong>{resultsTotalPages}</strong> ({filteredEvaluations.length} evaluados mostrados)
+                      </span>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={resultsPage <= 1}
+                          onClick={() => setResultsPage(1)}
+                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                        >
+                          «
+                        </button>
+                        <button
+                          type="button"
+                          disabled={resultsPage <= 1}
+                          onClick={() => setResultsPage(p => Math.max(1, p - 1))}
+                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                        >
+                          Anterior
+                        </button>
+                        <button
+                          type="button"
+                          disabled={resultsPage >= resultsTotalPages}
+                          onClick={() => setResultsPage(p => Math.min(resultsTotalPages, p + 1))}
+                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                        >
+                          Siguiente
+                        </button>
+                        <button
+                          type="button"
+                          disabled={resultsPage >= resultsTotalPages}
+                          onClick={() => setResultsPage(resultsTotalPages)}
+                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                        >
+                          »
+                        </button>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* ================= MODAL DE DETALLES DEL ALUMNO / RÚBRICA ================= */}
+                  {selectedEvaluationDetail && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+                      <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200 animate-scaleUp">
+                        {/* Cabecera del modal */}
+                        <div className="bg-gradient-to-r from-[#161a33] to-[#2528b7] p-6 text-white flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-900 font-extrabold text-[10px] tracking-wider uppercase">
+                                Acta de Evaluación Oral Oficial
+                              </span>
+                              <span className="text-xs text-slate-300">
+                                {selectedEvaluationDetail.completedAt ? new Date(selectedEvaluationDetail.completedAt).toLocaleString('es-SV') : 'Hoy'}
+                              </span>
+                            </div>
+                            <h3 className="font-heading font-extrabold text-2xl text-white mt-1">
+                              {selectedEvaluationDetail.studentName}
+                            </h3>
+                            <div className="text-xs text-indigo-200 font-mono flex items-center gap-3 mt-1 flex-wrap">
+                              <span>Carnet: <strong>{selectedEvaluationDetail.studentCarnet || 'N/A'}</strong></span>
+                              <span>·</span>
+                              <span>{selectedEvaluationDetail.grade} - Secc. {selectedEvaluationDetail.section}</span>
+                              <span>·</span>
+                              <span>Docente: <strong>{selectedEvaluationDetail.teacherName || selectedEvaluationDetail.teacherEmail}</strong></span>
+                            </div>
+                          </div>
+
+                          <div className="text-right flex flex-col items-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedEvaluationDetail(null)}
+                              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                            <div className="px-4 py-1.5 rounded-2xl bg-white/15 border border-white/20 text-center">
+                              <span className="text-[10px] uppercase font-bold text-slate-200 block">Nivel Asignado</span>
+                              <span className="font-heading font-black text-2xl text-amber-300">
+                                {selectedEvaluationDetail.finalLevel}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Cuerpo scrollable con rúbricas */}
+                        <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50">
+                          {/* Ficha resumen */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-gray-200/80">
+                            <div>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Tiempo Total</span>
+                              <span className="font-mono font-bold text-base text-gray-800">
+                                {selectedEvaluationDetail.durationFormatted || `${selectedEvaluationDetail.totalDurationSeconds} seg`}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Correo Alumno</span>
+                              <span className="text-xs font-mono text-gray-600 truncate block">
+                                {selectedEvaluationDetail.studentEmail}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nivel Oficial</span>
+                              <span className="text-base font-extrabold text-[#2528b7]">
+                                {selectedEvaluationDetail.finalLevel}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Docente</span>
+                              <span className="text-xs font-semibold text-gray-800 truncate block">
+                                {selectedEvaluationDetail.teacherName || selectedEvaluationDetail.teacherEmail}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Detalle por niveles evaluados */}
+                          {selectedEvaluationDetail.levelsEvaluated && Object.keys(selectedEvaluationDetail.levelsEvaluated).length > 0 ? (
+                            Object.entries(selectedEvaluationDetail.levelsEvaluated).map(([lvlKey, lvlData]) => {
+                              const criteriaLabels = {
+                                pronunciation: 'Pronunciación y Fonética',
+                                fluency: 'Fluidez y Ritmo',
+                                vocabulary: 'Vocabulario y Recursos',
+                                grammar: 'Gramática y Precisión',
+                                comprehension: 'Comprensión Auditiva',
+                                communicative: 'Eficacia Comunicativa'
+                              }
+
+                              return (
+                                <div key={lvlKey} className="bg-white rounded-2xl p-5 border border-gray-200 space-y-4 shadow-2xs">
+                                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                                    <div className="flex items-center gap-2">
+                                      <span className="px-3 py-1 rounded-xl bg-indigo-50 font-black text-sm text-[#2528b7] border border-indigo-200">
+                                        Nivel {lvlKey}
+                                      </span>
+                                      <span className="text-xs text-gray-500 font-medium">
+                                        Puntaje registrado: <strong>{lvlData.scoreTotal ?? 0} pts</strong>
+                                      </span>
+                                    </div>
+                                    {lvlKey === selectedEvaluationDetail.finalLevel && (
+                                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">check</span>
+                                        Nivel Consolidado
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Observaciones si las hay */}
+                                  {lvlData.comments && (
+                                    <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
+                                      <span className="font-bold block mb-0.5 text-amber-800">📝 Observaciones del Docente:</span>
+                                      <p className="italic">"{lvlData.comments}"</p>
+                                    </div>
+                                  )}
+
+                                  {/* Preguntas y rúbricas */}
+                                  {lvlData.questions && Object.keys(lvlData.questions).length > 0 && (
+                                    <div className="space-y-3">
+                                      {Object.entries(lvlData.questions).map(([qIdx, scores]) => {
+                                        let qSum = 0
+                                        return (
+                                          <div key={qIdx} className="bg-slate-50/70 rounded-xl p-3.5 border border-slate-200/80">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-[16px] text-[#2528b7]">question_answer</span>
+                                                <span>Pregunta #{Number(qIdx) + 1}</span>
+                                              </span>
+                                              <span className="text-xs font-mono font-bold text-indigo-900">
+                                                Subtotal: {Object.values(scores).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0)} / 20 pts
+                                              </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+                                              {Object.entries(scores).map(([critKey, val]) => (
+                                                <div key={critKey} className="bg-white p-2.5 rounded-lg border border-gray-200 flex items-center justify-between text-xs">
+                                                  <span className="text-gray-600 truncate pr-2 font-medium">
+                                                    {criteriaLabels[critKey] || critKey}
+                                                  </span>
+                                                  <span className={`px-2 py-0.5 rounded-md font-bold font-mono text-[11px] shrink-0 ${
+                                                    val === 4 ? 'bg-emerald-100 text-emerald-800' :
+                                                    val === 3 ? 'bg-blue-100 text-blue-800' :
+                                                    val === 2 ? 'bg-amber-100 text-amber-800' :
+                                                    'bg-red-100 text-red-800'
+                                                  }`}>
+                                                    {val} / 4 pts
+                                                  </span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <div className="p-8 text-center text-gray-400 italic bg-white rounded-2xl border border-gray-200 text-xs">
+                              No hay detalles específicos de rúbrica registrados para esta evaluación.
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer modal */}
+                        <div className="bg-white p-4 border-t border-gray-200 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`¿Deseas eliminar la evaluación de ${selectedEvaluationDetail.studentName} y reiniciar su nivel a Sin Evaluar?`)) {
+                                handleDeleteEvaluation(selectedEvaluationDetail)
+                                setSelectedEvaluationDetail(null)
+                              }
+                            }}
+                            className="px-3 py-2 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 text-xs font-bold border border-red-200 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                            Eliminar Acta
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedEvaluationDetail(null)}
+                            className="px-6 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all cursor-pointer"
+                          >
+                            Cerrar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
 
               {/* SECCIÓN 3: CONSTRUCTOR WIZARD */}
+              {/* SECCIÓN: BANCO DE PREGUNTAS ORALES (A1 - C1) */}
+              {currentSection === 'interview_questions' && (
+                <InterviewQuestionsBankManager />
+              )}
+
               {/* SECCIÓN 3: CONSTRUCTOR DE EXAMEN */}
               {currentSection === 'builder' && (
                 <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm">

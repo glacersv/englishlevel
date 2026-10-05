@@ -7,11 +7,13 @@ import {
   getRandom3Questions,
   getQuestionsByLevel
 } from '../../lib/oralEvaluation'
-import { saveOralEvaluation, updateUserStatus } from '../../lib/dataService'
+import { saveOralEvaluation, updateUserStatus, getInterviewQuestions } from '../../lib/dataService'
 
 export default function OralInterviewExam({ student, teacher, onFinished, onCancel }) {
   // Nivel actual en evaluación (inicia en A1)
   const [currentLevel, setCurrentLevel] = useState('A1')
+  // Banco global de preguntas activas
+  const [questionsBank, setQuestionsBank] = useState([])
   // Preguntas seleccionadas para el nivel actual (3 preguntas)
   const [levelQuestions, setLevelQuestions] = useState([])
   // Índice de la pregunta activa en pantalla (0, 1 o 2) - Sin scroll
@@ -24,13 +26,24 @@ export default function OralInterviewExam({ student, teacher, onFinished, onCanc
   const [secondsElapsed, setSecondsElapsed] = useState(0)
   const [saving, setSaving] = useState(false)
 
+  // Cargar banco de preguntas dinámico al inicio
+  useEffect(() => {
+    getInterviewQuestions().then(bank => {
+      if (bank && bank.length > 0) {
+        setQuestionsBank(bank)
+        const q3 = getRandom3Questions('A1', bank)
+        setLevelQuestions(q3)
+      }
+    }).catch(e => console.warn('Error cargando banco en entrevista:', e))
+  }, [])
+
   // Cargar 3 preguntas cuando cambia el nivel
   useEffect(() => {
-    const q3 = getRandom3Questions(currentLevel)
+    const q3 = getRandom3Questions(currentLevel, questionsBank)
     setLevelQuestions(q3)
     setActiveQuestionIndex(0)
     setComments('')
-  }, [currentLevel])
+  }, [currentLevel, questionsBank])
 
   // Timer activo durante la entrevista
   useEffect(() => {
@@ -357,7 +370,7 @@ export default function OralInterviewExam({ student, teacher, onFinished, onCanc
             <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-200/90 shadow-sm space-y-6 animate-fadeIn">
               
               {/* Enunciado de la Pregunta para el Docente */}
-              <div className="space-y-2 bg-gradient-to-r from-slate-50 to-indigo-50/40 p-5 rounded-2xl border border-indigo-100/60">
+              <div className="space-y-3 bg-gradient-to-r from-slate-50 to-indigo-50/40 p-5 rounded-2xl border border-indigo-100/60">
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[11px] font-extrabold uppercase">
                     Pregunta #{qIndex + 1} de {levelQuestions.length}
@@ -365,10 +378,38 @@ export default function OralInterviewExam({ student, teacher, onFinished, onCanc
                   <span className="text-xs text-indigo-700 font-semibold italic">
                     Tema: {q.topic}
                   </span>
+                  {q.isCustom && (
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold border border-purple-200">
+                      Editada / Docente
+                    </span>
+                  )}
                 </div>
+
                 <p className="font-heading font-extrabold text-xl md:text-2xl text-gray-900 leading-snug">
                   "{q.question}"
                 </p>
+
+                {/* Referencia visual o apoyo didáctico si existe */}
+                {q.visualPrompt && (
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-amber-700 shrink-0">image</span>
+                    <div>
+                      <strong className="block font-bold text-amber-800">Apoyo Visual para el Alumno:</strong>
+                      <span>{q.visualPrompt}</span>
+                    </div>
+                  </div>
+                )}
+
+                {q.imageUrl && (
+                  <div className="pt-2">
+                    <img
+                      src={q.imageUrl}
+                      alt="Material visual de la pregunta"
+                      className="max-h-56 rounded-xl border border-gray-200 shadow-xs object-contain bg-white p-1"
+                    />
+                  </div>
+                )}
+
                 <span className="text-[11px] text-gray-400 block">
                   Formula la pregunta con calma al estudiante y escucha su respuesta oral antes de puntuar.
                 </span>

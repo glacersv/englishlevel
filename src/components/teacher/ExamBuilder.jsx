@@ -40,6 +40,11 @@ export default function ExamBuilder({ onPublished }) {
   const [existingExams, setExistingExams] = useState([])
   const [maxPlatformWeight, setMaxPlatformWeight] = useState(60)
 
+  // Modo de configuración de ponderación:
+  // 'internal_100': Los tests se reparten un 100% interno de la batería (y se escala automáticamente al % de plataforma)
+  // 'global_platform': Los tests se configuran directamente con su % absoluto sobre la nota global (ej: 60% o 70%)
+  const [weightMode, setWeightMode] = useState('internal_100')
+
   useEffect(() => {
     loadExistingExamsAndConfig()
   }, [])
@@ -61,13 +66,16 @@ export default function ExamBuilder({ onPublished }) {
     }
   }
 
+  // Objetivo máximo según el modo seleccionado (100% para interno, o maxPlatformWeight para global)
+  const targetBudget = weightMode === 'internal_100' ? 100 : maxPlatformWeight
+
   // Cálculo de pesos existentes para el grado seleccionado
   const allocatedWeightOtherExams = existingExams
     .filter(e => e.active !== false && (meta.grade === 'all' || e.grade === 'all' || e.grade === meta.grade))
     .reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0)
 
   const currentTotalWeight = allocatedWeightOtherExams + (Number(meta.weight) || 0)
-  const isWeightExceeded = currentTotalWeight > maxPlatformWeight
+  const isWeightExceeded = currentTotalWeight > targetBudget
 
   // Official standardized battery loader (100% English, Pure Tests, 20 Scramble Sentences)
   const handleLoadOfficialBattery = async () => {
@@ -216,12 +224,12 @@ export default function ExamBuilder({ onPublished }) {
       {viewMode === 'list' && (
         <div className="max-w-4xl mx-auto space-y-4">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h4 className="text-sm font-extrabold text-gray-900">
                 Tests Activos en Plataforma ({existingExams.length})
               </h4>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-indigo-100 text-[#2528b7]">
-                Total: {allocatedWeightOtherExams}% de {maxPlatformWeight}%
+                Total Asignado: {allocatedWeightOtherExams}% {allocatedWeightOtherExams <= maxPlatformWeight ? `(Global: ${maxPlatformWeight}%)` : `(Interno: 100%)`}
               </span>
             </div>
             <button
@@ -529,25 +537,63 @@ export default function ExamBuilder({ onPublished }) {
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-1.5">
-              <label className="text-xs font-bold text-indigo-950 flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px] text-[#2528b7]">percent</span>
-                Ponderación de este Test
-              </label>
+            <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-indigo-950 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px] text-[#2528b7]">percent</span>
+                  Ponderación de este Test
+                </label>
+                {/* Toggle de Modo: 100% Interno vs % Directo de Plataforma */}
+                <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-indigo-200 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setWeightMode('internal_100')}
+                    className={`px-2 py-0.5 rounded font-bold transition-all ${
+                      weightMode === 'internal_100'
+                        ? 'bg-[#2528b7] text-white shadow-2xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    100% Interno
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWeightMode('global_platform')}
+                    className={`px-2 py-0.5 rounded font-bold transition-all ${
+                      weightMode === 'global_platform'
+                        ? 'bg-[#2528b7] text-white shadow-2xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Directo ({maxPlatformWeight}%)
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   min="1"
-                  max={maxPlatformWeight}
+                  max={targetBudget}
                   value={meta.weight}
                   onChange={e => setMeta({ ...meta, weight: Math.max(0, parseInt(e.target.value, 10) || 0) })}
                   className="w-20 px-2.5 py-1.5 rounded-xl border border-indigo-300 text-xs font-black bg-white text-center shadow-xs"
                 />
-                <span className="text-xs text-indigo-900 font-semibold">% de la nota</span>
+                <span className="text-xs text-indigo-900 font-semibold">
+                  {weightMode === 'internal_100' ? '% interno de la batería' : '% sobre la nota total'}
+                </span>
               </div>
-              <p className="text-[10px] text-indigo-800">
-                Límite global plataforma: <strong>{maxPlatformWeight}%</strong>.
-              </p>
+
+              <div className="text-[10px] text-indigo-800 bg-white/70 p-2 rounded-xl border border-indigo-100 flex items-center justify-between">
+                <span>
+                  {weightMode === 'internal_100' ? (
+                    <>Equivale a: <strong>{((meta.weight || 0) * (maxPlatformWeight / 100)).toFixed(1)}%</strong> de la nota global (Plataforma: {maxPlatformWeight}%).</>
+                  ) : (
+                    <>Equivale al <strong>{maxPlatformWeight > 0 ? (((meta.weight || 0) / maxPlatformWeight) * 100).toFixed(1) : 0}%</strong> interno de los tests.</>
+                  )}
+                </span>
+                <span className="font-bold text-indigo-600">Meta: {targetBudget}%</span>
+              </div>
             </div>
           </div>
 
@@ -555,19 +601,23 @@ export default function ExamBuilder({ onPublished }) {
           <div className={`p-4 rounded-2xl border transition-all ${
             isWeightExceeded
               ? 'bg-rose-50 border-rose-300 text-rose-900'
-              : currentTotalWeight === maxPlatformWeight
+              : currentTotalWeight === targetBudget
               ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
               : 'bg-slate-50 border-slate-200 text-gray-800'
           }`}>
             <div className="flex items-center justify-between text-xs font-extrabold mb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[18px]">
-                  {isWeightExceeded ? 'warning' : currentTotalWeight === maxPlatformWeight ? 'check_circle' : 'monitoring'}
+                  {isWeightExceeded ? 'warning' : currentTotalWeight === targetBudget ? 'check_circle' : 'monitoring'}
                 </span>
-                <span>Presupuesto Porcentual de Plataforma:</span>
+                <span>
+                  {weightMode === 'internal_100'
+                    ? 'Presupuesto Interno de la Batería de Tests (100%):'
+                    : `Presupuesto Global de Plataforma (${maxPlatformWeight}%):`}
+                </span>
               </div>
               <span>
-                <strong>{currentTotalWeight}%</strong> / {maxPlatformWeight}%
+                <strong>{currentTotalWeight}%</strong> / {targetBudget}%
               </span>
             </div>
 
@@ -576,7 +626,7 @@ export default function ExamBuilder({ onPublished }) {
               {/* Peso de otros exámenes */}
               <div
                 className="h-full bg-indigo-400 absolute left-0 top-0 transition-all"
-                style={{ width: `${Math.min(100, (allocatedWeightOtherExams / maxPlatformWeight) * 100)}%` }}
+                style={{ width: `${Math.min(100, (allocatedWeightOtherExams / targetBudget) * 100)}%` }}
                 title={`Otros tests: ${allocatedWeightOtherExams}%`}
               />
               {/* Peso de este examen */}
@@ -585,8 +635,8 @@ export default function ExamBuilder({ onPublished }) {
                   isWeightExceeded ? 'bg-rose-600' : 'bg-emerald-500'
                 }`}
                 style={{
-                  left: `${Math.min(100, (allocatedWeightOtherExams / maxPlatformWeight) * 100)}%`,
-                  width: `${Math.min(100 - (allocatedWeightOtherExams / maxPlatformWeight) * 100, ((meta.weight || 0) / maxPlatformWeight) * 100)}%`
+                  left: `${Math.min(100, (allocatedWeightOtherExams / targetBudget) * 100)}%`,
+                  width: `${Math.min(100 - (allocatedWeightOtherExams / targetBudget) * 100, ((meta.weight || 0) / targetBudget) * 100)}%`
                 }}
                 title={`Este test: ${meta.weight}%`}
               />
@@ -596,11 +646,11 @@ export default function ExamBuilder({ onPublished }) {
               <span>Otros tests: {allocatedWeightOtherExams}% | Este test: {meta.weight || 0}%</span>
               <span>
                 {isWeightExceeded ? (
-                  <strong className="text-rose-700">⚠️ Te pasas por {currentTotalWeight - maxPlatformWeight}%</strong>
-                ) : currentTotalWeight === maxPlatformWeight ? (
-                  <strong className="text-emerald-700">🎯 Presupuesto exacto (100% de la plataforma cubierto)</strong>
+                  <strong className="text-rose-700">⚠️ Te pasas por {currentTotalWeight - targetBudget}%</strong>
+                ) : currentTotalWeight === targetBudget ? (
+                  <strong className="text-emerald-700">🎯 Presupuesto exacto (100% completado sin faltantes)</strong>
                 ) : (
-                  <span className="text-gray-500">Quedan disponibles {maxPlatformWeight - currentTotalWeight}%</span>
+                  <span className="text-gray-500">Quedan disponibles {targetBudget - currentTotalWeight}%</span>
                 )}
               </span>
             </div>

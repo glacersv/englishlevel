@@ -207,3 +207,144 @@ export function generateAIQuestion(type = 'multipleChoice', level = 'A1', topicI
   const fallback = pool[0]
   return { ...fallback, type, level, id: `ai_q_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` }
 }
+
+// ============================================================
+// GENERADOR DE PREGUNTAS ORALES CON IA PARA ENTREVISTA (A1 - C1)
+// ============================================================
+const ORAL_AI_TEMPLATES = {
+  A1: [
+    {
+      topic: 'Daily Routine & School Life',
+      question: 'What time do you usually arrive at school, and who do you walk with?',
+      visualPrompt: 'Muestra o describe tu mochila escolar, tus útiles y tu horario de clases.'
+    },
+    {
+      topic: 'Family and Friends',
+      question: 'Can you describe your best friend or a family member? (Name, age, what they like to do).',
+      visualPrompt: 'Piensa en una fotografía de tu familia o amigo y describe cómo es.'
+    },
+    {
+      topic: 'Food and Preferences',
+      question: 'What is your favorite lunch meal, and what foods do you really dislike?',
+      visualPrompt: 'Imagina el menú de la cafetería escolar y describe tu plato preferido.'
+    },
+    {
+      topic: 'My Room & Personal Objects',
+      question: 'What objects are there on your study desk or in your bedroom?',
+      visualPrompt: 'Señala o visualiza tu escritorio y menciona 3 objetos que siempre utilizas.'
+    }
+  ],
+  A2: [
+    {
+      topic: 'Past Vacation & Weekend',
+      question: 'What did you do last weekend? Tell me about where you went and who was with you.',
+      visualPrompt: 'Imagina una foto de tus últimas vacaciones o paseo familiar y descríbela.'
+    },
+    {
+      topic: 'Giving Directions & City Life',
+      question: 'How do you get from your house to the school? Mention at least two streets or landmarks.',
+      visualPrompt: 'Visualiza un mapa urbano sencillo: gira a la derecha, avanza dos cuadras, frente al parque.'
+    },
+    {
+      topic: 'Future Plans & Hobbies',
+      question: 'What are you going to do after classes today, and what hobby do you want to learn this year?',
+      visualPrompt: 'Menciona tus planes para esta tarde en orden cronológico.'
+    },
+    {
+      topic: 'Health and Sports',
+      question: 'What sports or physical activities do you practice to stay healthy?',
+      visualPrompt: 'Describe las reglas básicas o qué ropa deportiva necesitas para ese deporte.'
+    }
+  ],
+  B1: [
+    {
+      topic: 'Technology in Education',
+      question: 'How has using smartphones and tablets changed the way students do homework today?',
+      visualPrompt: 'Compara una imagen de una biblioteca tradicional de libros frente a un aula con tablets digitales.'
+    },
+    {
+      topic: 'Travel & Cultural Experiences',
+      question: 'If you could travel to any country in the world tomorrow, where would you go and what would you explore?',
+      visualPrompt: 'Imagina que tienes una guía turística en mano: explica por qué elegiste ese destino.'
+    },
+    {
+      topic: 'Environmental Awareness',
+      question: 'What simple actions can our school community take to reduce plastic waste and save energy?',
+      visualPrompt: 'Observa una campaña de reciclaje escolar y explica cómo motivar a tus compañeros.'
+    },
+    {
+      topic: 'Film & Entertainment',
+      question: 'Describe a movie or book that inspired you recently. What was the central message?',
+      visualPrompt: 'Describe la portada o el afiche del póster de la película y los personajes principales.'
+    }
+  ],
+  B2: [
+    {
+      topic: 'Social Media & Mental Health (FOMO)',
+      question: 'How does constant connectivity and the Fear of Missing Out (FOMO) affect teenagers\' self-esteem?',
+      visualPrompt: 'Analiza una infografía sobre tiempo de pantalla, notificaciones y niveles de estrés en jóvenes.'
+    },
+    {
+      topic: 'Global Careers & Artificial Intelligence',
+      question: 'In your opinion, how will artificial intelligence reshape the future jobs and university degrees?',
+      visualPrompt: 'Compara empleos automatizados por software frente a profesiones que exigen empatía humana.'
+    },
+    {
+      topic: 'Leadership & Teamwork',
+      question: 'Describe a challenging project where you worked in a team. How did you resolve disagreements?',
+      visualPrompt: 'Visualiza un proyecto escolar complejo y explica cómo repartieron los roles de liderazgo.'
+    },
+    {
+      topic: 'Ethical Consumerism',
+      question: 'Should consumers boycott companies that damage the environment, even if their products are cheaper?',
+      visualPrompt: 'Evalúa el balance entre precio accesible y responsabilidad ecológica empresarial.'
+    }
+  ],
+  C1: [
+    {
+      topic: 'Mindset & Neuroplasticity',
+      question: 'How does Carol Dweck\'s Growth Mindset model contrast with a Fixed Mindset when confronting severe academic setbacks?',
+      visualPrompt: 'Examina un diagrama de neuroplasticidad: esfuerzo constante vs. talento innato prefijado.'
+    },
+    {
+      topic: 'Ethics in Scientific Innovation',
+      question: 'To what extent should governments regulate genetic editing and artificial intelligence development globally?',
+      visualPrompt: 'Analiza los dilemas bioéticos y la necesidad de consensos regulatorios internacionales.'
+    },
+    {
+      topic: 'Linguistic Identity & Globalization',
+      question: 'Does the dominance of English as a global lingua franca threaten local languages and cultural diversity?',
+      visualPrompt: 'Examina la coexistencia de lenguas originarias y el inglés en los negocios globales.'
+    },
+    {
+      topic: 'Social Inequality & Policy Reform',
+      question: 'What systemic strategies can modern institutions implement to bridge the socio-economic opportunity gap?',
+      visualPrompt: 'Contrasta políticas de becas de inclusión frente a reformas estructurales en el sistema educativo.'
+    }
+  ]
+}
+
+export function generateOralInterviewQuestionWithAI(level = 'A1', customTopic = '') {
+  const cleanLevel = (level || 'A1').toUpperCase()
+  const pool = ORAL_AI_TEMPLATES[cleanLevel] || ORAL_AI_TEMPLATES.A1
+
+  // Si hay tema personalizado o filtro, buscar coincidencia, si no elegir al azar
+  let candidate
+  if (customTopic) {
+    const matched = pool.filter(q => q.topic.toLowerCase().includes(customTopic.toLowerCase()))
+    candidate = matched.length > 0 ? matched[Math.floor(Math.random() * matched.length)] : pool[Math.floor(Math.random() * pool.length)]
+  } else {
+    candidate = pool[Math.floor(Math.random() * pool.length)]
+  }
+
+  return {
+    id: `oral_ai_${cleanLevel}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+    level: cleanLevel,
+    topic: candidate.topic,
+    question: candidate.question,
+    visualPrompt: candidate.visualPrompt || null,
+    isCustom: true,
+    generatedByAI: true,
+    createdAt: new Date().toISOString()
+  }
+}

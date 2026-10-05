@@ -12,12 +12,14 @@ import {
   saveAcademicStructure,
   getOralEvaluations,
   resetStudentEvaluation,
-  resetAllEvaluations
+  resetAllEvaluations,
+  getCoordinationModulesConfig,
+  saveCoordinationModulesConfig
 } from '../../lib/dataService'
 import bundledStudents from '../../data/studentsFromSchool.json'
 import DiagnosticConfigManager from '../shared/DiagnosticConfigManager'
 
-export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }) {
+export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, onSwitchToTeacherView }) {
   const [currentSection, setCurrentSection] = useState('overview')
   const [collapsed, setCollapsed] = useState(false)
   const [evalPeriodOpen, setEvalPeriodOpen] = useState(true)
@@ -83,19 +85,26 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
   const [newSectionName, setNewSectionName] = useState('')
   const [isSavingAcademic, setIsSavingAcademic] = useState(false)
 
-  // Cargar usuarios, evaluaciones y estructura académica desde Firestore
+  const [coordinationModules, setCoordinationModules] = useState({})
+  const [isSavingModules, setIsSavingModules] = useState(false)
+
+  // Cargar usuarios, evaluaciones, estructura académica y permisos de módulos desde Firestore
   const loadData = async () => {
     setLoadingUsers(true)
     try {
-      const [usersData, evalsData, struct] = await Promise.all([
+      const [usersData, evalsData, struct, modulesCfg] = await Promise.all([
         getAllUsers(),
         getOralEvaluations(),
-        getAcademicStructure()
+        getAcademicStructure(),
+        getCoordinationModulesConfig()
       ])
       setAllUsersList(usersData || [])
       setEvaluations(evalsData || [])
       if (struct && struct.grades && struct.grades.length > 0) {
         setAcademic(struct)
+      }
+      if (modulesCfg) {
+        setCoordinationModules(modulesCfg)
       }
     } catch (e) {
       console.error('Error cargando datos de admin:', e)
@@ -235,6 +244,44 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
     await saveAcademicStructure(updated)
     setAcademic(updated)
     setIsSavingAcademic(false)
+  }
+
+  // Activar o desactivar módulos disponibles para el perfil de Coordinación
+  const handleToggleModulePermission = async (moduleId) => {
+    const current = coordinationModules[moduleId]
+    if (!current) return
+    const updated = {
+      ...coordinationModules,
+      [moduleId]: {
+        ...current,
+        enabled: !current.enabled
+      }
+    }
+    setCoordinationModules(updated)
+    try {
+      setIsSavingModules(true)
+      await saveCoordinationModulesConfig(updated)
+    } catch (e) {
+      console.error('Error guardando permiso de módulo:', e)
+    } finally {
+      setIsSavingModules(false)
+    }
+  }
+
+  const handleBatchToggleModules = async (enableAll = true) => {
+    const updated = {}
+    Object.keys(coordinationModules).forEach(k => {
+      updated[k] = { ...coordinationModules[k], enabled: enableAll }
+    })
+    setCoordinationModules(updated)
+    try {
+      setIsSavingModules(true)
+      await saveCoordinationModulesConfig(updated)
+    } catch (e) {
+      console.error('Error guardando permisos en lote:', e)
+    } finally {
+      setIsSavingModules(false)
+    }
   }
 
   // Resetear la evaluación de un alumno individual
@@ -488,7 +535,7 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
   }
 
   const studentsList = allUsersList.filter(u => u.role === 'student')
-  const teachersList = allUsersList.filter(u => u.role === 'teacher')
+  const teachersList = allUsersList.filter(u => u.role === 'teacher' || u.role === 'coordination' || u.role === 'admin')
   const pendingCount = allUsersList.filter(u => u.status === 'pending').length
 
   // Lista de Botones Ovalados de Grado Dinámicos
@@ -559,22 +606,37 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
   const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1
   const paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  const menuItems = [
+  const rawMenuItems = [
     { key: 'overview', label: 'Supervisión General', icon: 'dashboard' },
     { key: 'analytics', label: 'Dashboard Analítico', icon: 'analytics', badge: `${studentsList.filter(s => Boolean(s.assignedLevel)).length} eval.` },
     { key: 'students_manager', label: 'Gestión de Alumnos', icon: 'groups', badge: `${studentsList.length}` },
     { key: 'academic_structure', label: 'Grados y Secciones', icon: 'category', badge: `${academic.grades.length}G / ${academic.sections.length}S` },
-    { key: 'teachers', label: 'Gestión de Docentes', icon: 'school', badge: `${teachersList.length}` },
+    { key: 'teachers', label: 'Docentes y Coordinación', icon: 'school', badge: `${teachersList.length}` },
+    { key: 'coordination_modules', label: 'Módulos de Coordinación', icon: 'admin_panel_settings', badge: `${Object.values(coordinationModules).filter(m => m.enabled).length}/${Object.keys(coordinationModules).length || 10}`, adminOnly: true },
     { key: 'thresholds', label: 'Ponderaciones y Cortes 2026', icon: 'tune' },
     { key: 'reports', label: 'Reportes y Cierre', icon: 'assessment' },
   ]
 
+  // Si el usuario es de rol 'coordination', aplicar filtro de módulos activos configurados
+  const menuItems = rawMenuItems.filter(item => {
+    if (user?.role === 'admin' || user?.email?.includes('jose.marquez')) {
+      return true
+    }
+    if (item.adminOnly) return false
+    // Si es coordinación, comprobar si el módulo está habilitado en coordinationModules
+    if (user?.role === 'coordination' && coordinationModules && Object.keys(coordinationModules).length > 0) {
+      const cfg = coordinationModules[item.key]
+      if (cfg && cfg.enabled === false) return false
+    }
+    return true
+  })
+
   return (
     <div className="flex h-screen bg-surface font-sans overflow-hidden">
       <Sidebar
-        title="Admin Inglés"
+        title={user?.role === 'coordination' ? 'Coordinación' : 'Admin Inglés'}
         subtitle="Colegio Salesiano San José"
-        icon="admin_panel_settings"
+        icon={user?.role === 'coordination' ? 'manage_accounts' : 'admin_panel_settings'}
         menuItems={menuItems}
         activeKey={currentSection}
         onSelect={setCurrentSection}
@@ -605,6 +667,17 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                 {evalPeriodOpen ? 'Abierto' : 'Cerrado'}
               </button>
             </div>
+
+            {onSwitchToTeacherView && (
+              <button
+                onClick={onSwitchToTeacherView}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-all border border-indigo-200 cursor-pointer"
+                title="Abrir la consola de entrevista oral y rúbrica como Docente / Evaluador"
+              >
+                <span className="material-symbols-outlined text-[16px] text-[#2528b7]">record_voice_over</span>
+                <span className="hidden sm:inline">Consola Docente</span>
+              </button>
+            )}
 
             <button
               onClick={onSwitchToStudentView}
@@ -662,14 +735,14 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                 <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm">
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="text-xs font-semibold text-on-surface-variant uppercase">Equipo Docente</span>
+                      <span className="text-xs font-semibold text-on-surface-variant uppercase">Docentes y Coord.</span>
                       <h3 className="font-heading font-extrabold text-2xl text-on-surface mt-1">{teachersList.length}</h3>
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
                       <span className="material-symbols-outlined text-[22px]">school</span>
                     </div>
                   </div>
-                  <span className="text-xs text-on-surface-variant font-medium mt-3">Docentes de Inglés</span>
+                  <span className="text-xs text-on-surface-variant font-medium mt-3">Docentes y Coordinación</span>
                 </div>
 
                 <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-sm">
@@ -1723,22 +1796,23 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
             </div>
           )}
 
-          {/* SECCIÓN 3: GESTIÓN DE DOCENTES */}
+          {/* SECCIÓN 3: GESTIÓN DE DOCENTES Y COORDINACIÓN */}
           {currentSection === 'teachers' && (
             <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                  <h2 className="font-heading font-bold text-lg text-on-surface">Docentes de Inglés Autorizados</h2>
+                  <h2 className="font-heading font-bold text-lg text-on-surface">Equipo de Coordinación y Docentes</h2>
                   <p className="text-xs text-on-surface-variant">
-                    Docentes que aplican la entrevista oral y califican la rúbrica institucional.
+                    Coordinadores y docentes con acceso autorizado para supervisar y aplicar entrevistas diagnósticas.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleOpenCreateModal}
-                  className="px-3 py-1.5 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary-container"
+                  className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-container shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  + Agregar Docente
+                  <span className="material-symbols-outlined text-[16px]">person_add</span>
+                  <span>+ Agregar Docente / Coordinador</span>
                 </button>
               </div>
 
@@ -1746,17 +1820,18 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                 <table className="w-full text-left text-xs md:text-sm">
                   <thead>
                     <tr className="border-b border-outline-variant/30 text-[11px] font-bold uppercase text-on-surface-variant">
-                      <th className="pb-3 px-3">Docente</th>
-                      <th className="pb-3 px-3">Correo</th>
-                      <th className="pb-3 px-3">Estado</th>
-                      <th className="pb-3 px-3 text-right">Acción</th>
+                      <th className="pb-3 px-3">Usuario / Nombre</th>
+                      <th className="pb-3 px-3">Correo Institucional</th>
+                      <th className="pb-3 px-3 text-center">Rol Asignado</th>
+                      <th className="pb-3 px-3 text-center">Estado</th>
+                      <th className="pb-3 px-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/20">
                     {teachersList.length === 0 ? (
                       <tr>
-                        <td colSpan="4" className="py-6 text-center text-gray-400 text-xs italic">
-                          No hay docentes registrados todavía.
+                        <td colSpan="5" className="py-8 text-center text-gray-400 text-xs italic">
+                          No hay docentes ni coordinadores registrados todavía.
                         </td>
                       </tr>
                     ) : (
@@ -1768,37 +1843,191 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView }
                                 <img
                                   src={t.photoUrl}
                                   alt={t.name}
-                                  className="w-7 h-7 rounded-full object-cover ring-1 ring-primary/20 shrink-0"
+                                  className="w-8 h-8 rounded-full object-cover ring-1 ring-primary/20 shrink-0"
                                 />
                               ) : (
-                                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
-                                  {t.name ? t.name.substring(0, 2).toUpperCase() : 'DOC'}
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
+                                  t.role === 'coordination'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : t.role === 'admin'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-primary/10 text-primary'
+                                }`}>
+                                  {t.role === 'coordination' ? 'COO' : t.role === 'admin' ? 'ADM' : 'DOC'}
                                 </div>
                               )}
-                              <span>{t.name}</span>
+                              <div>
+                                <span className="block font-bold">{t.name}</span>
+                                <span className="text-[10px] text-gray-400 font-normal">{t.specialty || t.area || 'Departamento de Idiomas'}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-3 text-on-surface-variant font-mono">{t.email}</td>
-                          <td className="py-3 px-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          <td className="py-3 px-3 text-center">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              t.role === 'coordination'
+                                ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                                : t.role === 'admin'
+                                ? 'bg-indigo-100 text-indigo-900 border border-indigo-200'
+                                : 'bg-blue-100 text-blue-900 border border-blue-200'
+                            }`}>
+                              {t.role === 'coordination' ? 'Coordinación' : t.role === 'admin' ? 'Super Admin' : 'Docente'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                               t.status === 'active' ? 'bg-secondary-fixed text-on-secondary-fixed' : 'bg-amber-100 text-amber-800'
                             }`}>
                               {t.status === 'active' ? 'Activo' : 'Pausado'}
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right">
-                            <button
-                              onClick={() => handleToggleStatus(t.email, t.status)}
-                              className="text-xs font-bold text-primary hover:underline"
-                            >
-                              {t.status === 'active' ? 'Pausar' : 'Activar'}
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleStatus(t.email, t.status)}
+                                className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                                  t.status === 'active'
+                                    ? 'text-amber-700 hover:bg-amber-50'
+                                    : 'text-emerald-700 hover:bg-emerald-50'
+                                }`}
+                                title={t.status === 'active' ? 'Pausar acceso' : 'Habilitar acceso'}
+                              >
+                                {t.status === 'active' ? 'Pausar' : 'Activar'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditModal(t)}
+                                className="p-1.5 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                                title="Editar datos o rol"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                              </button>
+                              {t.email !== user?.email && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteUser(t.email, t.name)}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Eliminar usuario"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* SECCIÓN: MÓDULOS ACTIVOS PARA COORDINACIONES */}
+          {currentSection === 'coordination_modules' && (
+            <div className="space-y-6">
+              <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[24px] text-purple-700">admin_panel_settings</span>
+                    <h2 className="font-heading font-extrabold text-xl text-gray-900">
+                      Activación de Módulos para Coordinaciones
+                    </h2>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
+                    Controla qué vistas, herramientas y permisos institucionales están habilitados para los usuarios con rol de <strong>Coordinación Académica</strong> (<span className="font-mono text-purple-700 font-bold">coordinacion.academica@salesianosanjose.edu.sv</span>).
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleBatchToggleModules(true)}
+                    disabled={isSavingModules}
+                    className="px-3.5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                    <span>Habilitar Todos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBatchToggleModules(false)}
+                    disabled={isSavingModules}
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-gray-700 text-xs font-bold transition-all border border-slate-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">block</span>
+                    <span>Pausar Todos</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid de Tarjetas de Módulos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.values(coordinationModules).map((mod) => {
+                  const isEnabled = mod.enabled !== false
+                  return (
+                    <div
+                      key={mod.id}
+                      className={`p-5 rounded-3xl border transition-all flex items-start justify-between gap-4 ${
+                        isEnabled
+                          ? 'bg-white border-purple-200/80 shadow-xs ring-1 ring-purple-100'
+                          : 'bg-slate-50/70 border-slate-200 opacity-75'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3.5 flex-1">
+                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                          isEnabled
+                            ? 'bg-purple-100 text-purple-800 shadow-inner'
+                            : 'bg-slate-200 text-slate-500'
+                        }`}>
+                          <span className="material-symbols-outlined text-[24px]">
+                            {mod.icon || 'view_module'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-heading font-extrabold text-sm text-gray-900">
+                              {mod.label}
+                            </h3>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              isEnabled
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {isEnabled ? 'Habilitado' : 'Desactivado'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            {mod.desc}
+                          </p>
+                          <div className="mt-2.5 flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-gray-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                              Módulo ID: {mod.id}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Switch Toggle */}
+                      <button
+                        type="button"
+                        disabled={isSavingModules}
+                        onClick={() => handleToggleModulePermission(mod.id)}
+                        className={`cursor-pointer select-none p-1 rounded-full transition-all shrink-0 ${
+                          isEnabled ? 'bg-purple-600' : 'bg-slate-300'
+                        }`}
+                        title={isEnabled ? 'Clic para desactivar módulo' : 'Clic para activar módulo'}
+                      >
+                        <div className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-all duration-200 ${
+                          isEnabled ? 'justify-end' : 'justify-start'
+                        }`}>
+                          <div className="bg-white w-5 h-5 rounded-full shadow-md"></div>
+                        </div>
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}

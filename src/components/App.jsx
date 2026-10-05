@@ -164,6 +164,7 @@ export default function App() {
               if (student && student.email) setSimulatedStudent(student)
               setActiveRoleView('student')
             }}
+            onSwitchToAdminView={currentUser?.role === 'admin' || currentUser?.role === 'coordination' ? () => setActiveRoleView('admin') : undefined}
           />
         </div>
       </div>

@@ -35,14 +35,15 @@ export const LEVEL_METADATA = {
   C1: { name: 'C1 - Dominio Operativo Eficaz', color: '#ec4899', next: null, minScore: 16 },
 }
 
-// Obtener todas las preguntas organizadas por nivel
-export function getQuestionsByLevel(level) {
-  return rawQuestions.filter(q => q.level.toUpperCase() === level.toUpperCase())
+// Obtener todas las preguntas organizadas por nivel (soporta pool dinámico de Firestore/LocalStorage)
+export function getQuestionsByLevel(level, customPool = null) {
+  const pool = Array.isArray(customPool) && customPool.length > 0 ? customPool : rawQuestions
+  return pool.filter(q => (q.level || '').toUpperCase() === (level || '').toUpperCase())
 }
 
 // Obtener 3 preguntas aleatorias o seleccionadas para un nivel
-export function getRandom3Questions(level) {
-  const pool = getQuestionsByLevel(level)
+export function getRandom3Questions(level, customPool = null) {
+  const pool = getQuestionsByLevel(level, customPool)
   if (pool.length <= 3) return pool
   const shuffled = [...pool].sort(() => 0.5 - Math.random())
   return shuffled.slice(0, 3)

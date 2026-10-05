@@ -44,6 +44,28 @@ export default function AuthPortal({ onLoginSuccess }) {
       return adminData
     }
 
+    // Cuenta Oficial de Coordinación Académica
+    if (cleanEmail === 'coordinacion.academica@salesianosanjose.edu.sv' || cleanEmail.startsWith('coordinacion.')) {
+      const existingCoord = await getUserProfile(cleanEmail)
+      const coordData = {
+        ...(existingCoord || {}),
+        email: cleanEmail,
+        name: existingCoord?.name || displayName || 'Coordinación Académica',
+        role: 'coordination',
+        status: 'active',
+        validatedBy: 'system',
+        id: existingCoord?.id || 'COO-CSSJ-01',
+        area: existingCoord?.area || 'Coordinación Académica / Dirección',
+        photoUrl: existingCoord?.photoUrl || '',
+        phone: existingCoord?.phone || '',
+        specialty: existingCoord?.specialty || 'Coordinación Académica',
+        bio: existingCoord?.bio || '',
+        updatedAt: new Date().toISOString()
+      }
+      await registerOrUpdateUser(coordData)
+      return coordData
+    }
+
     const isKnownTeacher =
       cleanEmail === 'teacher@salesianosanjose.edu.sv' ||
       cleanEmail === 'docente@salesianosanjose.edu.sv' ||
