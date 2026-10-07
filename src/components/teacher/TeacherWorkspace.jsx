@@ -735,6 +735,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <th className="py-3 px-3">Docente</th>
                             <th className="py-3 px-3 text-center">Nivel Actual</th>
                             <th className="py-3 px-3 text-center">Nivel Obtenido</th>
+                            <th className="py-3 px-3 text-center">Bitácora Tests</th>
                             <th className="py-3 px-3 text-center">Acceso</th>
                             <th className="py-3 px-3 text-right">Acción</th>
                           </tr>
@@ -840,6 +841,48 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         Sin Evaluar
                                       </span>
                                     )}
+                                  </td>
+
+                                  {/* Columna: Bitácora Tests y Advertencias de Seguridad */}
+                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                    {(() => {
+                                      const completed = s.completedExams || {}
+                                      const examsDoneCount = Object.keys(completed).length
+                                      const totalWarnings = Object.values(completed).reduce(
+                                        (acc, c) => acc + (c.warningsCount || 0),
+                                        0
+                                      )
+
+                                      if (examsDoneCount === 0) {
+                                        return (
+                                          <span className="text-[11px] text-gray-400 font-medium">
+                                            Pendiente
+                                          </span>
+                                        )
+                                      }
+
+                                      return (
+                                        <div className="inline-flex flex-col items-center gap-1">
+                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                                            {examsDoneCount} test(s)
+                                          </span>
+                                          {totalWarnings > 0 ? (
+                                            <span
+                                              className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-300 flex items-center gap-0.5"
+                                              title={`${totalWarnings} salida(s) de pestaña registradas durante el examen`}
+                                            >
+                                              <span className="material-symbols-outlined text-[13px] text-rose-600">warning</span>
+                                              <span>{totalWarnings} salida(s)</span>
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5" title="Sin incidencias registradas">
+                                              <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                                              <span>Limpio</span>
+                                            </span>
+                                          )}
+                                        </div>
+                                      )
+                                    })()}
                                   </td>
                                   <td className="py-3.5 px-4 text-center">
                                     {(() => {
