@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 
 export function speak(text) {
   if (!text || !('speechSynthesis' in window)) return
@@ -295,98 +295,14 @@ const QUESTION_VIEWS = {
     )
   },
 
-  listening: (q, answer, setAnswer, checked) => {
-    const [showTranscript, setShowTranscript] = React.useState(false)
-
-    return (
-      <div className="space-y-4">
-        {q.audioUrl ? (
-          <div className="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200 flex flex-col items-center gap-3">
-            <div className="flex items-center justify-between w-full max-w-md">
-              <div className="flex items-center gap-2 text-xs font-black text-indigo-900">
-                <span className="material-symbols-outlined text-[20px] text-indigo-600">headphones</span>
-                <span>Official Audio Track (MP3)</span>
-              </div>
-              {q.audioText && (
-                <button
-                  type="button"
-                  onClick={() => setShowTranscript(s => !s)}
-                  className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[15px]">description</span>
-                  <span>{showTranscript ? 'Hide Transcript' : 'View Transcript'}</span>
-                </button>
-              )}
-            </div>
-            <audio controls src={q.audioUrl} className="w-full max-w-md h-10">
-              Your browser does not support audio playback.
-            </audio>
-            {showTranscript && q.audioText && (
-              <div className="w-full max-w-md p-3.5 bg-white/90 rounded-xl border border-indigo-100 text-xs text-gray-700 italic leading-relaxed animate-fadeIn">
-                <span className="not-italic font-bold text-indigo-900 block mb-1">Transcript:</span>
-                "{q.audioText}"
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2 p-4">
-            <button
-              type="button"
-              onClick={() => speak(q.audioText)}
-              className="flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-95 transition-all cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[24px]">volume_up</span>
-              <span>Play Audio</span>
-            </button>
-            {q.audioText && (
-              <button
-                type="button"
-                onClick={() => setShowTranscript(s => !s)}
-                className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 mt-1 cursor-pointer"
-              >
-                {showTranscript ? 'Hide Transcript' : 'View Transcript'}
-              </button>
-            )}
-            {showTranscript && q.audioText && (
-              <div className="w-full max-w-md p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs text-gray-700 italic leading-relaxed animate-fadeIn">
-                "{q.audioText}"
-              </div>
-            )}
-          </div>
-        )}
-
-        {q.question && (
-          <p className="font-bold text-sm md:text-base text-gray-900 px-1">
-            {q.question}
-          </p>
-        )}
-
-        <div className="flex flex-col gap-2.5">
-          {q.options.map((opt, i) => (
-            <button
-              key={i}
-              disabled={checked}
-              onClick={() => setAnswer(i)}
-              className={`w-full text-left p-4 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${
-                answer === i
-                  ? 'border-indigo-600 bg-indigo-50/80 text-indigo-900 shadow-sm ring-1 ring-indigo-500'
-                  : 'border-gray-200 bg-white hover:bg-slate-50 text-gray-800'
-              }`}
-            >
-              <span>{opt}</span>
-              <span
-                className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                  answer === i ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300'
-                }`}
-              >
-                {answer === i && <span className="w-2 h-2 rounded-full bg-white"></span>}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-  },
+  listening: (q, answer, setAnswer, checked) => (
+    <ListeningAudioSection
+      q={q}
+      answer={answer}
+      setAnswer={setAnswer}
+      checked={checked}
+    />
+  ),
 
   speaking: (q, answer, setAnswer, checked) => {
     const [recording, setRecording] = useState(false)
@@ -476,3 +392,242 @@ const QUESTION_VIEWS = {
     </div>
   )
 }
+
+// Marcadores de tiempo donde termina el diálogo y empieza la pausa/outro institucional o comercial
+const AUDIO_END_POINTS = {
+  'A1_first_day_at_schoolA1.mp3': 43.5,
+  'A2_giving_directionsA2.mp3': 82.0,
+  'B1_the_weekendB1.mp3': 162.0,
+  'B2_new_inventions.mp3': 240.0,
+  'C1_help_others_help_yourself.mp3': 288.0,
+}
+
+function getAudioCutoff(audioUrl) {
+  if (!audioUrl) return null
+  for (const [key, cutoff] of Object.entries(AUDIO_END_POINTS)) {
+    if (audioUrl.includes(key)) return cutoff
+  }
+  return null
+}
+
+function ListeningAudioSection({ q, answer, setAnswer, checked }) {
+  const maxPlays = typeof q.maxPlays === 'number' ? q.maxPlays : 2
+  const [playCount, setPlayCount] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const audioRef = useRef(null)
+
+  const cutoff = getAudioCutoff(q.audioUrl)
+  const effectiveDuration = cutoff && duration ? Math.min(cutoff, duration) : duration
+  const remainingPlays = Math.max(0, maxPlays - playCount)
+  const canPlay = remainingPlays > 0 || isPlaying
+
+  // Detener y reiniciar si cambia la pregunta
+  useEffect(() => {
+    setPlayCount(0)
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setDuration(0)
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+  }, [q.id, q.audioUrl])
+
+  const handleTogglePlay = () => {
+    if (!audioRef.current) return
+
+    if (isPlaying) {
+      audioRef.current.pause()
+      setIsPlaying(false)
+    } else {
+      if (!canPlay) return
+      // Si la reproducción anterior ya había terminado, reiniciamos desde el inicio
+      if (currentTime >= (effectiveDuration || 0.1) - 0.5) {
+        audioRef.current.currentTime = 0
+        setCurrentTime(0)
+      }
+      audioRef.current.play().then(() => {
+        setIsPlaying(true)
+      }).catch(err => {
+        console.warn('Error al iniciar audio:', err)
+      })
+    }
+  }
+
+  const handleTimeUpdate = () => {
+    if (!audioRef.current) return
+    const curr = audioRef.current.currentTime
+    setCurrentTime(curr)
+
+    // Si llega al punto donde termina el diálogo (corte antes del comercial/outro)
+    if (cutoff && curr >= cutoff) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setIsPlaying(false)
+      setCurrentTime(cutoff)
+      setPlayCount(prev => Math.min(maxPlays, prev + 1))
+    }
+  }
+
+  const handleEnded = () => {
+    setIsPlaying(false)
+    setPlayCount(prev => Math.min(maxPlays, prev + 1))
+  }
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration || 0)
+    }
+  }
+
+  const formatTime = (secs) => {
+    if (!secs || isNaN(secs)) return '0:00'
+    const m = Math.floor(secs / 60)
+    const s = Math.floor(secs % 60)
+    return `${m}:${s < 10 ? '0' : ''}${s}`
+  }
+
+  const progressPercent = effectiveDuration > 0
+    ? Math.min(100, (currentTime / effectiveDuration) * 100)
+    : 0
+
+  return (
+    <div className="space-y-4">
+      {q.audioUrl ? (
+        <div className="p-4 md:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/70 border border-indigo-200/90 shadow-xs flex flex-col gap-3.5">
+          {/* Header del reproductor: Icono y badge de reproducciones */}
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                <span className="material-symbols-outlined text-[18px]">headphones</span>
+              </span>
+              <div>
+                <span className="text-xs font-black text-indigo-950 block leading-tight">
+                  Audio Oficial de Evaluación
+                </span>
+                <span className="text-[10px] text-gray-500 font-medium">
+                  {canPlay ? 'Escucha con atención antes de responder' : 'Límite de reproducciones alcanzado'}
+                </span>
+              </div>
+            </div>
+
+            {/* Contador de Reproducciones Restantes */}
+            <div className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 border transition-all ${
+              remainingPlays > 1
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : remainingPlays === 1
+                ? 'bg-amber-50 text-amber-800 border-amber-200 animate-pulse'
+                : 'bg-rose-50 text-rose-700 border-rose-200'
+            }`}>
+              <span className="material-symbols-outlined text-[15px]">
+                {remainingPlays > 0 ? 'replay' : 'block'}
+              </span>
+              <span>
+                {remainingPlays > 0 ? `${remainingPlays} de ${maxPlays} escuchas` : '0 escuchas restantes'}
+              </span>
+            </div>
+          </div>
+
+          {/* Elemento de audio HTML oculto controlado por el componente */}
+          <audio
+            ref={audioRef}
+            src={q.audioUrl}
+            onTimeUpdate={handleTimeUpdate}
+            onEnded={handleEnded}
+            onLoadedMetadata={handleLoadedMetadata}
+            preload="metadata"
+          />
+
+          {/* Barra de progreso visual y tiempos */}
+          <div className="space-y-1.5 w-full">
+            <div className="w-full h-2.5 bg-indigo-100/80 rounded-full overflow-hidden relative">
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 to-[#2528b7] rounded-full transition-all duration-200"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-mono text-gray-500">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(effectiveDuration)}</span>
+            </div>
+          </div>
+
+          {/* Botón principal de Reproducción / Pausa */}
+          <div className="flex items-center justify-center pt-1">
+            <button
+              type="button"
+              onClick={handleTogglePlay}
+              disabled={!canPlay && !isPlaying}
+              className={`px-6 py-2.5 rounded-full font-bold text-xs shadow-md flex items-center gap-2 transition-all cursor-pointer ${
+                isPlaying
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/25'
+                  : canPlay
+                  ? 'bg-[#2528b7] hover:bg-[#1d2096] text-white shadow-indigo-600/25 active:scale-95'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {isPlaying ? 'pause' : 'play_arrow'}
+              </span>
+              <span>
+                {isPlaying ? 'Pausar Audio' : canPlay ? 'Reproducir Audio' : 'Sin reproducciones'}
+              </span>
+            </button>
+          </div>
+
+          {remainingPlays === 0 && !isPlaying && (
+            <p className="text-[11px] text-center text-rose-600 font-semibold">
+              ⚠️ Has completado las {maxPlays} reproducciones permitidas para esta pregunta. Selecciona tu respuesta a continuación.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-2 p-4">
+          <button
+            type="button"
+            onClick={() => speak(q.audioText)}
+            className="flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-95 transition-all cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[24px]">volume_up</span>
+            <span>Play Audio</span>
+          </button>
+        </div>
+      )}
+
+      {/* Enunciado de la pregunta */}
+      {q.question && (
+        <p className="font-bold text-sm md:text-base text-gray-900 px-1">
+          {q.question}
+        </p>
+      )}
+
+      {/* Opciones de respuesta */}
+      <div className="flex flex-col gap-2.5">
+        {q.options?.map((opt, i) => (
+          <button
+            key={i}
+            disabled={checked}
+            onClick={() => setAnswer(i)}
+            className={`w-full text-left p-4 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${
+              answer === i
+                ? 'border-indigo-600 bg-indigo-50/80 text-indigo-900 shadow-sm ring-1 ring-indigo-500'
+                : 'border-gray-200 bg-white hover:bg-slate-50 text-gray-800'
+            }`}
+          >
+            <span>{opt}</span>
+            <span
+              className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                answer === i ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300'
+              }`}
+            >
+              {answer === i && <span className="w-2 h-2 rounded-full bg-white"></span>}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+

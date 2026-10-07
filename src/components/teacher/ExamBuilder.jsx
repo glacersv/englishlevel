@@ -25,6 +25,7 @@ export default function ExamBuilder({ onPublished }) {
     level: 'A1',
     weight: 12,              // % de peso dentro de plataforma
     timeLimitMinutes: 15,    // temporizador en minutos (0 = ilimitado)
+    audioMaxPlays: 2,        // límite de reproducciones de audio por pregunta (1 a 5)
     toolType: 'multipleChoice'
   })
   const [questions, setQuestions] = useState([])
@@ -35,6 +36,7 @@ export default function ExamBuilder({ onPublished }) {
   const [simulatingExam, setSimulatingExam] = useState(null)
   const [simulationIndex, setSimulationIndex] = useState(0)
   const [simulationScore, setSimulationScore] = useState(0)
+  const [simulationTimeLeft, setSimulationTimeLeft] = useState(0)
 
   // Presupuesto porcentual de plataforma
   const [existingExams, setExistingExams] = useState([])
@@ -48,6 +50,21 @@ export default function ExamBuilder({ onPublished }) {
   useEffect(() => {
     loadExistingExamsAndConfig()
   }, [])
+
+  // Temporizador interactivo de prueba para simulación
+  useEffect(() => {
+    if (!simulatingExam || simulationTimeLeft <= 0) return
+    const timer = setInterval(() => {
+      setSimulationTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return t - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [simulatingExam, simulationTimeLeft > 0])
 
   const loadExistingExamsAndConfig = async () => {
     try {
@@ -349,6 +366,7 @@ export default function ExamBuilder({ onPublished }) {
                           setSimulatingExam(ex)
                           setSimulationIndex(0)
                           setSimulationScore(0)
+                          setSimulationTimeLeft((ex.timeLimitMinutes || 15) * 60)
                         }}
                         className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2528b7] to-[#4f46e5] text-white hover:brightness-110 font-black text-xs shadow-sm flex items-center gap-1 cursor-pointer"
                         title="Probar y responder este examen tal como lo verá el estudiante"
@@ -366,6 +384,7 @@ export default function ExamBuilder({ onPublished }) {
                             level: ex.level || 'A1',
                             weight: ex.weight || 12,
                             timeLimitMinutes: ex.timeLimitMinutes || 15,
+                            audioMaxPlays: ex.audioMaxPlays || 2,
                             toolType: ex.toolType || 'multipleChoice'
                           })
                           setQuestions(ex.questions || [])
@@ -514,8 +533,9 @@ export default function ExamBuilder({ onPublished }) {
             </div>
           </div>
 
-          {/* Temporizador y Ponderación */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-gray-100">
+          {/* Temporizador, Límite de Reproducciones de Audio y Ponderación */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-gray-100">
+            {/* Temporizador límite */}
             <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-1.5">
               <label className="text-xs font-bold text-amber-950 flex items-center gap-1">
                 <span className="material-symbols-outlined text-[16px] text-amber-600">timer</span>
@@ -534,6 +554,28 @@ export default function ExamBuilder({ onPublished }) {
               </div>
               <p className="text-[10px] text-amber-800">
                 (Usa 0 para tiempo libre sin cuenta regresiva).
+              </p>
+            </div>
+
+            {/* Límite de reproducciones de audio */}
+            <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-1.5">
+              <label className="text-xs font-bold text-purple-950 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px] text-purple-600">replay</span>
+                Límite de Audios
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={meta.audioMaxPlays || 2}
+                  onChange={e => setMeta({ ...meta, audioMaxPlays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                  className="w-20 px-2.5 py-1.5 rounded-xl border border-purple-300 text-xs font-black bg-white text-center shadow-xs"
+                />
+                <span className="text-xs text-purple-900 font-semibold">reproducciones</span>
+              </div>
+              <p className="text-[10px] text-purple-800">
+                (El audio se bloquea al alcanzar este número).
               </p>
             </div>
 
@@ -968,14 +1010,34 @@ export default function ExamBuilder({ onPublished }) {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setSimulatingExam(null)}
-                className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-slate-200 transition-colors cursor-pointer"
-                title="Close preview"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Cronómetro activo de simulación */}
+                {(simulatingExam.timeLimitMinutes || 0) > 0 && (
+                  <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 font-mono text-xs font-black transition-all ${
+                    simulationTimeLeft <= 60
+                      ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse'
+                      : simulationTimeLeft <= 300
+                      ? 'bg-amber-50 border-amber-300 text-amber-800'
+                      : 'bg-white border-gray-200 text-gray-800 shadow-2xs'
+                  }`}>
+                    <span className="material-symbols-outlined text-[16px] text-amber-600">timer</span>
+                    <span>
+                      {Math.floor(simulationTimeLeft / 60)}:
+                      {(simulationTimeLeft % 60) < 10 ? '0' : ''}
+                      {simulationTimeLeft % 60}
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setSimulatingExam(null)}
+                  className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-slate-200 transition-colors cursor-pointer"
+                  title="Close preview"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
             </div>
 
             {/* Cuerpo del examen interactivo con QuestionPlayer */}
@@ -1024,7 +1086,10 @@ export default function ExamBuilder({ onPublished }) {
 
                       <QuestionPlayer
                         key={currentQ.id || simulationIndex}
-                        question={currentQ}
+                        question={{
+                          ...currentQ,
+                          maxPlays: currentQ.maxPlays ?? simulatingExam.audioMaxPlays ?? 2
+                        }}
                         onResult={(isCorrect) => {
                           if (isCorrect) setSimulationScore(s => s + 1)
                         }}
