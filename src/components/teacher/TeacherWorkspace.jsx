@@ -6,6 +6,7 @@ import TeacherProfile from './TeacherProfile'
 import DiagnosticConfigManager from '../shared/DiagnosticConfigManager'
 import InterviewQuestionsBankManager from './InterviewQuestionsBankManager'
 import teacherAvatar from '../../assets/avatar_teacher.png'
+import AnalyticsDashboard from '../shared/AnalyticsDashboard'
 import {
   getAllUsers,
   updateUserStatus,
@@ -15,7 +16,11 @@ import {
   resetStudentEvaluation,
   resetAllEvaluations,
   deleteOralEvaluation,
-  getUserProfile
+  getUserProfile,
+  subscribeExamDispatch,
+  saveExamDispatchConfig,
+  unlockStudentExam,
+  getCoordinationModulesConfig
 } from '../../lib/dataService'
 
 export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView, onSwitchToAdminView, onUpdateCurrentUser }) {
@@ -63,6 +68,30 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   // Estado para modal de detalle de rúbrica en Resultados
   const [selectedEvaluationDetail, setSelectedEvaluationDetail] = useState(null)
 
+  // Estado para modal de detalle de incidencias de seguridad / fraude
+  const [selectedStudentSecurityDetail, setSelectedStudentSecurityDetail] = useState(null)
+  const [expandedExamAnswers, setExpandedExamAnswers] = useState({}) // { [examId]: boolean }
+
+  // Estado de Habilitación por Grado/Sección y Pausa General de Evaluaciones
+  const [dispatchConfig, setDispatchConfig] = useState({
+    enabledGrades: ['all'],
+    enabledSections: ['all'],
+    isPaused: false,
+    pausedAt: null,
+    pauseReason: 'receso',
+    globalTimeLimitMinutes: 90
+  })
+  const [showDispatchModal, setShowDispatchModal] = useState(false)
+  const [savingDispatch, setSavingDispatch] = useState(false)
+
+  // Suscribirse a la configuración de habilitación y pausa en tiempo real
+  useEffect(() => {
+    const unsub = subscribeExamDispatch((cfg) => {
+      if (cfg) setDispatchConfig(cfg)
+    })
+    return () => unsub()
+  }, [])
+
   // Filtros del Dashboard de Resultados
   const [resultsSearch, setResultsSearch] = useState('')
   const [resultsLevelFilter, setResultsLevelFilter] = useState('all')
@@ -71,19 +100,24 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   const [resultsPage, setResultsPage] = useState(1)
   const resultsPageSize = 10
 
+  // Configuración de módulos activados desde el Admin
+  const [coordinationModules, setCoordinationModules] = useState({})
+
   // Cargar lista de alumnos, evaluaciones, estructura académica y datos frescos del docente
   const loadData = async () => {
     setLoadingStudents(true)
     try {
-      const [all, evals, struct, freshTeacher] = await Promise.all([
+      const [all, evals, struct, freshTeacher, modulesCfg] = await Promise.all([
         getAllUsers(),
         getOralEvaluations(),
         getAcademicStructure(),
-        user?.email ? getUserProfile(user.email) : Promise.resolve(null)
+        user?.email ? getUserProfile(user.email) : Promise.resolve(null),
+        getCoordinationModulesConfig()
       ])
       setStudents((all || []).filter(u => u.role === 'student'))
       setEvaluations(evals || [])
       if (struct) setAcademic(struct)
+      if (modulesCfg) setCoordinationModules(modulesCfg)
       if (freshTeacher) {
         setCurrentTeacher(prev => ({ ...(prev || {}), ...freshTeacher }))
         onUpdateCurrentUser?.(freshTeacher)
@@ -112,6 +146,31 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
       await loadData()
     } catch (e) {
       console.error('Error al resetear alumno:', e)
+    }
+  }
+
+  // Desbloquear / Re-habilitar test específico de un alumno (por fraude o reintento)
+  const handleUnlockExam = async (student, examId = null) => {
+    const msg = examId
+      ? `¿Deseas habilitar y desbloquear el test "${examId}" para ${student.name}?\n\nEl alumno podrá volver a ingresar y continuar la prueba.`
+      : `¿Deseas desbloquear y reiniciar los exámenes digitales para ${student.name}?`
+    if (!confirm(msg)) return
+    try {
+      await unlockStudentExam(student.email, examId)
+      await loadData()
+      // Actualizar el modal si está abierto
+      if (selectedStudentSecurityDetail?.email === student.email) {
+        const updatedStudent = { ...selectedStudentSecurityDetail }
+        const comp = { ...(updatedStudent.completedExams || {}) }
+        if (examId) delete comp[examId]
+        else for (let k of Object.keys(comp)) delete comp[k]
+        updatedStudent.completedExams = comp
+        setSelectedStudentSecurityDetail(updatedStudent)
+      }
+      alert('✓ Test habilitado y desbloqueado exitosamente para el estudiante.')
+    } catch (e) {
+      console.error('Error al desbloquear examen:', e)
+      alert('Error al desbloquear examen: ' + e.message)
     }
   }
 
@@ -191,9 +250,13 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   // Filtrado reactivo con Botones Ovalados
   const filteredStudents = students.filter(s => {
     const isCompleted = Boolean(s.assignedLevel)
+    const completed = s.completedExams || {}
+    const totalWarnings = Object.values(completed).reduce((acc, c) => acc + (c.warningsCount || (c.incidents?.length || 0)), 0)
+
     const matchStatus = statusToggle === 'all' ||
       (statusToggle === 'completed' && isCompleted) ||
-      (statusToggle === 'pending' && !isCompleted)
+      (statusToggle === 'pending' && !isCompleted) ||
+      (statusToggle === 'incidents' && totalWarnings > 0)
 
     // Filtro de grado
     let matchGrade = true
@@ -285,9 +348,20 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   const totalEvaluatedTime = evaluations.reduce((sum, ev) => sum + (ev.totalDurationSeconds || 0), 0)
   const avgDurationMinutes = evaluations.length ? Math.round(totalEvaluatedTime / evaluations.length / 60) : 0
 
+  // Total de alumnos con incidencias registradas
+  const totalStudentsWithIncidents = students.filter(s => {
+    const c = s.completedExams || {}
+    return Object.values(c).reduce((acc, x) => acc + (x.warningsCount || (x.incidents?.length || 0)), 0) > 0
+  }).length
+
+  const isAnalyticsEnabled = coordinationModules?.analytics?.enabled !== false
+
   const menuItems = [
     { key: 'interview', label: 'Entrevista Oral (A1-C1)', icon: 'record_voice_over', badge: `${students.length}` },
+    ...(isAnalyticsEnabled ? [{ key: 'analytics', label: 'Dashboard Analítico', icon: 'analytics', badge: `${students.filter(s => Boolean(s.assignedLevel)).length} eval.` }] : []),
+    { key: 'security_audit', label: 'Alertas de Fraude y Pestaña', icon: 'security', badge: totalStudentsWithIncidents > 0 ? `${totalStudentsWithIncidents} alertas` : null },
     { key: 'interview_questions', label: 'Banco de Preguntas Orales', icon: 'quiz' },
+    { key: 'exam_dispatch', label: 'Habilitar y Pausar Pruebas', icon: 'alarm_on', badge: dispatchConfig.isPaused ? 'Pausa' : 'Activo' },
     { key: 'results', label: 'Resultados y Niveles', icon: 'military_tech', badge: `${evaluations.length}` },
     { key: 'builder', label: 'Batería y Tests MCER', icon: 'auto_stories' },
     { key: 'diagnostic_config', label: 'Ponderaciones y Cortes 2026', icon: 'tune' },
@@ -321,6 +395,53 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Control Global de Pausa / Receso y Habilitación por Grado */}
+            <div className="flex items-center gap-1.5 bg-surface-container p-1 rounded-2xl border border-outline-variant/30">
+              <button
+                type="button"
+                onClick={async () => {
+                  const newPaused = !dispatchConfig.isPaused
+                  try {
+                    await saveExamDispatchConfig({
+                      ...dispatchConfig,
+                      isPaused: newPaused,
+                      pausedAt: newPaused ? new Date().toISOString() : null,
+                      resumedAt: !newPaused ? new Date().toISOString() : null,
+                      updatedBy: currentTeacher?.name || currentTeacher?.email || 'Docente'
+                    })
+                  } catch (e) {
+                    alert('Error al cambiar estado de pausa: ' + e.message)
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+                  dispatchConfig.isPaused
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white animate-pulse'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+                title={dispatchConfig.isPaused ? "Exámenes en PAUSA (Tiempo congelado para receso). Clic para reanudar" : "Clic para poner exámenes en PAUSA (Congelar reloj por receso)"}
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {dispatchConfig.isPaused ? 'play_arrow' : 'pause'}
+                </span>
+                <span>
+                  {dispatchConfig.isPaused ? 'Reanudar Examen' : 'Pausar Reloj (Receso)'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowDispatchModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-on-surface text-xs font-bold border border-outline-variant/30 transition-all cursor-pointer"
+                title="Habilitar o restringir exámenes por Grado y Sección (ej. 7° A, B)"
+              >
+                <span className="material-symbols-outlined text-[16px] text-primary">tune</span>
+                <span className="hidden md:inline">Habilitar por Grados</span>
+                {dispatchConfig.enabledGrades && !dispatchConfig.enabledGrades.includes('all') && (
+                  <span className="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+                )}
+              </button>
+            </div>
+
             {activeInterviewStudent && (
               <button
                 type="button"
@@ -677,6 +798,23 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                             <span>Completados ({students.filter(s => Boolean(s.assignedLevel)).length})</span>
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStatusToggle('incidents')
+                              setCurrentPage(1)
+                            }}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                              statusToggle === 'incidents' ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-300' : 'text-rose-700 bg-rose-50 hover:bg-rose-100'
+                            }`}
+                            title="Ver alumnos con salidas de pestaña o alertas de fraude registradas"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">warning</span>
+                            <span>Con Alertas ({students.filter(s => {
+                              const c = s.completedExams || {}
+                              return Object.values(c).reduce((acc, x) => acc + (x.warningsCount || (x.incidents?.length || 0)), 0) > 0
+                            }).length})</span>
+                          </button>
                         </div>
                       </div>
 
@@ -867,18 +1005,26 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                             {examsDoneCount} test(s)
                                           </span>
                                           {totalWarnings > 0 ? (
-                                            <span
-                                              className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-300 flex items-center gap-0.5"
-                                              title={`${totalWarnings} salida(s) de pestaña registradas durante el examen`}
+                                            <button
+                                              type="button"
+                                              onClick={() => setSelectedStudentSecurityDetail(s)}
+                                              className="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs hover:scale-105"
+                                              title="Ver bitácora detallada de fraudes y salidas de pestaña"
                                             >
                                               <span className="material-symbols-outlined text-[13px] text-rose-600">warning</span>
                                               <span>{totalWarnings} salida(s)</span>
-                                            </span>
+                                              <span className="material-symbols-outlined text-[12px] opacity-70">open_in_new</span>
+                                            </button>
                                           ) : (
-                                            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5" title="Sin incidencias registradas">
+                                            <button
+                                              type="button"
+                                              onClick={() => setSelectedStudentSecurityDetail(s)}
+                                              className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5 cursor-pointer transition-colors"
+                                              title="Sin alertas. Clic para ver historial de tests completados."
+                                            >
                                               <span className="material-symbols-outlined text-[13px]">check_circle</span>
                                               <span>Limpio</span>
-                                            </span>
+                                            </button>
                                           )}
                                         </div>
                                       )
@@ -1065,6 +1211,18 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
                   </div>
                 </div>
+              )}
+
+              {/* SECCIÓN ANALYTICS: DASHBOARD ANALÍTICO INSTITUCIONAL */}
+              {currentSection === 'analytics' && (
+                <AnalyticsDashboard
+                  students={students}
+                  evaluations={evaluations}
+                  academic={academic}
+                  onResetStudent={handleResetStudent}
+                  isTeacherView={true}
+                  teacherName={currentTeacher?.name || user?.name || ''}
+                />
               )}
 
               {/* SECCIÓN 2: RESULTADOS Y NIVELES (DASHBOARD COMPLETO) */}
@@ -1630,10 +1788,480 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                 </div>
               )}
 
+              {/* SECCIÓN NUEVA: BITÁCORA Y ALERTAS DE FRAUDE / SALIDA DE PESTAÑA */}
+              {currentSection === 'security_audit' && (
+                <div className="space-y-6">
+                  {/* Encabezado y resumen métrico */}
+                  <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0 shadow-inner">
+                        <span className="material-symbols-outlined text-[32px]">shield</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="font-heading font-extrabold text-xl text-on-surface">
+                            Supervisión de Seguridad y Antifraude
+                          </h2>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
+                            Tiempo Real
+                          </span>
+                        </div>
+                        <p className="text-xs text-on-surface-variant mt-0.5">
+                          Monitoreo de salidas de pestaña, cambios de ventana, atajos bloqueados y desconexiones durante las pruebas digitales.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={loadData}
+                        className="px-4 py-2 rounded-2xl bg-surface-container hover:bg-surface-container-high text-xs font-bold text-on-surface transition-all flex items-center gap-1.5 cursor-pointer border border-outline-variant/40"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">sync</span>
+                        <span>Actualizar Datos</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentSection('interview')}
+                        className="px-4 py-2 rounded-2xl bg-[#2528b7] text-white hover:brightness-110 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
+                        <span>Ir a Entrevistas</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tarjetas KPI de Fraude */}
+                  {(() => {
+                    let totalIncidentsCount = 0
+                    let autoSubmittedByFraud = 0
+                    const flaggedStudents = []
+
+                    students.forEach(s => {
+                      const comp = s.completedExams || {}
+                      let studentWarnings = 0
+                      let hasAutoSubmit = false
+                      Object.values(comp).forEach(c => {
+                        const count = c.warningsCount || (c.incidents?.length || 0)
+                        studentWarnings += count
+                        if (c.byTimeout || count >= 3) hasAutoSubmit = true
+                      })
+                      if (studentWarnings > 0) {
+                        totalIncidentsCount += studentWarnings
+                        flaggedStudents.push(s)
+                      }
+                      if (hasAutoSubmit) autoSubmittedByFraud++
+                    })
+
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white rounded-2xl p-4 border border-rose-200 shadow-xs flex items-center justify-between">
+                          <div>
+                            <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">
+                              Alumnos con Incidencias
+                            </span>
+                            <span className="font-heading font-black text-2xl text-rose-900 mt-1 block">
+                              {flaggedStudents.length}
+                            </span>
+                            <span className="text-[11px] text-gray-500">De {students.length} alumnos totales</span>
+                          </div>
+                          <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[26px]">person_alert</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs flex items-center justify-between">
+                          <div>
+                            <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">
+                              Total de Salidas Registradas
+                            </span>
+                            <span className="font-heading font-black text-2xl text-amber-900 mt-1 block">
+                              {totalIncidentsCount}
+                            </span>
+                            <span className="text-[11px] text-gray-500">En todas las evaluaciones digitales</span>
+                          </div>
+                          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[26px]">tab_unselected</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl p-4 border border-emerald-200 shadow-xs flex items-center justify-between">
+                          <div>
+                            <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
+                              Alumnos Sin Ninguna Alerta
+                            </span>
+                            <span className="font-heading font-black text-2xl text-emerald-900 mt-1 block">
+                              {Math.max(0, students.length - flaggedStudents.length)}
+                            </span>
+                            <span className="text-[11px] text-gray-500">Comportamiento transparente</span>
+                          </div>
+                          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[26px]">verified_user</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Tabla de Alumnos con Alertas de Fraude */}
+                  <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-heading font-bold text-sm text-gray-900">
+                          Bitácora de Estudiantes con Alertas
+                        </h3>
+                        <span className="text-[11px] text-gray-500">
+                          (Haz clic en <strong>"Ver Registro"</strong> para auditar fechas, horas y tipo de acción)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs md:text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-white">
+                            <th className="py-3 px-3">Carnet</th>
+                            <th className="py-3 px-3">Estudiante</th>
+                            <th className="py-3 px-3 text-center">Grado</th>
+                            <th className="py-3 px-3 text-center">Secc.</th>
+                            <th className="py-3 px-3">Docente Asignado</th>
+                            <th className="py-3 px-3 text-center">Nivel Obtenido</th>
+                            <th className="py-3 px-3 text-center">Salidas de Pestaña</th>
+                            <th className="py-3 px-3 text-center">Estado de Acceso</th>
+                            <th className="py-3 px-3 text-right">Auditoría</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {(() => {
+                            const flagged = students.filter(s => {
+                              const c = s.completedExams || {}
+                              return Object.values(c).reduce((acc, x) => acc + (x.warningsCount || (x.incidents?.length || 0)), 0) > 0
+                            })
+
+                            if (flagged.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan="9" className="py-12 text-center text-gray-400 text-xs italic">
+                                    <div className="flex flex-col items-center gap-2">
+                                      <span className="material-symbols-outlined text-[36px] text-emerald-500">check_circle</span>
+                                      <span className="font-bold text-gray-700">No hay incidencias de seguridad registradas</span>
+                                      <span className="text-gray-400">Todos los estudiantes han completado sus exámenes sin registrar salidas no autorizadas.</span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            }
+
+                            return flagged.map(s => {
+                              const completed = s.completedExams || {}
+                              const totalWarnings = Object.values(completed).reduce(
+                                (acc, c) => acc + (c.warningsCount || (c.incidents?.length || 0)),
+                                0
+                              )
+
+                              return (
+                                <tr key={s.id || s.email} className="hover:bg-rose-50/20 transition-colors">
+                                  <td className="py-3.5 px-3 font-mono font-bold text-gray-700">
+                                    {s.carnet || 'N/A'}
+                                  </td>
+                                  <td className="py-3.5 px-3">
+                                    <div className="font-semibold text-gray-900">{s.name}</div>
+                                    <div className="text-[11px] text-gray-400 font-mono truncate max-w-xs">{s.email}</div>
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center">
+                                    <span className="inline-block px-2 py-0.5 rounded-lg bg-slate-100 font-bold text-slate-700">
+                                      {s.grade || s.codigoGrado || '-'}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center font-bold text-gray-600">
+                                    {s.section || '-'}
+                                  </td>
+                                  <td className="py-3.5 px-3 text-gray-700 font-medium">
+                                    {s.assignedTeacher || 'Sin asignar'}
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center">
+                                    {s.assignedLevel ? (
+                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                        {s.assignedLevel}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] text-gray-400">Sin nivel</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center">
+                                    <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-300 inline-flex items-center gap-1 shadow-2xs">
+                                      <span className="material-symbols-outlined text-[15px] text-rose-600">warning</span>
+                                      <span>{totalWarnings} advertencia(s)</span>
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center">
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                      s.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                      {s.status === 'active' ? 'Habilitado' : 'Pausado'}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-3 text-right">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUnlockExam(s, null)}
+                                        className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200 transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                                        title="Habilitar / Desbloquear exámenes para este alumno"
+                                      >
+                                        <span className="material-symbols-outlined text-[15px]">lock_open</span>
+                                        <span>Desbloquear</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedStudentSecurityDetail(s)}
+                                        className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <span className="material-symbols-outlined text-[15px]">visibility</span>
+                                        <span>Ver Registro</span>
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* SECCIÓN 3: CONSTRUCTOR WIZARD */}
               {/* SECCIÓN: BANCO DE PREGUNTAS ORALES (A1 - C1) */}
               {currentSection === 'interview_questions' && (
                 <InterviewQuestionsBankManager />
+              )}
+
+              {/* SECCIÓN DEDICADA: PANEL DE CONTROL DE PRUEBAS DIGITALES, HABILITACIÓN Y PAUSA */}
+              {currentSection === 'exam_dispatch' && (
+                <div className="space-y-6 max-w-4xl mx-auto text-left animate-fadeIn">
+                  {/* Banner de Control Global */}
+                  <div className={`p-6 md:p-8 rounded-3xl border shadow-sm transition-all flex flex-col md:flex-row items-center justify-between gap-6 ${
+                    dispatchConfig.isPaused
+                      ? 'bg-amber-50/90 border-amber-300 text-amber-950'
+                      : 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                  }`}>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className="material-symbols-outlined text-3xl">
+                          {dispatchConfig.isPaused ? 'pause_circle' : 'play_circle'}
+                        </span>
+                        <h2 className="text-xl font-heading font-black">
+                          {dispatchConfig.isPaused ? 'EVALUACIONES EN PAUSA (RECESO ACTIVO)' : 'EVALUACIONES ACTIVAS EN PLATAFORMA'}
+                        </h2>
+                      </div>
+                      <p className="text-xs md:text-sm opacity-90 max-w-xl leading-relaxed">
+                        {dispatchConfig.isPaused
+                          ? 'Todos los cronómetros de los estudiantes están congelados. Las respuestas de los alumnos se conservan intactas en memoria y base de datos.'
+                          : 'Los alumnos autorizados por grado y sección pueden ingresar a rendir sus pruebas con cuenta regresiva activa.'}
+                      </p>
+                      <div className="text-[11px] font-mono opacity-70">
+                        Última actualización: {dispatchConfig.updatedAt ? new Date(dispatchConfig.updatedAt).toLocaleTimeString('es-SV') : 'Hoy'} • Por: {dispatchConfig.updatedBy || 'Docente'}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={savingDispatch}
+                      onClick={async () => {
+                        const newPaused = !dispatchConfig.isPaused
+                        setSavingDispatch(true)
+                        try {
+                          const updated = await saveExamDispatchConfig({
+                            ...dispatchConfig,
+                            isPaused: newPaused,
+                            pausedAt: newPaused ? new Date().toISOString() : null,
+                            resumedAt: !newPaused ? new Date().toISOString() : null,
+                            updatedBy: currentTeacher?.name || currentTeacher?.email || 'Docente'
+                          })
+                          setDispatchConfig(updated)
+                        } catch (err) {
+                          alert('Error al cambiar estado de pausa: ' + err.message)
+                        } finally {
+                          setSavingDispatch(false)
+                        }
+                      }}
+                      className={`px-6 py-3.5 rounded-2xl text-xs md:text-sm font-black shadow-lg transition-all cursor-pointer shrink-0 flex items-center gap-2 ${
+                        dispatchConfig.isPaused
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/30'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        {dispatchConfig.isPaused ? 'play_arrow' : 'pause'}
+                      </span>
+                      <span>{dispatchConfig.isPaused ? 'Reanudar Exámenes (Fin de Receso)' : 'Pausar Reloj (Salida a Receso)'}</span>
+                    </button>
+                  </div>
+
+                  {/* Panel de Habilitación de Grados y Secciones */}
+                  <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/90 shadow-sm space-y-6">
+                    <div>
+                      <h3 className="font-heading font-black text-base text-slate-900">
+                        1. Habilitación por Grado Escolar
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Define qué grados tienen autorización para iniciar sesión y responder la batería digital.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDispatchConfig({ ...dispatchConfig, enabledGrades: ['all'] })}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          dispatchConfig.enabledGrades?.includes('all')
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        Universal (Todos los Grados)
+                      </button>
+                      {['6', '7', '8', '9', '10', '11', '12'].map(g => {
+                        const isSelected = !dispatchConfig.enabledGrades?.includes('all') && dispatchConfig.enabledGrades?.includes(g)
+                        const label = g === '10' ? '10° Bach' : g === '11' ? '11° Bach' : g === '12' ? '12° Téc' : `${g}° Grado`
+                        return (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => {
+                              let curr = (dispatchConfig.enabledGrades || []).filter(x => x !== 'all')
+                              if (curr.includes(g)) {
+                                curr = curr.filter(x => x !== g)
+                              } else {
+                                curr.push(g)
+                              }
+                              if (curr.length === 0) curr = ['all']
+                              setDispatchConfig({ ...dispatchConfig, enabledGrades: curr })
+                            }}
+                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-primary text-white shadow-sm'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <hr className="border-slate-100" />
+
+                    <div>
+                      <h3 className="font-heading font-black text-base text-slate-900">
+                        2. Habilitación por Sección (A, B, C, D)
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Si las docentes aplican la prueba por turnos de aula, selecciona la sección que está en turno.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDispatchConfig({ ...dispatchConfig, enabledSections: ['all'] })}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          dispatchConfig.enabledSections?.includes('all')
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        Todas las Secciones
+                      </button>
+                      {['A', 'B', 'C', 'D'].map(sec => {
+                        const isSelected = !dispatchConfig.enabledSections?.includes('all') && dispatchConfig.enabledSections?.includes(sec)
+                        return (
+                          <button
+                            key={sec}
+                            type="button"
+                            onClick={() => {
+                              let curr = (dispatchConfig.enabledSections || []).filter(x => x !== 'all')
+                              if (curr.includes(sec)) {
+                                curr = curr.filter(x => x !== sec)
+                              } else {
+                                curr.push(sec)
+                              }
+                              if (curr.length === 0) curr = ['all']
+                              setDispatchConfig({ ...dispatchConfig, enabledSections: curr })
+                            }}
+                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-primary text-white shadow-sm'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            Sección {sec}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <hr className="border-slate-100" />
+
+                    {/* Tiempo límite del bloque general (90 minutos reloj) */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="font-heading font-black text-sm text-slate-900 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[18px] text-amber-600">timer</span>
+                          <span>3. Tiempo Global del Bloque Examen (2 horas clase)</span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Tiempo total reloj asignado a los instrumentos de evaluación con receso intermedio.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <input
+                          type="number"
+                          min="30"
+                          max="180"
+                          value={dispatchConfig.globalTimeLimitMinutes || 90}
+                          onChange={(e) => setDispatchConfig({
+                            ...dispatchConfig,
+                            globalTimeLimitMinutes: parseInt(e.target.value, 10) || 90
+                          })}
+                          className="w-20 px-3 py-2 text-center font-black text-sm rounded-xl border border-slate-300 bg-white shadow-2xs"
+                        />
+                        <span className="text-xs font-bold text-slate-700">minutos reloj</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        type="button"
+                        disabled={savingDispatch}
+                        onClick={async () => {
+                          setSavingDispatch(true)
+                          try {
+                            await saveExamDispatchConfig({
+                              ...dispatchConfig,
+                              updatedBy: currentTeacher?.name || currentTeacher?.email || 'Docente'
+                            })
+                            alert('✅ Configuración de exámenes transmitida y activa en tiempo real para todos los estudiantes.')
+                          } catch (err) {
+                            alert('Error al guardar: ' + err.message)
+                          } finally {
+                            setSavingDispatch(false)
+                          }
+                        }}
+                        className="px-6 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">cloud_sync</span>
+                        <span>{savingDispatch ? 'Sincronizando...' : 'Guardar y Aplicar Habilitación'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* SECCIÓN 3: CONSTRUCTOR DE EXAMEN */}
@@ -1663,6 +2291,561 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     }
                   }}
                 />
+              )}
+
+              {/* MODAL DETALLADO DE AUDITORÍA Y SEGURIDAD / FRAUDE */}
+              {selectedStudentSecurityDetail && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+                  <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp text-left">
+                    {/* Header modal */}
+                    <div className="p-5 bg-gradient-to-r from-rose-900 to-slate-900 text-white flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-rose-300">
+                          <span className="material-symbols-outlined text-[24px]">security</span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-heading font-black text-base md:text-lg">
+                              Bitácora de Seguridad del Alumno
+                            </h3>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500/30 text-rose-200 border border-rose-400/30">
+                              Antifraude
+                            </span>
+                          </div>
+                          <p className="text-xs text-rose-200/80">
+                            {selectedStudentSecurityDetail.name} · Carnet: {selectedStudentSecurityDetail.carnet || 'N/A'} · Grado: {selectedStudentSecurityDetail.grade || selectedStudentSecurityDetail.codigoGrado || '-'} {selectedStudentSecurityDetail.section || ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudentSecurityDetail(null)}
+                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">close</span>
+                      </button>
+                    </div>
+
+                    {/* Contenido con listado de incidencias y tests */}
+                    <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                      {/* Resumen */}
+                      {(() => {
+                        const completed = selectedStudentSecurityDetail.completedExams || {}
+                        const examKeys = Object.keys(completed)
+                        const totalWarnings = Object.values(completed).reduce(
+                          (acc, c) => acc + (c.warningsCount || (c.incidents?.length || 0)),
+                          0
+                        )
+
+                        return (
+                          <>
+                            <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <span className="material-symbols-outlined text-rose-600 text-[28px]">report_problem</span>
+                                <div>
+                                  <span className="text-xs font-black text-rose-900 block">
+                                    {totalWarnings > 0
+                                      ? `${totalWarnings} incidencia(s) detectadas en los tests digitales`
+                                      : 'Examen completado con total integridad (sin alertas)'}
+                                  </span>
+                                  <span className="text-[11px] text-rose-700">
+                                    {totalWarnings >= 3
+                                      ? '⚠️ El alumno alcanzó el umbral máximo de advertencias durante la sesión.'
+                                      : totalWarnings > 0
+                                      ? 'Se registraron salidas de foco o cambios de pestaña durante el examen.'
+                                      : 'El alumno permaneció dentro de la pestaña en todo momento.'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-xs font-black text-rose-800 bg-white px-3 py-1 rounded-xl border border-rose-200 self-start sm:self-auto">
+                                {examKeys.length} test(s) presentados
+                              </span>
+                            </div>
+
+                            {/* Desglose por test */}
+                            <div className="space-y-4">
+                              <h4 className="text-xs font-black text-gray-700 uppercase tracking-wider">
+                                Desglose de Pruebas y Eventos
+                              </h4>
+
+                              {examKeys.length === 0 ? (
+                                <div className="p-8 text-center text-gray-400 italic bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+                                  El alumno aún no ha enviado ningún test digital.
+                                </div>
+                              ) : (
+                                examKeys.map(k => {
+                                  const data = completed[k] || {}
+                                  const warnings = data.warningsCount || (data.incidents?.length || 0)
+                                  const incidentsList = data.incidents || []
+
+                                  return (
+                                    <div key={k} className="p-4 rounded-2xl border border-gray-200 bg-white space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-heading font-bold text-sm text-gray-900 uppercase">
+                                            {data.examTitle || `Test: ${k}`}
+                                          </span>
+                                          {data.byTimeout && (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 text-red-800 border border-red-200">
+                                              Auto-enviado por límite
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                          {data.score !== undefined && (
+                                            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
+                                              Puntaje: {data.score}% ({data.correctCount || 0}/{data.totalQuestions || 0})
+                                            </span>
+                                          )}
+                                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${
+                                            warnings > 0 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                          }`}>
+                                            {warnings > 0 ? `${warnings} salida(s)` : 'Limpio ✓'}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="text-[11px] text-gray-500 flex flex-wrap items-center justify-between gap-2">
+                                        <span>Fecha envío: {data.completedAt ? new Date(data.completedAt).toLocaleString('es-SV') : 'Registrado'}</span>
+                                        <div className="flex items-center gap-2">
+                                          {/* Botón para Desbloquear / Habilitar este examen */}
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUnlockExam(selectedStudentSecurityDetail, k)}
+                                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                            title="Desbloquear este examen para que el alumno pueda volver a rendirlo"
+                                          >
+                                            <span className="material-symbols-outlined text-[14px]">lock_open</span>
+                                            <span>Habilitar / Desbloquear Examen</span>
+                                          </button>
+
+                                          {/* Botón para ver u ocultar respuestas de preguntas */}
+                                          {data.questionResponses?.length > 0 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => setExpandedExamAnswers(prev => ({ ...prev, [k]: !prev[k] }))}
+                                              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                            >
+                                              <span className="material-symbols-outlined text-[14px]">
+                                                {expandedExamAnswers[k] ? 'visibility_off' : 'quiz'}
+                                              </span>
+                                              <span>{expandedExamAnswers[k] ? 'Ocultar Preguntas' : `Ver Respuestas (${data.questionResponses.length})`}</span>
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Listado de preguntas y respuestas del alumno para emitir veredicto docente */}
+                                      {expandedExamAnswers[k] && data.questionResponses && (
+                                        <div className="pt-2 border-t border-indigo-100 bg-indigo-50/30 p-3 rounded-xl space-y-2.5">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-[11px] font-black uppercase text-indigo-950 flex items-center gap-1">
+                                              <span className="material-symbols-outlined text-[16px] text-indigo-600">fact_check</span>
+                                              <span>Respuestas por Reactivo (Auditoría para Veredicto Docente)</span>
+                                            </span>
+                                            <span className="text-[10px] font-bold text-indigo-600">
+                                              {data.correctCount || 0} de {data.questionResponses.length} correctas
+                                            </span>
+                                          </div>
+
+                                          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                                            {data.questionResponses.map((qr, qIdx) => (
+                                              <div
+                                                key={qIdx}
+                                                className={`p-2.5 rounded-xl border text-xs space-y-1.5 transition-all ${
+                                                  qr.isCorrect
+                                                    ? 'bg-white border-emerald-200'
+                                                    : 'bg-white border-rose-200'
+                                                }`}
+                                              >
+                                                <div className="flex items-start justify-between gap-2">
+                                                  <div className="flex items-center gap-1.5">
+                                                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                                                      qr.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                                    }`}>
+                                                      #{qr.questionIndex || qIdx + 1}
+                                                    </span>
+                                                    <span className="font-bold text-gray-800">
+                                                      {qr.prompt || qr.statement || 'Pregunta de evaluación'}
+                                                    </span>
+                                                  </div>
+                                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 ${
+                                                    qr.isCorrect ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                                  }`}>
+                                                    {qr.isCorrect ? 'Correcta ✓' : 'Incorrecta ✗'}
+                                                  </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1 border-t border-gray-100">
+                                                  <div>
+                                                    <span className="text-gray-400 block font-medium">Respuesta del Alumno:</span>
+                                                    <span className={`font-semibold ${qr.isCorrect ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                                      {qr.studentAnswer != null
+                                                        ? (typeof qr.studentAnswer === 'object' ? JSON.stringify(qr.studentAnswer) : String(qr.studentAnswer))
+                                                        : '(Sin responder)'}
+                                                    </span>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-gray-400 block font-medium">Respuesta Correcta / Clave:</span>
+                                                    <span className="font-semibold text-gray-700">
+                                                      {qr.expectedAnswer ? String(qr.expectedAnswer) : 'N/A'}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Lista de incidentes detallados si existen */}
+                                      {incidentsList.length > 0 && (
+                                        <div className="pt-2 border-t border-gray-100 space-y-2">
+                                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                                            Línea de tiempo de eventos:
+                                          </span>
+                                          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                                            {incidentsList.map((inc, incIdx) => (
+                                              <div key={incIdx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="material-symbols-outlined text-rose-500 text-[16px]">
+                                                    {inc.type === 'tab_switch' ? 'tab_unselected' : 'open_in_browser'}
+                                                  </span>
+                                                  <div>
+                                                    <span className="font-semibold text-gray-800 block">
+                                                      {inc.description || 'Salida de la ventana del examen'}
+                                                    </span>
+                                                    {inc.questionIndex && (
+                                                      <span className="text-[10px] text-gray-400">
+                                                        Ocurrió en Pregunta #{inc.questionIndex}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                <span className="text-[10px] font-mono text-gray-400 shrink-0">
+                                                  {inc.timestamp ? new Date(inc.timestamp).toLocaleTimeString('es-SV') : ''}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })
+                              )}
+                            </div>
+                          </>
+                        )
+                      })()}
+                    </div>
+
+                    {/* Footer modal */}
+                    <div className="p-4 bg-slate-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUnlockExam(selectedStudentSecurityDetail, null)}
+                          className="px-3.5 py-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="Desbloquear y habilitar todos los tests digitales para este alumno"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">lock_open</span>
+                          <span>Habilitar Todos los Tests Digitales</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleResetStudent(selectedStudentSecurityDetail)
+                            setSelectedStudentSecurityDetail(null)
+                          }}
+                          className="px-3.5 py-2 rounded-xl text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="Permitir que el alumno vuelva a ser evaluado o repetir"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                          <span>Reiniciar Nivel Oficial</span>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudentSecurityDetail(null)}
+                        className="px-6 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL DE CONTROL Y HABILITACIÓN DE EXÁMENES POR GRADO Y SECCIÓN */}
+              {showDispatchModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-200 space-y-6 animate-scaleUp text-left">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[26px]">tune</span>
+                        </div>
+                        <div>
+                          <h3 className="font-heading font-black text-base text-slate-900">
+                            Habilitación de Exámenes Digitales
+                          </h3>
+                          <p className="text-xs text-slate-500">
+                            Control de acceso por Grado, Sección y Pausa General
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowDispatchModal(false)}
+                        className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">close</span>
+                      </button>
+                    </div>
+
+                    {/* Estado del Cronómetro Global y Pausa */}
+                    <div className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+                      dispatchConfig.isPaused
+                        ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                        : 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                    }`}>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs font-black">
+                          <span className="material-symbols-outlined text-[20px]">
+                            {dispatchConfig.isPaused ? 'pause_circle' : 'play_circle'}
+                          </span>
+                          <span>
+                            {dispatchConfig.isPaused ? 'ESTADO: EVALUACIONES EN PAUSA (RECESO)' : 'ESTADO: EVALUACIONES ACTIVAS'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] opacity-80">
+                          {dispatchConfig.isPaused
+                            ? 'Los cronómetros de todos los alumnos están detenidos. Las respuestas están a salvo.'
+                            : 'Los alumnos habilitados pueden ingresar y responder sus tests con el reloj activo.'}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const newPaused = !dispatchConfig.isPaused
+                          setSavingDispatch(true)
+                          try {
+                            const updated = await saveExamDispatchConfig({
+                              ...dispatchConfig,
+                              isPaused: newPaused,
+                              pausedAt: newPaused ? new Date().toISOString() : null,
+                              resumedAt: !newPaused ? new Date().toISOString() : null,
+                              updatedBy: currentTeacher?.name || currentTeacher?.email || 'Docente'
+                            })
+                            setDispatchConfig(updated)
+                          } finally {
+                            setSavingDispatch(false)
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer shrink-0 ${
+                          dispatchConfig.isPaused
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-amber-500 hover:bg-amber-600 text-white'
+                        }`}
+                      >
+                        {dispatchConfig.isPaused ? 'Reanudar Reloj' : 'Pausar Reloj'}
+                      </button>
+                    </div>
+
+                    {/* Habilitación por Grado */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-primary">school</span>
+                          <span>Grados Autorizados para la Prueba</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isAll = dispatchConfig.enabledGrades?.includes('all')
+                            setDispatchConfig({
+                              ...dispatchConfig,
+                              enabledGrades: isAll ? ['7'] : ['all']
+                            })
+                          }}
+                          className="text-[11px] font-bold text-primary hover:underline"
+                        >
+                          {dispatchConfig.enabledGrades?.includes('all') ? 'Seleccionar específicos' : 'Habilitar Todos'}
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDispatchConfig({ ...dispatchConfig, enabledGrades: ['all'] })}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            dispatchConfig.enabledGrades?.includes('all')
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          Universal (Todos)
+                        </button>
+                        {['6', '7', '8', '9', '10', '11', '12'].map(g => {
+                          const isSelected = !dispatchConfig.enabledGrades?.includes('all') && dispatchConfig.enabledGrades?.includes(g)
+                          const label = g === '10' ? '10° Bach' : g === '11' ? '11° Bach' : g === '12' ? '12° Téc' : `${g}° Grado`
+                          return (
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => {
+                                let curr = (dispatchConfig.enabledGrades || []).filter(x => x !== 'all')
+                                if (curr.includes(g)) {
+                                  curr = curr.filter(x => x !== g)
+                                } else {
+                                  curr.push(g)
+                                }
+                                if (curr.length === 0) curr = ['all']
+                                setDispatchConfig({ ...dispatchConfig, enabledGrades: curr })
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-primary text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Habilitación por Sección */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-primary">groups</span>
+                          <span>Secciones Autorizadas</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isAll = dispatchConfig.enabledSections?.includes('all')
+                            setDispatchConfig({
+                              ...dispatchConfig,
+                              enabledSections: isAll ? ['A'] : ['all']
+                            })
+                          }}
+                          className="text-[11px] font-bold text-primary hover:underline"
+                        >
+                          {dispatchConfig.enabledSections?.includes('all') ? 'Seleccionar específicas' : 'Habilitar Todas'}
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDispatchConfig({ ...dispatchConfig, enabledSections: ['all'] })}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            dispatchConfig.enabledSections?.includes('all')
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          Todas las Secciones
+                        </button>
+                        {['A', 'B', 'C', 'D'].map(sec => {
+                          const isSelected = !dispatchConfig.enabledSections?.includes('all') && dispatchConfig.enabledSections?.includes(sec)
+                          return (
+                            <button
+                              key={sec}
+                              type="button"
+                              onClick={() => {
+                                let curr = (dispatchConfig.enabledSections || []).filter(x => x !== 'all')
+                                if (curr.includes(sec)) {
+                                  curr = curr.filter(x => x !== sec)
+                                } else {
+                                  curr.push(sec)
+                                }
+                                if (curr.length === 0) curr = ['all']
+                                setDispatchConfig({ ...dispatchConfig, enabledSections: curr })
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-primary text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              Sección {sec}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Tiempo límite del bloque general (90 min reloj / 2 horas clase) */}
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-amber-600">schedule</span>
+                          <span>Tiempo Global del Bloque Examen</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="30"
+                            max="180"
+                            value={dispatchConfig.globalTimeLimitMinutes || 90}
+                            onChange={(e) => setDispatchConfig({
+                              ...dispatchConfig,
+                              globalTimeLimitMinutes: parseInt(e.target.value, 10) || 90
+                            })}
+                            className="w-16 px-2 py-1 text-center font-black text-xs rounded-lg border border-slate-300 bg-white"
+                          />
+                          <span className="text-xs font-bold text-slate-600">minutos reloj</span>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500">
+                        Equivalente a 2 horas clase estándar con pausa para receso.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setShowDispatchModal(false)}
+                        className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+                      >
+                        Cerrar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingDispatch}
+                        onClick={async () => {
+                          setSavingDispatch(true)
+                          try {
+                            await saveExamDispatchConfig({
+                              ...dispatchConfig,
+                              updatedBy: currentTeacher?.name || currentTeacher?.email || 'Docente'
+                            })
+                            setShowDispatchModal(false)
+                            alert('✅ Configuración de habilitación de exámenes guardada y transmitida en tiempo real.')
+                          } catch (err) {
+                            alert('Error al guardar configuración: ' + err.message)
+                          } finally {
+                            setSavingDispatch(false)
+                          }
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-black shadow-md transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">cloud_sync</span>
+                        <span>{savingDispatch ? 'Sincronizando...' : 'Aplicar Habilitación'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </>
           )}

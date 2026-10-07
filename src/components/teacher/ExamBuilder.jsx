@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { MODULES, moduleCatalog, LEVELS } from '../../modules/registry'
-import { saveExam, getExams, deleteExam, getDiagnosticConfig } from '../../lib/dataService'
+import { saveExam, getExams, deleteExam, getDiagnosticConfig, updateExamSettings } from '../../lib/dataService'
 import { AI_TOPICS, generateAIQuestion } from '../../lib/aiQuestionGenerator'
 import { OFFICIAL_DIAGNOSTIC_EXAMS } from '../../data/officialExamsData'
 import QuestionPlayer from '../student/QuestionPlayer'
+import AudioGroupPlayer from '../student/AudioGroupPlayer'
 
 const GRADE_PILLS = [
   { id: 'all', label: 'Universal (Todos)' },
@@ -41,6 +42,10 @@ export default function ExamBuilder({ onPublished }) {
   // Presupuesto porcentual de plataforma
   const [existingExams, setExistingExams] = useState([])
   const [maxPlatformWeight, setMaxPlatformWeight] = useState(60)
+
+  // Estado para Edición Rápida de Tiempo y Ponderación sin pasar por el wizard
+  const [quickEditModal, setQuickEditModal] = useState(null) // { id, title, timeLimitMinutes, weight }
+  const [savingQuickEdit, setSavingQuickEdit] = useState(false)
 
   // Modo de configuración de ponderación:
   // 'internal_100': Los tests se reparten un 100% interno de la batería (y se escala automáticamente al % de plataforma)
@@ -381,6 +386,24 @@ export default function ExamBuilder({ onPublished }) {
                         <span>Probar Examen</span>
                       </button>
 
+                      {/* Botón directo de Tiempo y Porcentaje solicitado por los docentes */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuickEditModal({
+                            id: ex.id,
+                            title: ex.title,
+                            timeLimitMinutes: ex.timeLimitMinutes || 15,
+                            weight: ex.weight || 15
+                          })
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-extrabold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Cambiar rápidamente el tiempo (minutos) y porcentaje (%) sin entrar al asistente"
+                      >
+                        <span className="material-symbols-outlined text-[15px] text-amber-700">timer</span>
+                        <span>Tiempo y %</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -424,6 +447,122 @@ export default function ExamBuilder({ onPublished }) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* MODAL DE EDICIÓN RÁPIDA: TIEMPO Y PORCENTAJE (SIN WIZARD) */}
+          {quickEditModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+              <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 space-y-5 animate-scaleUp">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[22px]">tune</span>
+                    </div>
+                    <div>
+                      <h4 className="font-heading font-black text-sm text-slate-900">
+                        Ajuste Rápido de Evaluación
+                      </h4>
+                      <p className="text-[11px] text-slate-500 truncate max-w-[260px]">
+                        {quickEditModal.title}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQuickEditModal(null)}
+                    className="text-slate-400 hover:text-slate-700 p-1 rounded-xl transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">close</span>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Minutos del temporizador */}
+                  <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2">
+                    <label className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[18px] text-amber-600">timer</span>
+                      <span>Tiempo Límite de la Evaluación</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="180"
+                        value={quickEditModal.timeLimitMinutes}
+                        onChange={(e) => setQuickEditModal({
+                          ...quickEditModal,
+                          timeLimitMinutes: Math.max(0, parseInt(e.target.value, 10) || 0)
+                        })}
+                        className="w-24 px-3 py-2 rounded-xl border border-amber-300 text-sm font-black bg-white text-center shadow-xs"
+                      />
+                      <span className="text-xs text-amber-900 font-bold">minutos reloj</span>
+                    </div>
+                    <p className="text-[10px] text-amber-800 leading-tight">
+                      * El tiempo estándar del bloque total es de 90 minutos (2 horas clase). Usa 0 si no deseas límite en este test.
+                    </p>
+                  </div>
+
+                  {/* Porcentaje de Ponderación */}
+                  <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2">
+                    <label className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[18px] text-[#2528b7]">percent</span>
+                      <span>Ponderación / Peso Porcentual</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={quickEditModal.weight}
+                        onChange={(e) => setQuickEditModal({
+                          ...quickEditModal,
+                          weight: Math.max(0, parseInt(e.target.value, 10) || 0)
+                        })}
+                        className="w-24 px-3 py-2 rounded-xl border border-indigo-300 text-sm font-black bg-white text-center shadow-xs"
+                      />
+                      <span className="text-xs text-indigo-900 font-bold">% sobre la batería</span>
+                    </div>
+                    <p className="text-[10px] text-indigo-800 leading-tight">
+                      * Ajusta la ponderación directa que aportará este test a la nota de plataforma.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setQuickEditModal(null)}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingQuickEdit}
+                    onClick={async () => {
+                      setSavingQuickEdit(true)
+                      try {
+                        await updateExamSettings(quickEditModal.id, {
+                          timeLimitMinutes: quickEditModal.timeLimitMinutes,
+                          weight: quickEditModal.weight
+                        })
+                        await loadExistingExamsAndConfig()
+                        setQuickEditModal(null)
+                        alert('✅ Parámetros de tiempo y ponderación actualizados con éxito.')
+                      } catch (err) {
+                        alert('Error al guardar ajustes: ' + err.message)
+                      } finally {
+                        setSavingQuickEdit(false)
+                      }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-[#2528b7] hover:brightness-110 text-white text-xs font-black shadow-md transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    <span>{savingQuickEdit ? 'Guardando...' : 'Guardar Ajuste'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1050,6 +1189,89 @@ export default function ExamBuilder({ onPublished }) {
             <div className="p-6">
               {simulatingExam.questions && simulatingExam.questions.length > 0 ? (
                 (() => {
+                  const isListeningExam = simulatingExam.toolType === 'listening' || simulatingExam.questions.some(q => q.type === 'listening' && q.audioUrl)
+
+                  if (isListeningExam) {
+                    const audioGroups = []
+                    let currentGrp = null
+
+                    simulatingExam.questions.forEach((q, idx) => {
+                      const qWithIndex = { ...q, displayNumber: idx + 1 }
+                      const key = q.audioUrl || q.audioText || `audio_group_${idx}`
+                      if (!currentGrp || currentGrp.key !== key) {
+                        currentGrp = {
+                          key,
+                          audioUrl: q.audioUrl,
+                          audioText: q.audioText,
+                          level: q.level,
+                          questions: [qWithIndex]
+                        }
+                        audioGroups.push(currentGrp)
+                      } else {
+                        currentGrp.questions.push(qWithIndex)
+                      }
+                    })
+
+                    const currentGroupIndex = Math.min(simulationIndex, audioGroups.length - 1)
+                    const currentGroup = audioGroups[currentGroupIndex] || audioGroups[0]
+                    const isLastGroup = currentGroupIndex === audioGroups.length - 1
+
+                    return (
+                      <div className="space-y-4">
+                        {/* Progreso del examen */}
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#2528b7] transition-all"
+                            style={{
+                              width: `${((currentGroupIndex + 1) / audioGroups.length) * 100}%`
+                            }}
+                          />
+                        </div>
+
+                        {currentGroup && (
+                          <AudioGroupPlayer
+                            key={currentGroup.key || currentGroupIndex}
+                            group={currentGroup}
+                            examAnswers={{}}
+                            onAnswerChange={() => {}}
+                          />
+                        )}
+
+                        {/* Botones de navegación de la prueba */}
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                          <button
+                            type="button"
+                            disabled={currentGroupIndex === 0}
+                            onClick={() => setSimulationIndex(i => Math.max(0, i - 1))}
+                            className="px-3.5 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                          >
+                            ← Previous Audio
+                          </button>
+
+                          <span className="text-xs text-gray-500 font-medium">
+                            Audio {currentGroupIndex + 1} de {audioGroups.length}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isLastGroup) {
+                                alert('Preview de evaluación de audio completado.')
+                                setSimulatingExam(null)
+                              } else {
+                                setSimulationIndex(i => i + 1)
+                              }
+                            }}
+                            className="px-4 py-1.5 rounded-xl bg-[#2528b7] text-white text-xs font-bold hover:brightness-110 cursor-pointer flex items-center gap-1 shadow-xs"
+                          >
+                            <span>{isLastGroup ? 'Finish Test' : 'Next Audio / Block'}</span>
+                            <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+
                   const currentQ = simulatingExam.questions[simulationIndex]
                   if (!currentQ) {
                     return (

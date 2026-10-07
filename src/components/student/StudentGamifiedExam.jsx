@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { db, isFirebaseConfigured } from '../../lib/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { getUserProfile, sanitizeDocId, getExams } from '../../lib/dataService'
+import { getUserProfile, sanitizeDocId, getExams, subscribeExamDispatch, saveResult } from '../../lib/dataService'
 import Sidebar from '../shared/Sidebar'
-import QuestionPlayer from './QuestionPlayer'
+import QuestionPlayer, { QUESTION_CHECKERS } from './QuestionPlayer'
+import AudioGroupPlayer from './AudioGroupPlayer'
 import { OFFICIAL_DIAGNOSTIC_EXAMS } from '../../data/officialExamsData'
 
 export default function StudentGamifiedExam({ student: propStudent, onLogout }) {
@@ -29,8 +30,38 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   const [activeExam, setActiveExam] = useState(null)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [examTimeLeft, setExamTimeLeft] = useState(0)
-  const [studentAnswers, setStudentAnswers] = useState({})
+
+  // Respuestas persistidas para que no se pierdan al pausar, salir a receso o recargar
+  const answersStorageKey = `el_draft_answers_${student.email || student.carnet || 'student'}`
+  const [studentAnswers, setStudentAnswers] = useState(() => {
+    try {
+      const saved = localStorage.getItem(answersStorageKey)
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+
+  // Configuración de Habilitación por Grado/Sección y Pausa General de los Docentes
+  const [dispatchConfig, setDispatchConfig] = useState({
+    enabledGrades: ['all'],
+    enabledSections: ['all'],
+    isPaused: false,
+    pausedAt: null,
+    pauseReason: 'receso',
+    globalTimeLimitMinutes: 90
+  })
+
+  // Escuchar configuración de habilitación y pausa en tiempo real
+  useEffect(() => {
+    const unsub = subscribeExamDispatch((cfg) => {
+      if (cfg) setDispatchConfig(cfg)
+    })
+    return () => unsub()
+  }, [])
+
   const [tabSwitchWarnings, setTabSwitchWarnings] = useState(0)
+  const [examIncidents, setExamIncidents] = useState([])
   const [securityModalVisible, setSecurityModalVisible] = useState(false)
   const [securityNotice, setSecurityNotice] = useState('')
 
@@ -83,9 +114,9 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }
 
-  // 3. Temporizador regresivo sincronizado para el test activo
+  // 3. Temporizador regresivo sincronizado para el test activo (Se congela si el docente pausa la evaluación)
   useEffect(() => {
-    if (!activeExam || examTimeLeft <= 0) return
+    if (!activeExam || examTimeLeft <= 0 || dispatchConfig.isPaused) return
     const timer = setInterval(() => {
       setExamTimeLeft(prev => {
         if (prev <= 1) {
@@ -97,28 +128,33 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
       })
     }, 1000)
     return () => clearInterval(timer)
-  }, [activeExam, examTimeLeft > 0])
+  }, [activeExam, examTimeLeft > 0, dispatchConfig.isPaused])
 
   // 4. DETECCIÓN DE CAMBIO DE PESTAÑA / VENTANA (Anti-trampa)
   useEffect(() => {
     if (!activeExam) return
 
+    const logIncident = (type, description) => {
+      const incident = {
+        type,
+        description,
+        timestamp: new Date().toISOString(),
+        examId: activeExam.id,
+        examTitle: activeExam.title || activeExam.id,
+        questionIndex: currentQuestionIndex + 1
+      }
+      setExamIncidents(prev => [...prev, incident])
+    }
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        logIncident('tab_switch', 'Cambió de pestaña o minimizó el navegador')
         setTabSwitchWarnings(prev => {
           const newCount = prev + 1
           setSecurityNotice(
-            `⚠️ ALERTA DE SEGURIDAD #${newCount}: Has cambiado de pestaña o minimizado la ventana del examen. Esta incidencia ha sido registrada en tu evaluación.`
+            `⚠️ ALERTA DE SEGURIDAD #${newCount}: Has cambiado de pestaña o minimizado la ventana del examen. Esta incidencia queda registrada en tu bitácora de evaluación para revisión docente.`
           )
           setSecurityModalVisible(true)
-
-          // Si el alumno cambia repetidamente de pestaña (3 advertencias), el test se envía automáticamente
-          if (newCount >= 3) {
-            setTimeout(() => {
-              alert('🚨 Has excedido el límite de advertencias por salir de la ventana. Tu evaluación ha sido enviada automáticamente.')
-              handleFinishActiveExam(activeExam.id)
-            }, 500)
-          }
           return newCount
         })
       }
@@ -126,6 +162,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
     const handleWindowBlur = () => {
       if (document.hidden) return // ya cubierto por visibilitychange
+      logIncident('window_blur', 'Perdió el foco de la pantalla del examen (abrió otra app o ventana)')
       setTabSwitchWarnings(prev => {
         const newCount = prev + 1
         setSecurityNotice(
@@ -143,7 +180,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('blur', handleWindowBlur)
     }
-  }, [activeExam])
+  }, [activeExam, currentQuestionIndex])
 
   // 5. PROTECCIÓN CONTRA ATAJOS DE TECLADO (Copiar, Cortar, Captura de pantalla, Inspeccionar)
   useEffect(() => {
@@ -206,29 +243,105 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     setExamTimeLeft(minutes * 60)
   }
 
-  // Guardar respuesta del alumno en silencio
+  // Guardar respuesta del alumno en silencio y persistir en localStorage para proteger ante recarga/pausa
   const handleAnswerChange = (examId, qId, answerValue) => {
-    setStudentAnswers(prev => ({
-      ...prev,
-      [examId]: {
-        ...(prev[examId] || {}),
-        [qId]: answerValue
+    setStudentAnswers(prev => {
+      const updated = {
+        ...prev,
+        [examId]: {
+          ...(prev[examId] || {}),
+          [qId]: answerValue
+        }
       }
-    }))
+      try {
+        localStorage.setItem(answersStorageKey, JSON.stringify(updated))
+      } catch (e) {
+        console.warn('Error guardando borrador de respuesta:', e)
+      }
+      return updated
+    })
   }
 
   // Finalizar y enviar examen de manera definitiva
+  // Finalizar y enviar examen de manera definitiva, guardando todas las respuestas de cada pregunta
   const handleFinishActiveExam = async (examId, byTimeout = false) => {
+    const currentExam = examsList.find(e => e.id === examId) || activeExam || {}
+    const examQuestions = currentExam.questions || []
+    const rawAnswers = studentAnswers[examId] || {}
+
+    // Desglosar cada pregunta con la respuesta seleccionada por el estudiante y su corrección
+    const detailedResponses = examQuestions.map((q, idx) => {
+      const studentAns = rawAnswers[q.id]
+      const checker = QUESTION_CHECKERS[q.type]
+      const isCorrect = checker ? checker(q, studentAns) : false
+
+      let expectedDisplay = ''
+      if (q.type === 'multipleChoice' || q.type === 'listening') {
+        expectedDisplay = q.options?.[q.correctIndex] ?? q.correctIndex
+      } else if (q.type === 'trueFalse') {
+        const expBool = q.isTrue !== undefined ? q.isTrue : q.correct
+        expectedDisplay = expBool ? 'True' : 'False'
+      } else if (q.type === 'orderSentence') {
+        expectedDisplay = q.correctSentence || (q.words || []).join(' ')
+      } else if (q.type === 'fillParagraph') {
+        expectedDisplay = (q.blanks || []).map(b => b.answer).join(', ')
+      } else if (q.type === 'writing') {
+        expectedDisplay = q.acceptedAnswers?.[0] || ''
+      } else if (q.type === 'speaking') {
+        expectedDisplay = q.targetText || ''
+      }
+
+      let studentDisplay = studentAns
+      if (studentAns != null) {
+        if (q.type === 'orderSentence' && Array.isArray(studentAns)) {
+          studentDisplay = studentAns.map(i => q.words?.[i] ?? i).join(' ')
+        } else if ((q.type === 'multipleChoice' || q.type === 'listening') && typeof studentAns === 'number') {
+          studentDisplay = q.options?.[studentAns] ?? studentAns
+        } else if (q.type === 'trueFalse' && typeof studentAns === 'boolean') {
+          studentDisplay = studentAns ? 'True' : 'False'
+        }
+      }
+
+      return {
+        questionId: q.id || `q_${idx}`,
+        questionIndex: idx + 1,
+        prompt: q.prompt || q.question || '',
+        statement: q.statement || '',
+        type: q.type || 'multipleChoice',
+        level: q.level || currentExam.level || 'A1-C1',
+        studentAnswer: studentDisplay != null ? studentDisplay : null,
+        expectedAnswer: expectedDisplay,
+        isCorrect: Boolean(isCorrect)
+      }
+    })
+
+    const correctCount = detailedResponses.filter(r => r.isCorrect).length
+    const totalQuestions = detailedResponses.length
+    const scorePct = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0
+
+    const examSummary = {
+      completedAt: new Date().toISOString(),
+      byTimeout: Boolean(byTimeout),
+      warningsCount: tabSwitchWarnings,
+      incidents: examIncidents,
+      examTitle: currentExam.title || examId,
+      level: currentExam.level || 'A1-C1',
+      weight: currentExam.weight || 15,
+      correctCount,
+      totalQuestions,
+      score: scorePct,
+      answers: rawAnswers,
+      questionResponses: detailedResponses
+    }
+
     const updatedCompleted = {
       ...completedExams,
-      [examId]: {
-        completedAt: new Date().toISOString(),
-        byTimeout: Boolean(byTimeout),
-        warningsCount: tabSwitchWarnings
-      }
+      [examId]: examSummary
     }
+
     setCompletedExams(updatedCompleted)
     setActiveExam(null)
+    setExamIncidents([])
 
     // Persistir localmente de inmediato para que no pueda volver a presentarlo al recargar
     try {
@@ -237,12 +350,35 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
       console.warn('Error guardando examen completado en localStorage:', e)
     }
 
-    // Persistir en Firestore en el perfil del alumno si hay conexión
-    if (activeStudent.email) {
+    // Persistir en Firestore en el perfil del alumno y en la colección results
+    if (student.email) {
       try {
-        const docId = sanitizeDocId(activeStudent.email)
+        const docId = sanitizeDocId(student.email)
         if (isFirebaseConfigured()) {
-          setDoc(doc(db, 'users', docId), { completedExams: updatedCompleted }, { merge: true }).catch(() => {})
+          // 1. Guardar en users/{studentId}
+          await setDoc(doc(db, 'users', docId), { completedExams: updatedCompleted }, { merge: true })
+
+          // 2. Guardar en results/{resId} para historial y reportes
+          const resultPayload = {
+            id: `res_${docId}_${examId}`,
+            studentEmail: student.email,
+            studentName: student.name || '',
+            studentCarnet: student.carnet || '',
+            studentGrade: student.grade || student.codigoGrado || '',
+            studentSection: student.section || '',
+            examId,
+            examTitle: currentExam.title || examId,
+            level: currentExam.level || 'A1-C1',
+            score: scorePct,
+            correctCount,
+            totalQuestions,
+            warningsCount: tabSwitchWarnings,
+            incidents: examIncidents,
+            answers: rawAnswers,
+            questionResponses: detailedResponses,
+            completedAt: examSummary.completedAt
+          }
+          await saveResult(resultPayload)
         }
       } catch (err) {
         console.warn('Error guardando finalización en Firestore:', err)
@@ -265,6 +401,35 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   const allTestsCompleted = examsList.length > 0 && totalCompletedCount >= examsList.length
   // El nivel oficial solo se publica al alumno si el docente ya lo asignó Y el alumno terminó todos sus tests
   const isPlacementFullyConcluded = Boolean(student.assignedLevel) && allTestsCompleted
+
+  // Verificar si el grado y sección de este alumno están autorizados por las teachers
+  const isStudentAuthorizedForExam = (() => {
+    const enabledGrades = dispatchConfig.enabledGrades || ['all']
+    const enabledSections = dispatchConfig.enabledSections || ['all']
+
+    let matchGrade = enabledGrades.includes('all')
+    if (!matchGrade) {
+      const gStr = (student.grade || '') + ' ' + (student.codigoGrado || '')
+      matchGrade = enabledGrades.some(g => {
+        if (g === '6') return gStr.includes('6°') || student.codigoGrado === '06'
+        if (g === '7') return gStr.includes('7°') || student.codigoGrado === '07'
+        if (g === '8') return gStr.includes('8°') || student.codigoGrado === '08'
+        if (g === '9') return gStr.includes('9°') || student.codigoGrado === '09'
+        if (g === '10') return gStr.includes('10°') || gStr.includes('1° Bach') || student.codigoGrado === '10'
+        if (g === '11') return gStr.includes('11°') || gStr.includes('2° Bach') || student.codigoGrado === '11'
+        if (g === '12') return gStr.includes('12°') || gStr.includes('3° Bach') || student.codigoGrado === '32'
+        return gStr.includes(g)
+      })
+    }
+
+    let matchSection = enabledSections.includes('all')
+    if (!matchSection) {
+      const sec = (student.section || '').trim().toUpperCase()
+      matchSection = enabledSections.some(s => s.toUpperCase() === sec)
+    }
+
+    return matchGrade && matchSection
+  })()
 
   // Menú dinámico del alumno
   const studentMenuItems = [
@@ -374,10 +539,171 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
               </div>
             )}
 
-            {/* ================= VISTA A: EXAMEN ACTIVO EN EJECUCIÓN (PREGUNTA POR PREGUNTA) ================= */}
+            {/* ================= PANTALLA DE PAUSA GENERAL / RECESO (ACTIVADA POR LAS TEACHERS) ================= */}
+            {dispatchConfig.isPaused && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+                <div className="bg-white rounded-[32px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-amber-400 text-center space-y-6 animate-scaleUp">
+                  <div className="w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                    <span className="material-symbols-outlined text-[42px] animate-pulse">pause_circle</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-900">
+                      Evaluación en Pausa • Receso / Instrucción
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
+                      El examen se encuentra pausado por el docente
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+                      El reloj y temporizador de tu prueba están congelados. Tus respuestas y avances se encuentran guardados de forma segura en la plataforma.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2 text-xs text-slate-600">
+                    <div className="flex items-center gap-2 font-bold text-slate-800">
+                      <span className="material-symbols-outlined text-emerald-600 text-[18px]">verified_user</span>
+                      <span>Tu progreso no se perderá:</span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-500 pl-1">
+                      <li>El tiempo restante de tu prueba se reanudará exactamente donde quedó.</li>
+                      <li>La prueba se reanudará en pantalla en el momento en que las teachers den la indicación.</li>
+                      <li>Por favor mantén esta pestaña abierta durante el receso.</li>
+                    </ul>
+                  </div>
+
+                  <div className="text-[11px] font-mono text-slate-400">
+                    Sincronización en tiempo real activa • Esperando reanudación...
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ================= VISTA A: EXAMEN ACTIVO EN EJECUCIÓN ================= */}
             {activeExam ? (() => {
-              const currentQ = activeExam.questions[currentQuestionIndex]
               const currentExamAnswers = studentAnswers[activeExam.id] || {}
+              const isListeningExam = activeExam.toolType === 'listening' || activeExam.questions.some(q => q.type === 'listening' && q.audioUrl)
+
+              // Si es examen de audio/listening, agrupamos preguntas contiguas que comparten el mismo audio
+              if (isListeningExam) {
+                const audioGroups = []
+                let currentGrp = null
+
+                activeExam.questions.forEach((q, idx) => {
+                  const qWithIndex = { ...q, displayNumber: idx + 1 }
+                  const key = q.audioUrl || q.audioText || `audio_group_${idx}`
+                  if (!currentGrp || currentGrp.key !== key) {
+                    currentGrp = {
+                      key,
+                      audioUrl: q.audioUrl,
+                      audioText: q.audioText,
+                      level: q.level,
+                      questions: [qWithIndex]
+                    }
+                    audioGroups.push(currentGrp)
+                  } else {
+                    currentGrp.questions.push(qWithIndex)
+                  }
+                })
+
+                // El currentQuestionIndex funciona como groupIndex para la navegación entre audios
+                const currentGroupIndex = Math.min(currentQuestionIndex, audioGroups.length - 1)
+                const currentGroup = audioGroups[currentGroupIndex] || audioGroups[0]
+                const isLastGroup = currentGroupIndex === audioGroups.length - 1
+
+                const totalExamQuestions = activeExam.questions.length
+                const totalAnsweredQuestions = activeExam.questions.filter(q => currentExamAnswers[q.id] != null).length
+                const groupAnsweredQuestions = currentGroup?.questions.filter(q => currentExamAnswers[q.id] != null).length || 0
+
+                return (
+                  <div className="space-y-5 animate-fadeIn text-left exam-secure-mode select-none">
+                    {/* Barra de progreso superior del examen de audio */}
+                    <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                          <span>
+                            Audio {currentGroupIndex + 1} de {audioGroups.length} • {currentGroup?.questions.length} preguntas en esta pantalla
+                          </span>
+                          <span className="text-indigo-700 font-mono">
+                            Total respondidas: {totalAnsweredQuestions} de {totalExamQuestions}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-indigo-600 transition-all duration-300"
+                            style={{ width: `${(totalAnsweredQuestions / Math.max(1, totalExamQuestions)) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Indicador de Examen en Curso */}
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 text-[11px] font-black border border-indigo-200 shrink-0 self-start sm:self-auto">
+                        <span className="material-symbols-outlined text-[15px] animate-spin">sync</span>
+                        <span>Evaluación de Audio</span>
+                      </div>
+                    </div>
+
+                    {/* Componente del grupo de audio: 1 Reproductor + TODAS las preguntas en la misma ventana */}
+                    {currentGroup && (
+                      <div className="exam-secure-mode select-none">
+                        <AudioGroupPlayer
+                          key={currentGroup.key || currentGroupIndex}
+                          group={currentGroup}
+                          examAnswers={currentExamAnswers}
+                          onAnswerChange={(qId, ans) => handleAnswerChange(activeExam.id, qId, ans)}
+                        />
+                      </div>
+                    )}
+
+                    {/* Botones de navegación entre audios */}
+                    <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        disabled={currentGroupIndex === 0}
+                        onClick={() => {
+                          setCurrentQuestionIndex(i => Math.max(0, i - 1))
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }}
+                        className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                        <span>Audio Anterior</span>
+                      </button>
+
+                      <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+                        {groupAnsweredQuestions === currentGroup?.questions.length
+                          ? '✓ Todas respondidas en esta pantalla'
+                          : `${groupAnsweredQuestions} de ${currentGroup?.questions.length} respondidas en este audio`}
+                      </span>
+
+                      {isLastGroup ? (
+                        <button
+                          type="button"
+                          onClick={() => handleFinishActiveExam(activeExam.id)}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                          <span>Completar Test</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentQuestionIndex(i => Math.min(audioGroups.length - 1, i + 1))
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span>Siguiente Audio / Preguntas</span>
+                          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              }
+
+              // Si es otro tipo de examen (Sentence Scramble, Cloze, etc.), se mantiene navegación individual estándar
+              const currentQ = activeExam.questions[currentQuestionIndex]
               const isAnswered = currentExamAnswers[currentQ?.id] != null
               const isLast = currentQuestionIndex === activeExam.questions.length - 1
 
@@ -398,21 +724,20 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveExam(null)}
-                      className="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all cursor-pointer shrink-0"
-                    >
-                      Pausar / Volver
-                    </button>
+                    {/* Indicador de Examen en Curso */}
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-[11px] font-black border border-blue-200 shrink-0">
+                      <span className="material-symbols-outlined text-[15px] animate-spin">sync</span>
+                      <span>Evaluación en Curso</span>
+                    </div>
                   </div>
 
-                  {/* Reproductor de la pregunta (QuestionPlayer en silencio, sin réplicas) */}
+                  {/* Reproductor de la pregunta individual */}
                   {currentQ && (
                     <div className="exam-secure-mode select-none">
                       <QuestionPlayer
                         key={currentQ.id || currentQuestionIndex}
                         question={currentQ}
+                        initialAnswer={currentExamAnswers[currentQ?.id]}
                         showFeedback={false}
                         onAnswerChange={(ans) => handleAnswerChange(activeExam.id, currentQ.id, ans)}
                       />
@@ -489,7 +814,26 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                   </p>
                 </div>
 
-                {/* Lista de las pruebas con sus porcentajes y tiempos dinámicos */}
+                {/* Si el grado o sección no está habilitado actualmente por las teachers */}
+                {!isStudentAuthorizedForExam ? (
+                  <div className="bg-amber-50 rounded-3xl p-8 border border-amber-200 text-center space-y-4 animate-fadeIn">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-inner">
+                      <span className="material-symbols-outlined text-4xl">lock_clock</span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase bg-amber-200 text-amber-900">
+                        Acceso Restringido por Horario Docente
+                      </span>
+                      <h3 className="font-heading font-black text-base text-slate-900 mt-2">
+                        La batería de exámenes no está habilitada para tu Grado o Sección en este momento
+                      </h3>
+                      <p className="text-xs text-slate-600 max-w-md mx-auto">
+                        Las teachers habilitan las evaluaciones por secciones específicas de forma escalonada (ej. 7° Grado A/B). Por favor espera las indicaciones de tu docente.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                /* Lista de las pruebas con sus porcentajes y tiempos dinámicos */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {examsList.map((exam, idx) => {
                     const isDone = Boolean(completedExams[exam.id])
@@ -567,6 +911,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     )
                   })}
                 </div>
+                )}
               </div>
             ) : (Boolean(student.placementReleased) && Boolean(student.assignedLevel) && currentSection === 'results') ? (
               /* ================= VISTA C: RESULTADO OFICIAL ASIGNADO POR DOCENTES ================= */

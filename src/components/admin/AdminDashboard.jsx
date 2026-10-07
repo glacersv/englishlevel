@@ -18,6 +18,7 @@ import {
 } from '../../lib/dataService'
 import bundledStudents from '../../data/studentsFromSchool.json'
 import DiagnosticConfigManager from '../shared/DiagnosticConfigManager'
+import AnalyticsDashboard from '../shared/AnalyticsDashboard'
 
 export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, onSwitchToTeacherView }) {
   const [currentSection, setCurrentSection] = useState('overview')
@@ -44,6 +45,8 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, 
   const [batchDeleteTarget, setBatchDeleteTarget] = useState(null) // { title, count, emails } para modal de confirmación en lote
   const [userToDelete, setUserToDelete] = useState(null) // { email, name } para modal de confirmación individual
   const [isDeleting, setIsDeleting] = useState(false)
+  const [expandedSection, setExpandedSection] = useState(null) // Clave '7-C', etc. para desplegar alumnos en el analytics
+  const [selectedDetailStudent, setSelectedDetailStudent] = useState(null) // Alumno seleccionado para ver su expediente completo al hacer clic
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [formData, setFormData] = useState({
@@ -1371,187 +1374,12 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, 
 
           {/* ================= SECCIÓN 2.5: DASHBOARD ANALÍTICO (GRADOS, SECCIONES Y NIVELES) ================= */}
           {currentSection === 'analytics' && (
-            <div className="space-y-6 animate-fadeIn">
-              {/* Resumen Superior */}
-              <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
-                    <span className="text-[11px] font-bold tracking-wider uppercase text-primary">
-                      Diagnóstico Institucional de Inglés
-                    </span>
-                  </div>
-                  <h2 className="font-heading font-extrabold text-2xl text-gray-900 mt-1">
-                    Dashboard Analítico de Niveles (MCER)
-                  </h2>
-                  <p className="text-xs text-gray-500">
-                    Desglose de avance por grados, secciones y distribución de niveles evaluados por los docentes.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-                  <div className="text-center px-2">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 block">Total Alumnos</span>
-                    <span className="font-heading font-black text-xl text-gray-900">{studentsList.length}</span>
-                  </div>
-                  <div className="w-px h-8 bg-gray-200"></div>
-                  <div className="text-center px-2">
-                    <span className="text-[10px] uppercase font-bold text-emerald-600 block">Evaluados</span>
-                    <span className="font-heading font-black text-xl text-emerald-600">
-                      {studentsList.filter(s => Boolean(s.assignedLevel)).length}
-                    </span>
-                  </div>
-                  <div className="w-px h-8 bg-gray-200"></div>
-                  <div className="text-center px-2">
-                    <span className="text-[10px] uppercase font-bold text-amber-600 block">Pendientes</span>
-                    <span className="font-heading font-black text-xl text-amber-600">
-                      {studentsList.filter(s => !s.assignedLevel).length}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Distribución Global por Nivel Oficial MCER */}
-              <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm space-y-4">
-                <h3 className="font-heading font-extrabold text-base text-gray-900 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-[20px]">donut_large</span>
-                  Distribución General por Nivel MCER (Evaluados por Docentes)
-                </h3>
-
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  {[
-                    { id: 'A1', name: 'A1 - Principiante', color: 'bg-emerald-500', bgLight: 'bg-emerald-50', textCol: 'text-emerald-700', border: 'border-emerald-200' },
-                    { id: 'A2', name: 'A2 - Básico', color: 'bg-cyan-500', bgLight: 'bg-cyan-50', textCol: 'text-cyan-700', border: 'border-cyan-200' },
-                    { id: 'B1', name: 'B1 - Pre-Intermedio', color: 'bg-blue-600', bgLight: 'bg-blue-50', textCol: 'text-blue-700', border: 'border-blue-200' },
-                    { id: 'B2', name: 'B2 - Intermedio Alto', color: 'bg-purple-600', bgLight: 'bg-purple-50', textCol: 'text-purple-700', border: 'border-purple-200' },
-                    { id: 'C1', name: 'C1 - Avanzado', color: 'bg-pink-600', bgLight: 'bg-pink-50', textCol: 'text-pink-700', border: 'border-pink-200' },
-                  ].map((lvl) => {
-                    const count = studentsList.filter(s => s.assignedLevel === lvl.id).length
-                    const evaluatedTotal = studentsList.filter(s => Boolean(s.assignedLevel)).length
-                    const pct = evaluatedTotal > 0 ? Math.round((count / evaluatedTotal) * 100) : 0
-                    return (
-                      <div key={lvl.id} className={`p-4 rounded-2xl border ${lvl.border} ${lvl.bgLight} space-y-2`}>
-                        <div className="flex justify-between items-center">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-black ${lvl.color} text-white`}>
-                            {lvl.id}
-                          </span>
-                          <span className="text-xs font-bold text-gray-500">{pct}%</span>
-                        </div>
-                        <div>
-                          <div className={`font-heading font-black text-2xl ${lvl.textCol}`}>
-                            {count}
-                          </div>
-                          <span className="text-[11px] text-gray-600 font-medium block leading-tight">
-                            {lvl.name}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Matriz Analítica: Grados y Secciones */}
-              <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                  <div>
-                    <h3 className="font-heading font-extrabold text-base text-gray-900 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary text-[20px]">table_chart</span>
-                      Desglose Analítico por Grados y Secciones
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Visualiza cuántos alumnos han sido evaluados y su nivel predominante en cada sección.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs md:text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-slate-50/50">
-                        <th className="py-3 px-4">Grado Escolar</th>
-                        <th className="py-3 px-4">Sección</th>
-                        <th className="py-3 px-4">Total Alumnos</th>
-                        <th className="py-3 px-4">Evaluados</th>
-                        <th className="py-3 px-4">Progreso</th>
-                        <th className="py-3 px-4">Desglose de Niveles (A1 / A2 / B1 / B2 / C1)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {academic.grades.flatMap(g => {
-                        return academic.sections.map(sec => {
-                          // Filtrar alumnos de este grado y sección
-                          const inGroup = studentsList.filter(s => {
-                            const gStr = (s.grade || '') + ' ' + (s.codigoGrado || '')
-                            let matchG = false
-                            if (g.id === '6') matchG = gStr.includes('6°') || s.codigoGrado === '06'
-                            else if (g.id === '7') matchG = gStr.includes('7°') || s.codigoGrado === '07'
-                            else if (g.id === '8') matchG = gStr.includes('8°') || s.codigoGrado === '08'
-                            else if (g.id === '9') matchG = gStr.includes('9°') || s.codigoGrado === '09'
-                            else if (g.id === '10') matchG = gStr.includes('10°') || gStr.includes('1° Bachillerato') || s.codigoGrado === '10'
-                            else if (g.id === '11') matchG = gStr.includes('11°') || gStr.includes('2° Bachillerato') || s.codigoGrado === '11'
-                            else if (g.id === '12') matchG = gStr.includes('12°') || gStr.includes('3° Bachillerato') || s.codigoGrado === '32'
-                            else matchG = gStr.includes(g.id)
-
-                            return matchG && s.section === sec
-                          })
-
-                          if (inGroup.length === 0) return null
-
-                          const evaluated = inGroup.filter(s => Boolean(s.assignedLevel)).length
-                          const pct = inGroup.length > 0 ? Math.round((evaluated / inGroup.length) * 100) : 0
-                          const a1 = inGroup.filter(s => s.assignedLevel === 'A1').length
-                          const a2 = inGroup.filter(s => s.assignedLevel === 'A2').length
-                          const b1 = inGroup.filter(s => s.assignedLevel === 'B1').length
-                          const b2 = inGroup.filter(s => s.assignedLevel === 'B2').length
-                          const c1 = inGroup.filter(s => s.assignedLevel === 'C1').length
-
-                          return (
-                            <tr key={`${g.id}-${sec}`} className="hover:bg-slate-50 transition-colors">
-                              <td className="py-3 px-4 font-bold text-gray-900">{g.label}</td>
-                              <td className="py-3 px-4">
-                                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-800 font-extrabold text-xs">
-                                  Secc. {sec}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 font-mono font-bold text-gray-700">{inGroup.length}</td>
-                              <td className="py-3 px-4 font-semibold text-emerald-700">
-                                {evaluated} / {inGroup.length}
-                              </td>
-                              <td className="py-3 px-4 w-40">
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-[10px] font-bold text-gray-500">
-                                    <span>{pct}%</span>
-                                  </div>
-                                  <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-                                    <div
-                                      className="bg-[#2528b7] h-full rounded-full transition-all"
-                                      style={{ width: `${pct}%` }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {a1 > 0 && <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black">A1: {a1}</span>}
-                                  {a2 > 0 && <span className="px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-800 text-[10px] font-black">A2: {a2}</span>}
-                                  {b1 > 0 && <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-black">B1: {b1}</span>}
-                                  {b2 > 0 && <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-black">B2: {b2}</span>}
-                                  {c1 > 0 && <span className="px-2 py-0.5 rounded-md bg-pink-100 text-pink-800 text-[10px] font-black">C1: {c1}</span>}
-                                  {evaluated === 0 && (
-                                    <span className="text-[11px] text-gray-400 italic">Pendiente de evaluación</span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })
-                      }).filter(Boolean)}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <AnalyticsDashboard
+              students={studentsList}
+              evaluations={evaluations}
+              academic={academic}
+              onResetStudent={handleResetStudent}
+            />
           )}
 
           {/* ================= SECCIÓN 2.6: CONFIGURACIÓN DINÁMICA DE GRADOS Y SECCIONES ================= */}
@@ -2357,7 +2185,7 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, 
         </div>
       )}
 
+      
     </div>
-
   )
 }

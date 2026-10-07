@@ -9,21 +9,26 @@ export function speak(text) {
   window.speechSynthesis.speak(u)
 }
 
-export default function QuestionPlayer({ question, onResult, onAnswerChange, showFeedback = false }) {
-  const [answer, setAnswer] = useState(null)
+export default function QuestionPlayer({ question, initialAnswer = null, onResult, onAnswerChange, showFeedback = false }) {
+  const [answer, setAnswer] = useState(initialAnswer)
   const [checked, setChecked] = useState(false)
   const [correct, setCorrect] = useState(false)
+
+  // Sincronizar si cambia la pregunta o la respuesta inicial previa
+  useEffect(() => {
+    setAnswer(initialAnswer != null ? initialAnswer : null)
+  }, [question?.id, initialAnswer])
 
   // Actualizar respuesta y notificar automáticamente
   const handleUpdateAnswer = (newVal) => {
     setAnswer(newVal)
     onAnswerChange?.(newVal)
-    const isCorrect = QUESTION_CHECKERS[question.type](question, newVal)
+    const isCorrect = QUESTION_CHECKERS[question.type] ? QUESTION_CHECKERS[question.type](question, newVal) : false
     onResult?.(isCorrect, newVal)
   }
 
   const check = () => {
-    const ok = QUESTION_CHECKERS[question.type](question, answer)
+    const ok = QUESTION_CHECKERS[question.type] ? QUESTION_CHECKERS[question.type](question, answer) : false
     setCorrect(ok)
     setChecked(true)
     onResult?.(ok, answer)
@@ -102,10 +107,16 @@ const explain = q => {
   return ''
 }
 
-const QUESTION_CHECKERS = {
+export const QUESTION_CHECKERS = {
   multipleChoice: (q, a) => a === q.correctIndex,
-  orderSentence: (q, a) => Array.isArray(a) && a.length === q.words.length &&
-    a.every((idx, pos) => q.words[idx] === q.words[pos]),
+  orderSentence: (q, a) => {
+    if (!Array.isArray(a) || !q.words) return false
+    if (a.length !== q.words.length) return false
+    // Map chosen indices to the selected words
+    const studentWords = a.map(idx => q.words[idx]).join(' ').trim().toLowerCase()
+    const expectedWords = (q.correctSentence || q.words.join(' ')).trim().toLowerCase()
+    return studentWords === expectedWords
+  },
   fillParagraph: (q, a) => Array.isArray(a) && q.blanks.every((b, i) => a[i] === b.answer),
   listening: (q, a) => a === q.correctIndex,
   speaking: (q, a) => {
@@ -124,6 +135,40 @@ const QUESTION_CHECKERS = {
     const expected = q.isTrue !== undefined ? q.isTrue : q.correct
     return a === expected
   },
+}
+
+// Generates a deterministic scrambled order for question word tiles
+function getScrambledWordTiles(question) {
+  const words = question.words || []
+  const tiles = words.map((word, idx) => ({ idx, word }))
+  if (tiles.length <= 1) return tiles
+
+  // Deterministic seed based on question id or content so order remains stable while answering
+  let seed = 0
+  const seedStr = (question.id || '') + (question.prompt || '') + words.join('')
+  for (let i = 0; i < seedStr.length; i++) {
+    seed = (seed * 31 + seedStr.charCodeAt(i)) >>> 0
+  }
+
+  const pseudoRandom = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    return seed / 4294967296
+  }
+
+  // Fisher-Yates shuffle
+  const scrambled = [...tiles]
+  for (let i = scrambled.length - 1; i > 0; i--) {
+    const j = Math.floor(pseudoRandom() * (i + 1))
+    ;[scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]]
+  }
+
+  // Ensure it is NEVER identical to the original solution order
+  const isStillOriginal = scrambled.every((item, pos) => item.idx === pos)
+  if (isStillOriginal && scrambled.length > 1) {
+    ;[scrambled[0], scrambled[1]] = [scrambled[1], scrambled[0]]
+  }
+
+  return scrambled
 }
 
 const QUESTION_VIEWS = {
@@ -195,50 +240,87 @@ const QUESTION_VIEWS = {
 
   orderSentence: (q, answer, setAnswer, checked) => {
     const chosen = answer || []
+    const scrambledTiles = getScrambledWordTiles(q)
+
     const toggle = idx => {
       if (checked) return
       if (chosen.includes(idx)) setAnswer(chosen.filter(x => x !== idx))
       else setAnswer([...chosen, idx])
     }
+
+    const resetOrder = () => {
+      if (checked) return
+      setAnswer([])
+    }
+
     return (
       <div className="space-y-4">
+        {/* Header helpers */}
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[16px] text-indigo-600">shuffle</span>
+            <span>Haz clic en las palabras en el orden correcto:</span>
+          </span>
+          {chosen.length > 0 && !checked && (
+            <button
+              type="button"
+              onClick={resetOrder}
+              className="text-xs text-rose-600 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+            >
+              <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+              Reiniciar
+            </button>
+          )}
+        </div>
+
         {/* Sentence construction slot */}
-        <div className="min-h-[56px] p-3 rounded-xl border-2 border-dashed border-outline-variant/60 bg-surface-container-low flex flex-wrap gap-2 items-center">
+        <div className="min-h-[64px] p-3.5 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/30 flex flex-wrap gap-2 items-center">
           {chosen.length === 0 ? (
-            <span className="text-xs text-outline italic">Tap or click words in the correct order...</span>
+            <span className="text-xs text-slate-400 italic">
+              Construye la oración aquí haciendo clic en las fichas desordenadas de abajo...
+            </span>
           ) : (
-            chosen.map(idx => (
+            chosen.map((idx, pos) => (
               <button
-                key={idx}
+                key={`${idx}_${pos}`}
+                type="button"
                 disabled={checked}
                 onClick={() => toggle(idx)}
-                className="px-3.5 py-2 rounded-xl bg-[#2528b7] text-white font-semibold text-sm shadow-sm transition-all animate-scaleIn cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-[#2528b7] text-white font-bold text-sm shadow-sm hover:bg-[#1f2196] active:scale-95 transition-all animate-scaleIn cursor-pointer flex items-center gap-1.5"
+                title="Haz clic para quitar de la oración"
               >
-                {q.words[idx]}
+                <span>{q.words[idx]}</span>
+                <span className="text-[11px] opacity-70">✕</span>
               </button>
             ))
           )}
         </div>
 
-        {/* Word bank */}
-        <div className="flex flex-wrap gap-2 pt-2">
-          {q.words.map((w, idx) => {
-            const used = chosen.includes(idx)
-            return (
-              <button
-                key={idx}
-                disabled={checked || used}
-                onClick={() => toggle(idx)}
-                className={`px-3.5 py-2 rounded-xl text-sm font-semibold border transition-all cursor-pointer ${
-                  used
-                    ? 'opacity-30 border-transparent bg-surface-container-high cursor-not-allowed'
-                    : 'border-outline-variant/60 bg-surface-container-lowest text-on-surface hover:border-primary shadow-sm'
-                }`}
-              >
-                {w}
-              </button>
-            )
-          })}
+        {/* Scrambled Word bank */}
+        <div className="space-y-1.5 pt-1">
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 px-1">
+            Banco de palabras disponibles (desordenadas):
+          </div>
+          <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+            {scrambledTiles.map(tile => {
+              const used = chosen.includes(tile.idx)
+              return (
+                <button
+                  key={tile.idx}
+                  type="button"
+                  disabled={checked || used}
+                  onClick={() => toggle(tile.idx)}
+                  className={`px-3.5 py-2 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
+                    used
+                      ? 'opacity-25 border-dashed border-slate-300 bg-slate-200 text-slate-400 cursor-not-allowed scale-95'
+                      : 'border-slate-300 bg-white text-slate-800 hover:border-indigo-600 hover:text-indigo-600 hover:shadow-sm active:scale-95 shadow-xs'
+                  }`}
+                >
+                  {tile.word}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     )

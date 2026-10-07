@@ -7,7 +7,7 @@
 //   exams/{examId}               -> { level, title, grade, questions: [...], active }
 // ============================================================
 import { db, isFirebaseConfigured } from './firebase'
-import { collection, getDocs, setDoc, getDoc, deleteDoc, doc, query, where } from 'firebase/firestore'
+import { collection, getDocs, setDoc, getDoc, deleteDoc, doc, query, where, onSnapshot } from 'firebase/firestore'
 import defaultSchoolStudents from '../data/studentsFromSchool.json'
 import { OFFICIAL_DIAGNOSTIC_EXAMS } from '../data/officialExamsData'
 
@@ -16,6 +16,7 @@ const LS_ORAL_EVALS = 'el_oral_evals'
 const LS_EXAMS = 'el_exams'
 const LS_RESULTS = 'el_results'
 const LS_ACADEMIC = 'el_academic_structure'
+const LS_EXAM_DISPATCH = 'el_exam_dispatch'
 
 const readLS = k => {
   try {
@@ -600,6 +601,131 @@ export async function getAllExamsForTeacher(teacherEmail) {
   return all.filter(e => !e.createdBy || e.createdBy.toLowerCase() === teacherEmail.toLowerCase())
 }
 
+// ---------- HABILITACIÓN POR GRADO/SECCIÓN, PAUSA GLOBAL Y CRONÓMETRO DOCENTE ----------
+
+export const DEFAULT_EXAM_DISPATCH = {
+  enabledGrades: ['all'],        // ['all'] o ['6°', '7°', '8°', '9°', '10°', '11°', '12°']
+  enabledSections: ['all'],     // ['all'] o ['A', 'B', 'C', 'D']
+  isPaused: false,              // Pausa general activada por la teacher (ej. para receso)
+  pausedAt: null,               // Timestamp ISO de la pausa
+  pauseReason: 'receso',        // 'receso' | 'indicacion' | 'mantenimiento'
+  pausedDurationSeconds: 0,     // Segundos acumulados en pausa
+  resumedAt: null,              // Última reanudación
+  globalTimeLimitMinutes: 90,   // Tiempo total de bloque (90 min reloj / 2 horas clase)
+  updatedBy: null,              // Email o nombre de la teacher
+  updatedAt: new Date().toISOString()
+}
+
+export async function getExamDispatchConfig() {
+  if (isFirebaseConfigured()) {
+    try {
+      const snap = await getDoc(doc(db, 'systemSettings', 'examDispatch'))
+      if (snap.exists()) {
+        const data = snap.data()
+        writeLS(LS_EXAM_DISPATCH, data)
+        return { ...DEFAULT_EXAM_DISPATCH, ...data }
+      }
+    } catch (e) {
+      console.warn('Error leyendo examDispatch de Firestore:', e)
+    }
+  }
+  const local = localStorage.getItem(LS_EXAM_DISPATCH)
+  if (local) {
+    try {
+      return { ...DEFAULT_EXAM_DISPATCH, ...JSON.parse(local) }
+    } catch {
+      // fallback
+    }
+  }
+  return DEFAULT_EXAM_DISPATCH
+}
+
+export async function saveExamDispatchConfig(config) {
+  const merged = {
+    ...DEFAULT_EXAM_DISPATCH,
+    ...config,
+    updatedAt: new Date().toISOString()
+  }
+
+  writeLS(LS_EXAM_DISPATCH, merged)
+
+  if (isFirebaseConfigured()) {
+    try {
+      await setDoc(doc(db, 'systemSettings', 'examDispatch'), merged, { merge: true })
+    } catch (e) {
+      console.warn('Error guardando examDispatch en Firestore:', e)
+    }
+  }
+
+  // Notificar en la misma ventana / pestañas
+  try {
+    window.dispatchEvent(new CustomEvent('el_exam_dispatch_changed', { detail: merged }))
+  } catch {}
+
+  return merged
+}
+
+export function subscribeExamDispatch(callback) {
+  let unsubFirestore = null
+
+  if (isFirebaseConfigured()) {
+    try {
+      unsubFirestore = onSnapshot(doc(db, 'systemSettings', 'examDispatch'), (snap) => {
+        if (snap.exists()) {
+          const data = { ...DEFAULT_EXAM_DISPATCH, ...snap.data() }
+          writeLS(LS_EXAM_DISPATCH, data)
+          callback(data)
+        }
+      }, (err) => {
+        console.warn('Error en suscripción tiempo real a examDispatch:', err)
+      })
+    } catch (e) {
+      console.warn('Error al conectar onSnapshot examDispatch:', e)
+    }
+  }
+
+  // Listener para eventos locales y almacenamiento cruzado entre pestañas
+  const handleLocalEvent = (e) => {
+    if (e.detail) callback(e.detail)
+  }
+  const handleStorageEvent = (e) => {
+    if (e.key === LS_EXAM_DISPATCH && e.newValue) {
+      try {
+        callback({ ...DEFAULT_EXAM_DISPATCH, ...JSON.parse(e.newValue) })
+      } catch {}
+    }
+  }
+
+  window.addEventListener('el_exam_dispatch_changed', handleLocalEvent)
+  window.addEventListener('storage', handleStorageEvent)
+
+  // Disparar valor actual inicial
+  getExamDispatchConfig().then(cfg => callback(cfg)).catch(() => {})
+
+  return () => {
+    if (unsubFirestore) unsubFirestore()
+    window.removeEventListener('el_exam_dispatch_changed', handleLocalEvent)
+    window.removeEventListener('storage', handleStorageEvent)
+  }
+}
+
+// Función rápida para actualizar tiempo y porcentaje de un examen sin pasar por el asistente
+export async function updateExamSettings(examId, { timeLimitMinutes, weight, active }) {
+  const all = await getExams()
+  const target = all.find(e => e.id === examId)
+  if (!target) throw new Error('Examen no encontrado: ' + examId)
+
+  const updated = {
+    ...target,
+    ...(timeLimitMinutes !== undefined ? { timeLimitMinutes: parseInt(timeLimitMinutes, 10) || 0 } : {}),
+    ...(weight !== undefined ? { weight: parseInt(weight, 10) || 0 } : {}),
+    ...(active !== undefined ? { active: Boolean(active) } : {}),
+    updatedAt: new Date().toISOString()
+  }
+
+  return await saveExam(updated)
+}
+
 export async function saveResult(result) {
   const payload = {
     ...result,
@@ -824,6 +950,52 @@ export async function resetStudentEvaluation(studentEmail) {
 
   const evals = readLS(LS_ORAL_EVALS).filter(e => e.studentEmail?.toLowerCase() !== cleanEmail)
   writeLS(LS_ORAL_EVALS, evals)
+}
+
+// Desbloquear / Re-habilitar un examen específico de un alumno (o toda la batería)
+export async function unlockStudentExam(studentEmail, examId = null) {
+  const cleanEmail = (studentEmail || '').trim().toLowerCase()
+  if (!cleanEmail) return
+
+  const docId = sanitizeDocId(cleanEmail)
+
+  if (isFirebaseConfigured()) {
+    try {
+      const userRef = doc(db, 'users', docId)
+      const snap = await getDoc(userRef)
+      if (snap.exists()) {
+        const u = snap.data()
+        const currentCompleted = { ...(u.completedExams || {}) }
+
+        if (examId) {
+          delete currentCompleted[examId]
+        } else {
+          // Si no se especifica examen, resetear todos
+          for (let k of Object.keys(currentCompleted)) {
+            delete currentCompleted[k]
+          }
+        }
+
+        await setDoc(userRef, { completedExams: currentCompleted }, { merge: true })
+      }
+    } catch (err) {
+      console.warn('Error al desbloquear examen en Firestore:', err)
+    }
+  }
+
+  // Actualizar también en localStorage
+  const users = readLS(LS_USERS)
+  const userIdx = users.findIndex(u => u.email?.toLowerCase() === cleanEmail)
+  if (userIdx >= 0) {
+    const comp = { ...(users[userIdx].completedExams || {}) }
+    if (examId) {
+      delete comp[examId]
+    } else {
+      for (let k of Object.keys(comp)) delete comp[k]
+    }
+    users[userIdx].completedExams = comp
+    writeLS(LS_USERS, users)
+  }
 }
 
 // Eliminar un acta de evaluación oral individual
