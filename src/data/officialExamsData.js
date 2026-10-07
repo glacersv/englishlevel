@@ -719,7 +719,7 @@ export const OFFICIAL_DIAGNOSTIC_EXAMS = [
     title: 'Diagnostic Test 5: Intermediate Listening - The Weekend & Plans (B1)',
     grade: 'all',
     level: 'B1',
-    weight: 20,
+    weight: 15,
     timeLimitMinutes: 15,
     toolType: 'listening',
     active: true,

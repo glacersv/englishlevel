@@ -45,39 +45,25 @@ export default function QuestionPlayer({ question, onResult, onAnswerChange, sho
 
       {/* Interaction view per question type */}
       <div className="mb-6">
-        {QUESTION_VIEWS[question.type](question, answer, handleUpdateAnswer, showFeedback && checked)}
+        {QUESTION_VIEWS[question.type](question, answer, handleUpdateAnswer, false)}
       </div>
 
-      {/* Solo si se habilita retroalimentación explícita (modo práctica o modo docente con feedback) */}
-      {showFeedback && (
-        !checked ? (
-          <button
-            onClick={check}
-            disabled={answer == null}
-            className="w-full py-3 px-4 rounded-xl bg-[#2528b7] text-white font-heading font-bold text-sm tracking-wide shadow-md hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
-          >
-            Check Answer
-          </button>
-        ) : (
-          <div
-            className={`p-4 rounded-xl flex items-center justify-between gap-3 text-sm font-bold animate-fadeIn ${
-              correct
-                ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
-                : 'bg-rose-50 text-rose-900 border border-rose-200'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[24px]">
-                {correct ? 'check_circle' : 'cancel'}
-              </span>
-              <div>
-                <p>{correct ? 'Correct! Well done.' : 'Incorrect.'}</p>
-                {!correct && <p className="text-xs font-normal mt-0.5">{explain(question)}</p>}
-              </div>
-            </div>
-          </div>
-        )
-      )}
+      {/* Botón de confirmación / Siguiente en silencio (Sin revelar si está bien o mal) */}
+      <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span className="flex items-center gap-1.5 font-medium">
+          {answer != null ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+              <span className="text-slate-700 font-bold">Respuesta registrada</span>
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+              <span>Selecciona tu respuesta para continuar</span>
+            </>
+          )}
+        </span>
+      </div>
     </div>
   )
 }

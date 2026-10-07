@@ -245,8 +245,12 @@ export default function ExamBuilder({ onPublished }) {
               <h4 className="text-sm font-extrabold text-gray-900">
                 Tests Activos en Plataforma ({existingExams.length})
               </h4>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-indigo-100 text-[#2528b7]">
-                Total Asignado: {allocatedWeightOtherExams}% {allocatedWeightOtherExams <= maxPlatformWeight ? `(Global: ${maxPlatformWeight}%)` : `(Interno: 100%)`}
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black ${
+                allocatedWeightOtherExams === 100
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-indigo-100 text-[#2528b7]'
+              }`}>
+                Total Asignado: {allocatedWeightOtherExams}% de {targetBudget}% (Batería de Tests)
               </span>
             </div>
             <button
@@ -320,37 +324,39 @@ export default function ExamBuilder({ onPublished }) {
                       </span>
                     </div>
 
-                    {/* Reproductor de audio directo si es el examen de Listening */}
-                    {(ex.toolType === 'listening' || ex.id?.includes('listening')) && (
-                      <div className="mt-2 p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl space-y-2">
-                        <div className="flex items-center gap-1.5 text-xs font-black text-indigo-950">
-                          <span className="material-symbols-outlined text-[18px] text-indigo-600">headphones</span>
-                          <span>Pistas Oficiales de Audio (MP3)</span>
-                        </div>
-                        
-                        {/* Audio 1: First Day at School */}
-                        <div className="bg-white p-2.5 rounded-xl border border-indigo-100 space-y-1">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-gray-800">
-                            <span>1. Diálogo A1: First Day at School</span>
-                            <span className="text-[10px] text-indigo-600 font-mono">840 KB</span>
-                          </div>
-                          <audio controls src="/material_evaluaciones/A1_first_day_at_schoolA1.mp3" className="w-full h-8">
-                            Tu navegador no soporta audio.
-                          </audio>
-                        </div>
+                    {/* Reproductor dinámico de audio según las pistas reales del examen */}
+                    {(() => {
+                      const questionsWithAudio = (ex.questions || []).filter(q => q.audioUrl)
+                      const uniqueAudioTracks = Array.from(
+                        new Map(questionsWithAudio.map(q => [q.audioUrl, q])).values()
+                      )
 
-                        {/* Audio 2: Giving Directions */}
-                        <div className="bg-white p-2.5 rounded-xl border border-indigo-100 space-y-1">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-gray-800">
-                            <span>2. Diálogo A2: Giving Directions</span>
-                            <span className="text-[10px] text-indigo-600 font-mono">1.48 MB</span>
+                      if (uniqueAudioTracks.length === 0) return null
+
+                      return (
+                        <div className="mt-2 p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs font-black text-indigo-950">
+                            <span className="material-symbols-outlined text-[18px] text-indigo-600">headphones</span>
+                            <span>Pistas Oficiales de Audio ({uniqueAudioTracks.length})</span>
                           </div>
-                          <audio controls src="/material_evaluaciones/A2_giving_directionsA2.mp3" className="w-full h-8">
-                            Tu navegador no soporta audio.
-                          </audio>
+
+                          {uniqueAudioTracks.map((track, trackIdx) => {
+                            const filename = track.audioUrl.split('/').pop().replace('.mp3', '').replace(/_/g, ' ')
+                            return (
+                              <div key={track.audioUrl || trackIdx} className="bg-white p-2.5 rounded-xl border border-indigo-100 space-y-1">
+                                <div className="flex items-center justify-between text-[11px] font-bold text-gray-800">
+                                  <span className="capitalize">{trackIdx + 1}. {track.prompt?.split('(')[1]?.split(')')[0] || filename}</span>
+                                  <span className="text-[10px] text-indigo-600 font-mono">Nivel {track.level || ex.level || 'MP3'}</span>
+                                </div>
+                                <audio controls src={track.audioUrl} className="w-full h-8">
+                                  Tu navegador no soporta audio.
+                                </audio>
+                              </div>
+                            )
+                          })}
                         </div>
-                      </div>
-                    )}
+                      )
+                    })()}
                   </div>
 
                   <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2 flex-wrap">
