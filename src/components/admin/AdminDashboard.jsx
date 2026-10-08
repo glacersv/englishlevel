@@ -14,7 +14,9 @@ import {
   resetStudentEvaluation,
   resetAllEvaluations,
   getCoordinationModulesConfig,
-  saveCoordinationModulesConfig
+  saveCoordinationModulesConfig,
+  getExamDispatchConfig,
+  subscribeExamDispatch
 } from '../../lib/dataService'
 import bundledStudents from '../../data/studentsFromSchool.json'
 import DiagnosticConfigManager from '../shared/DiagnosticConfigManager'
@@ -89,17 +91,19 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, 
   const [isSavingAcademic, setIsSavingAcademic] = useState(false)
 
   const [coordinationModules, setCoordinationModules] = useState({})
+  const [dispatchConfig, setDispatchConfig] = useState({ closureLogs: [] })
   const [isSavingModules, setIsSavingModules] = useState(false)
 
   // Cargar usuarios, evaluaciones, estructura académica y permisos de módulos desde Firestore
   const loadData = async () => {
     setLoadingUsers(true)
     try {
-      const [usersData, evalsData, struct, modulesCfg] = await Promise.all([
+      const [usersData, evalsData, struct, modulesCfg, dispatchCfg] = await Promise.all([
         getAllUsers(),
         getOralEvaluations(),
         getAcademicStructure(),
-        getCoordinationModulesConfig()
+        getCoordinationModulesConfig(),
+        getExamDispatchConfig()
       ])
       setAllUsersList(usersData || [])
       setEvaluations(evalsData || [])
@@ -108,6 +112,9 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, 
       }
       if (modulesCfg) {
         setCoordinationModules(modulesCfg)
+      }
+      if (dispatchCfg) {
+        setDispatchConfig(dispatchCfg)
       }
     } catch (e) {
       console.error('Error cargando datos de admin:', e)
@@ -118,6 +125,10 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, 
 
   useEffect(() => {
     loadData()
+    const unsub = subscribeExamDispatch((cfg) => {
+      if (cfg) setDispatchConfig(cfg)
+    })
+    return () => unsub()
   }, [])
 
   // Estados para Edición inline de Grados y Secciones (CRUD completo)
@@ -1865,20 +1876,117 @@ export default function AdminDashboard({ user, onLogout, onSwitchToStudentView, 
             <DiagnosticConfigManager canEdit={true} />
           )}
 
-          {/* SECCIÓN 5: REPORTES */}
+          {/* SECCIÓN 5: REPORTES Y AUDITORÍA DE CIERRES */}
           {currentSection === 'reports' && (
-            <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm space-y-4">
-              <h2 className="font-heading font-bold text-lg text-on-surface">Cierre y Reportes de Nivelación</h2>
-              <p className="text-xs text-on-surface-variant">Generación de sábanas de notas y actas de ubicación de los estudiantes.</p>
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => alert('Generando reporte Excel/PDF...')}
-                  className="px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-container shadow-sm flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-[16px]">download</span>
-                  Descargar Reporte General
-                </button>
+            <div className="space-y-6">
+              <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <h2 className="font-heading font-extrabold text-lg text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-[22px]">assessment</span>
+                      <span>Cierre y Reportes de Nivelación</span>
+                    </h2>
+                    <p className="text-xs text-on-surface-variant mt-0.5">
+                      Generación de sábanas de notas y actas de ubicación oficial de los estudiantes.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => alert('Generando reporte consolidado de nivelación...')}
+                    className="px-4 py-2.5 rounded-2xl bg-primary text-white text-xs font-black hover:bg-primary/90 shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">download</span>
+                    <span>Descargar Reporte General</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* BITÁCORA Y REGISTRO AUDITOR DE CIERRES DE GRADO POR DOCENTES */}
+              <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-outline-variant/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+                      <span className="material-symbols-outlined text-[24px]">history_edu</span>
+                    </div>
+                    <div>
+                      <h3 className="font-heading font-black text-base text-on-surface flex items-center gap-2">
+                        <span>Historial y Bitácora de Cierres de Grado</span>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800">
+                          {(dispatchConfig?.closureLogs || []).length} registros
+                        </span>
+                      </h3>
+                      <p className="text-xs text-on-surface-variant">
+                        Auditoría en tiempo real de cuándo y qué docente finalizó la evaluación (Plataforma / Oral) para cada grado.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {(!dispatchConfig?.closureLogs || dispatchConfig.closureLogs.length === 0) ? (
+                  <div className="py-10 text-center text-slate-400 space-y-2">
+                    <span className="material-symbols-outlined text-4xl text-slate-300">lock_clock</span>
+                    <p className="text-xs font-medium">No hay registros de cierre todavía. Cuando un docente finalice una prueba por grado, aparecerá aquí.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-outline-variant/20">
+                    <table className="w-full text-left text-xs text-on-surface">
+                      <thead className="bg-surface-container text-[11px] font-black uppercase text-on-surface-variant border-b border-outline-variant/20">
+                        <tr>
+                          <th className="py-3 px-4">Fecha y Hora</th>
+                          <th className="py-3 px-4">Grado Cerrado</th>
+                          <th className="py-3 px-4">Instrumento / Tipo</th>
+                          <th className="py-3 px-4">Docente Responsable</th>
+                          <th className="py-3 px-4">Correo</th>
+                          <th className="py-3 px-4 text-center">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/10 font-medium">
+                        {dispatchConfig.closureLogs.map((log) => {
+                          const dateObj = log.closedAt ? new Date(log.closedAt) : null;
+                          const formattedDate = dateObj
+                            ? dateObj.toLocaleDateString('es-SV', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + dateObj.toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit' })
+                            : 'Fecha no registrada';
+
+                          return (
+                            <tr key={log.id} className="hover:bg-surface-container/40 transition-colors">
+                              <td className="py-3 px-4 font-mono text-[11px] text-slate-600">
+                                {formattedDate}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="px-2.5 py-1 rounded-xl font-black text-xs bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                  {log.gradeLabel || (log.grade + '° Grado')}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold " + (
+                                  log.rawType === 'platform'
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                                    : 'bg-purple-50 text-purple-700 border border-purple-100'
+                                )}>
+                                  <span className="material-symbols-outlined text-[14px]">
+                                    {log.rawType === 'platform' ? 'desktop_windows' : 'record_voice_over'}
+                                  </span>
+                                  <span>{log.examType}</span>
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-slate-800">
+                                {log.closedBy || 'Docente'}
+                              </td>
+                              <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
+                                {log.closedByEmail || '—'}
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800">
+                                  Finalizado
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

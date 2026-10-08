@@ -640,7 +640,11 @@ export const DEFAULT_EXAM_DISPATCH = {
   },
 
   // Overrides / Excepciones individuales por alumno (indexado por email sanitizado o email directo)
-  studentOverrides: {}
+  studentOverrides: {},
+
+  // Registro de Auditoría de Cierres de Grado para Administrador
+  // Cada elemento: { id, grade, gradeLabel, examType, closedAt, closedBy, closedByEmail }
+  closureLogs: []
 }
 
 export async function getExamDispatchConfig() {
@@ -658,7 +662,8 @@ export async function getExamDispatchConfig() {
           },
           studentOverrides: {
             ...(data.studentOverrides || {})
-          }
+          },
+          closureLogs: Array.isArray(data.closureLogs) ? data.closureLogs : []
         }
         writeLS(LS_EXAM_DISPATCH, merged)
         return merged
@@ -680,7 +685,8 @@ export async function getExamDispatchConfig() {
         },
         studentOverrides: {
           ...(parsed.studentOverrides || {})
-        }
+        },
+        closureLogs: Array.isArray(parsed.closureLogs) ? parsed.closureLogs : []
       }
     } catch {
       // fallback
@@ -702,6 +708,9 @@ export async function saveExamDispatchConfig(config) {
       ...current.studentOverrides,
       ...(config.studentOverrides || {})
     },
+    closureLogs: Array.isArray(config.closureLogs)
+      ? config.closureLogs
+      : (Array.isArray(current.closureLogs) ? current.closureLogs : []),
     updatedAt: new Date().toISOString()
   }
 
@@ -726,7 +735,7 @@ export async function saveExamDispatchConfig(config) {
 /**
  * Cambia el estado de un grado ('platform' o 'interview') a 'active', 'paused' o 'finished'
  */
-export async function setGradeExamStatus(grade, examType, status, updatedBy = 'Docente') {
+export async function setGradeExamStatus(grade, examType, status, updatedBy = 'Docente', updatedByEmail = '') {
   const gKey = String(grade)
   const current = await getExamDispatchConfig()
   const gradeData = current.gradesControl?.[gKey] || { platformStatus: 'paused', interviewStatus: 'paused' }
@@ -735,7 +744,8 @@ export async function setGradeExamStatus(grade, examType, status, updatedBy = 'D
     ...gradeData,
     [examType === 'platform' ? 'platformStatus' : 'interviewStatus']: status,
     updatedAt: new Date().toISOString(),
-    ...(status === 'paused' ? { pausedAt: new Date().toISOString() } : {})
+    ...(status === 'paused' ? { pausedAt: new Date().toISOString() } : {}),
+    ...(status === 'finished' ? { finishedAt: new Date().toISOString(), finishedBy: updatedBy } : {})
   }
 
   const newGradesControl = {
@@ -743,8 +753,36 @@ export async function setGradeExamStatus(grade, examType, status, updatedBy = 'D
     [gKey]: updatedGrade
   }
 
+  // Si se cierra/finaliza el grado, registrar en la bitácora de auditoría para Admin
+  let newClosureLogs = Array.isArray(current.closureLogs) ? [...current.closureLogs] : []
+  if (status === 'finished') {
+    const gradeLabelMap = {
+      '6': '6° Grado',
+      '7': '7° Grado',
+      '8': '8° Grado',
+      '9': '9° Grado',
+      '10': '1° Bachillerato (10°)',
+      '11': '2° Bachillerato (11°)',
+      '12': '3° Bachillerato (12°)'
+    }
+    const logEntry = {
+      id: `CLOSE-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      grade: gKey,
+      gradeLabel: gradeLabelMap[gKey] || `${gKey}° Grado`,
+      examType: examType === 'platform' ? 'Plataforma (Escrito)' : 'Entrevista Oral',
+      rawType: examType,
+      closedAt: new Date().toISOString(),
+      closedBy: updatedBy || 'Docente',
+      closedByEmail: updatedByEmail || ''
+    }
+    newClosureLogs.unshift(logEntry)
+    // Mantener hasta los últimos 100 cierres
+    if (newClosureLogs.length > 100) newClosureLogs = newClosureLogs.slice(0, 100)
+  }
+
   return await saveExamDispatchConfig({
     gradesControl: newGradesControl,
+    closureLogs: newClosureLogs,
     updatedBy
   })
 }
