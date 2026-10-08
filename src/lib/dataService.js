@@ -429,13 +429,25 @@ export async function getAllUsers() {
     const isBachiFinal = ['10', '11', '12', '32'].includes(numGrado) || (u.grade || '').toLowerCase().includes('bachillerato')
     const canonicalGrade = `${numGrado}°`
 
+    // Garantizar asignación oficial a Edgar Pacheco para 6° Grado (Secciones A y B)
+    let assignedTeacher = u.assignedTeacher
+    let assignedTeacherEmail = u.assignedTeacherEmail
+    if (numGrado === '6') {
+      if (!assignedTeacher || assignedTeacher === 'Sin Asignar' || !assignedTeacherEmail) {
+        assignedTeacher = 'Edgar Pacheco'
+        assignedTeacherEmail = 'edgar.pacheco@salesianosanjose.edu.sv'
+      }
+    }
+
     return {
       ...u,
       grade: canonicalGrade,
       codigoGrado: numGrado,
       section,
       especialidad: isBachiFinal ? (especialidad || 'General') : null,
-      canEvaluate
+      canEvaluate,
+      assignedTeacher,
+      assignedTeacherEmail
     }
   })
 

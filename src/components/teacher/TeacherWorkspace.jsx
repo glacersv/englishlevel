@@ -36,6 +36,16 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   useEffect(() => {
     if (user) {
       setCurrentTeacher(prev => ({ ...(prev || {}), ...user }))
+      const email = (user.email || '').toLowerCase()
+      if (email.includes('edgar') || email.includes('pacheco')) {
+        setTeacherFilter('edgar')
+      } else if (email.includes('ronald')) {
+        setTeacherFilter('ronald')
+      } else if (email.includes('silvia')) {
+        setTeacherFilter('silvia')
+      } else if (email.includes('nelsi')) {
+        setTeacherFilter('nelsi')
+      }
     }
   }, [user])
 
