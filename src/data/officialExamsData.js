@@ -723,55 +723,169 @@ export const OFFICIAL_DIAGNOSTIC_EXAMS = [
     timeLimitMinutes: 15,
     toolType: 'listening',
     active: true,
-    description: 'Specialized B1 listening test evaluating weekend plans, outdoor activities, travel suggestions, and casual dialogue.',
+    description: 'Official British Council B1 listening test evaluating weekend activities (dirtboarding, canyoning, zip-wiring) and a four-day trip to Paris.',
     questions: [
       {
         id: 'q_b1_wk_1',
         type: 'listening',
         level: 'B1',
-        prompt: 'Listen to the weekend discussion audio and answer the question:',
+        prompt: 'Listen to the weekend plans conversation and choose the correct option:',
         audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
-        audioText: 'Speaker A: So, what are your plans for this weekend? Speaker B: Well, if the weather stays sunny, I am planning to go mountain biking with my brother up in the hills. We usually leave early around 7:30 AM.',
-        question: 'What outdoor activity is planned if the weather conditions remain good?',
-        options: ['Mountain biking in the hills', 'Camping near the lake', 'Going to a water park', 'Playing indoor tennis'],
+        audioText: `Girl: So, have you got any plans for the weekend?
+Boy: Yeah, me and my mates are going to this activity centre in the mountains.
+Girl: Oh, yeah?
+Boy: You can do all kinds of things. It's a new centre; it sounds great. We're going to go dirtboarding ...
+Girl: What's that?
+Boy: It's like skateboarding or snowboarding. You have a board, or deck, to stand on and wheels. They're pretty strong because you go down rough mountain tracks on them. Steep, rough mountain tracks.
+Girl: Sounds a bit risky. Have you done it before?
+Boy: No, but I've done similar things. Anyway, we're also going to go canyoning. Before you ask, that's when you jump and swim down a river canyon. You have to use ropes and special equipment. And maybe we'll go white water rafting too.
+Girl: Phew. It sounds far too difficult to me.
+Boy: They have lots of things that you could do too. Like zip-wiring, you know when you go along a wire through the trees or down a mountain.
+Girl: Go down a mountain on a wire!
+Boy: It's really easy, and exciting too. You just have to hold on and enjoy the ride. Or there's bungee jumping.
+Girl: Jump off a bridge on a long elastic band! Me? You've got to be joking! Anyway, I'm going away this weekend too, thank you for asking.
+Boy: I was going to ask. So where are you going?
+Girl: Paris! I'm so excited!
+Boy: Paris, wow!
+Girl: Yeah, it'll be brilliant! We're going to do all the sights, like go up the Eiffel Tower and take a boat along the River Seine and see the old parts of the city. It looks so beautiful in the photos. And then there are all the art galleries. You know how much I like art. I can't wait to go round the Louvre and see all those famous paintings.
+Boy: I think the famous Impressionist paintings are somewhere else.
+Girl: Yeah, I know, they're in the Musée d'Orsay. We're going there too. And then I want to go to the Rodin Museum and see that famous statue, you know, The Thinker. And of course, if we're in Paris, we'll have to go shopping. Or look at the shops, at least. And then there's the restaurants. Just think, French food!
+Boy: You've got a lot planned for one weekend.
+Girl: Oh, we're going for four days, actually.
+Boy: Oh, four days, very nice. And who are you going with?
+Girl: Oh, just a friend.`,
+        question: 'A dirtboard is:',
+        options: [
+          'a board with wheels that you stand on',
+          'a board with no wheels that you stand on',
+          'a board that you sit on'
+        ],
         correctIndex: 0,
-        explanation: 'Speaker B mentions: "I am planning to go mountain biking with my brother up in the hills."'
+        explanation: 'The boy explains: "It\'s like skateboarding or snowboarding. You have a board, or deck, to stand on and wheels."'
       },
       {
         id: 'q_b1_wk_2',
         type: 'listening',
         level: 'B1',
-        prompt: 'Listen to the departure schedule details:',
+        prompt: 'Listen to the conversation about canyoning and choose the correct option:',
         audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
-        audioText: 'Speaker B: We usually leave early around 7:30 AM so we can avoid the noon heat. My brother is bringing the water bottles and I am taking the first-aid kit.',
-        question: 'Why do the speakers prefer to set off early at 7:30 AM?',
-        options: ['To avoid the noon heat', 'To catch the morning train', 'Because the park closes at noon', 'To meet their friends for breakfast'],
+        audioText: `Girl: Sounds a bit risky. Have you done it before?
+Boy: No, but I've done similar things. Anyway, we're also going to go canyoning. Before you ask, that's when you jump and swim down a river canyon. You have to use ropes and special equipment. And maybe we'll go white water rafting too.
+Girl: Phew. It sounds far too difficult to me.`,
+        question: 'To go canyoning you need:',
+        options: [
+          'ropes and special equipment',
+          'ropes and a helmet',
+          'a guide and special equipment'
+        ],
         correctIndex: 0,
-        explanation: 'The speaker explicitly states: "so we can avoid the noon heat."'
+        explanation: 'The boy explicitly states: "You have to use ropes and special equipment."'
       },
       {
         id: 'q_b1_wk_3',
         type: 'listening',
         level: 'B1',
-        prompt: 'Listen to the alternative plan if it rains:',
+        prompt: 'Listen to the conversation about zip-wiring and choose the correct option:',
         audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
-        audioText: 'Speaker A: And what if it rains? Speaker B: In that case, we will probably stay indoors, stream a documentary series, and finish our science project.',
-        question: 'What is the alternative contingency plan if weather conditions turn rainy?',
-        options: ['Stay indoors, stream documentaries, and work on a science project', 'Go to the cinema downtown', 'Visit their grandparents in the countryside', 'Postpone the project and sleep'],
+        audioText: `Boy: They have lots of things that you could do too. Like zip-wiring, you know when you go along a wire through the trees or down a mountain.
+Girl: Go down a mountain on a wire!
+Boy: It's really easy, and exciting too. You just have to hold on and enjoy the ride. Or there's bungee jumping.`,
+        question: 'Zip-wiring is:',
+        options: [
+          'easy and exciting',
+          'scary and difficult',
+          'scary but exciting'
+        ],
         correctIndex: 0,
-        explanation: 'Speaker B clarifies: "we will probably stay indoors, stream a documentary series, and finish our science project."'
+        explanation: 'The boy describes zip-wiring: "It\'s really easy, and exciting too."'
       },
       {
         id: 'q_b1_wk_4',
         type: 'listening',
         level: 'B1',
-        prompt: 'Listen to the travel recommendation discussion:',
+        prompt: 'Listen to the girl description of Paris and choose the correct option:',
         audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
-        audioText: 'Speaker A: Sounds like a solid plan. Make sure to wear your helmets and pack some energy bars. Speaker B: Definitely, safety comes first.',
-        question: 'What crucial safety advice does Speaker A emphasize?',
-        options: ['Wearing safety helmets and packing energy bars', 'Staying on paved highways only', 'Returning before sunset', 'Hiring a professional tour guide'],
+        audioText: `Boy: I was going to ask. So where are you going?
+Girl: Paris! I'm so excited!
+Boy: Paris, wow!
+Girl: Yeah, it'll be brilliant! We're going to do all the sights, like go up the Eiffel Tower and take a boat along the River Seine and see the old parts of the city. It looks so beautiful in the photos.`,
+        question: 'Paris looks so beautiful:',
+        options: [
+          'in the photos',
+          'at night',
+          'on television'
+        ],
         correctIndex: 0,
-        explanation: 'Speaker A highlights: "Make sure to wear your helmets and pack some energy bars."'
+        explanation: 'The girl remarks: "It looks so beautiful in the photos."'
+      },
+      {
+        id: 'q_b1_wk_5',
+        type: 'listening',
+        level: 'B1',
+        prompt: 'Listen to the discussion about art galleries and choose the correct option:',
+        audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
+        audioText: `Girl: And then there are all the art galleries. You know how much I like art. I can't wait to go round the Louvre and see all those famous paintings.
+Boy: I think the famous Impressionist paintings are somewhere else.
+Girl: Yeah, I know, they're in the Musée d'Orsay. We're going there too.`,
+        question: 'The Impressionist paintings are in:',
+        options: [
+          'the Musée d\'Orsay',
+          'the Louvre',
+          'the Rodin Museum'
+        ],
+        correctIndex: 0,
+        explanation: 'The girl confirms: "Yeah, I know, they\'re in the Musée d\'Orsay. We\'re going there too."'
+      },
+      {
+        id: 'q_b1_wk_6',
+        type: 'listening',
+        level: 'B1',
+        prompt: 'Listen to the statue mentioned in the Rodin Museum and choose the correct option:',
+        audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
+        audioText: `Girl: And then I want to go to the Rodin Museum and see that famous statue, you know, The Thinker.`,
+        question: 'The famous Rodin statue is called:',
+        options: [
+          'The Thinker',
+          'The Worker',
+          'The Philosopher'
+        ],
+        correctIndex: 0,
+        explanation: 'The girl mentions: "...and see that famous statue, you know, The Thinker."'
+      },
+      {
+        id: 'q_b1_wk_7',
+        type: 'listening',
+        level: 'B1',
+        prompt: 'Listen to the length of the trip and choose the correct option:',
+        audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
+        audioText: `Boy: You've got a lot planned for one weekend.
+Girl: Oh, we're going for four days, actually.
+Boy: Oh, four days, very nice.`,
+        question: 'The girl is going to Paris for:',
+        options: [
+          'four days',
+          'the weekend',
+          'five days'
+        ],
+        correctIndex: 0,
+        explanation: 'The girl clarifies: "Oh, we\'re going for four days, actually."'
+      },
+      {
+        id: 'q_b1_wk_8',
+        type: 'listening',
+        level: 'B1',
+        prompt: 'Listen to who the girl is travelling with and choose the correct option:',
+        audioUrl: '/material_evaluaciones/B1_the_weekendB1.mp3',
+        audioText: `Boy: Oh, four days, very nice. And who are you going with?
+Girl: Oh, just a friend.`,
+        question: "She's going with:",
+        options: [
+          'her friend',
+          'her boyfriend',
+          'her family'
+        ],
+        correctIndex: 0,
+        explanation: 'The girl replies: "Oh, just a friend."'
       }
     ]
   },
@@ -795,49 +909,77 @@ export const OFFICIAL_DIAGNOSTIC_EXAMS = [
         id: 'q_adv_list_1',
         type: 'listening',
         level: 'B2',
-        prompt: 'Listen to the science correspondent discussing novel engineering prototypes:',
+        prompt: 'Listen to the radio programme about New Inventions and answer the question:',
         audioUrl: '/material_evaluaciones/B2_new_inventions.mp3',
-        audioText: 'Host: Welcome to Science and Engineering Today. Our correspondent Jed is here to showcase three remarkable sustainable inventions. Jed: Thanks! First up is a biodegradable packaging material synthesized entirely from seaweed and agricultural waste.',
-        question: 'What is the primary organic source material used to synthesize the new packaging invention?',
-        options: ['Seaweed and agricultural waste', 'Recycled petroleum plastics', 'Synthetic carbon polymers', 'Industrial wood pulp'],
+        audioText: `Presenter: Welcome to Tech Today! This week it's National Science and Engineering Week, so to celebrate we asked Jed our science correspondent to give us a round-up of new inventions.
+Jed: Hi, yes, I've got some very interesting things to tell you about today, starting with a fun one: wingsuits, those suits that look like bats and allow people to fly, or glide, at least. They're the ultimate in cool.
+Presenter: But they're not very new, are they?
+Jed: Well, no, but the modern ones are better than ever and last October was the first ever world championship in China. The price is coming down, too. Now you can buy one for 600 to 2,000 dollars. It's still too expensive for me, but I suppose it'll keep coming down.`,
+        question: 'What do wingsuits allow people to do?',
+        options: [
+          'Fly or glide like bats',
+          'Breathe underwater for long periods',
+          'Run twice as fast as athletes',
+          'Climb steep ice mountains safely'
+        ],
         correctIndex: 0,
-        explanation: 'Jed explains that the material is synthesized entirely from seaweed and agricultural waste.'
+        explanation: 'Jed explains that wingsuits "look like bats and allow people to fly, or glide, at least."'
       },
       {
         id: 'q_adv_list_2',
         type: 'listening',
         level: 'B2',
-        prompt: 'Listen to the environmental efficiency analysis:',
+        prompt: 'Listen to the section about the solar water distiller and answer the question:',
         audioUrl: '/material_evaluaciones/B2_new_inventions.mp3',
-        audioText: 'Jed: Unlike traditional single-use polymers that persist in oceans for centuries, this prototype decomposes in soil within four to six weeks without toxic residue.',
-        question: 'How quickly does the biodegradable prototype break down naturally in soil?',
-        options: ['Within 4 to 6 weeks', 'In approximately 6 months', 'After 1 to 2 years', 'In less than 24 hours'],
+        audioText: `Jed: There's a new solar water distiller created by Gabriele Diamanti aimed at parts of the world where it's hard to get clean drinking water. You pour in salty water and let the sun do the work for a few hours. Then, hey presto! You have clean water! It's a very simple device and fairly cheap to produce.
+Presenter: Can I hear some doubt in your voice?
+Jed: Well, they still need help with investment to start producing the distiller properly. So if anyone out there has money to invest in a great product ...?`,
+        question: 'What source of power is used by Gabriele Diamanti\'s water distiller?',
+        options: [
+          'It is powered by the sun',
+          'It uses lithium rechargeable batteries',
+          'It requires wind turbine energy',
+          'It operates using high-pressure steam'
+        ],
         correctIndex: 0,
-        explanation: 'Jed states that it decomposes in soil within four to six weeks.'
+        explanation: 'Jed explains: "You pour in salty water and let the sun do the work for a few hours."'
       },
       {
         id: 'q_adv_list_3',
         type: 'listening',
         level: 'C1',
-        prompt: 'Listen to the interview on volunteer initiatives and personal development in Dialogue C1:',
+        prompt: 'Listen to Liam talking about volunteering and sports at the community centre:',
         audioUrl: '/material_evaluaciones/C1_help_others_help_yourself.mp3',
-        audioText: 'Host: Today we discuss altruism and emotional wellbeing. Debbie, who spent two years leading youth mentoring groups, shares how helping others transformed her career trajectory.',
-        question: 'What was Debbie volunteer role before she transitioned into professional community management?',
-        options: ['Leading youth mentoring groups for two years', 'Organizing international medical fundraisers', 'Teaching elementary school mathematics', 'Managing corporate public relations'],
+        audioText: `Interviewer: Today I'm going to talk to two young people who are both doing voluntary work in the sports sector. First there's Liam Parker, who is a keen BMX biker and does a lot of work at a sports centre...
+Liam: My passion is for BMX, and I want to get other people involved in the sport. But I do all kinds of things at the centre. I make sure the bikes and scooters meet safety standards. I check the tracks and ramps so that they are clean and no one can slip and hurt themselves. I teach kids the basics of BMX and do demonstrations. I sometimes cook in the burger van too.`,
+        question: "What is Liam's primary role and responsibility at the sports centre?",
+        options: [
+          'Teach young people about BMX and ensure tracks and bikes meet safety standards',
+          'Manage the centre financial accounts and budget',
+          'Compete in national professional tournaments representing the club',
+          'Design new sports facilities and construction plans'
+        ],
         correctIndex: 0,
-        explanation: 'The host introduces Debbie as someone who spent two years leading youth mentoring groups.'
+        explanation: 'Liam describes teaching kids BMX basics, doing demonstrations, and maintaining track safety standards.'
       },
       {
         id: 'q_adv_list_4',
         type: 'listening',
         level: 'C1',
-        prompt: 'Listen to the psychological benefits of community involvement:',
+        prompt: 'Listen to Debbie explaining why she volunteered a second time:',
         audioUrl: '/material_evaluaciones/C1_help_others_help_yourself.mp3',
-        audioText: 'Debbie: Engaging in grassroots community support does not merely benefit recipients; neurochemical studies show it actively reinforces resilience and mitigates chronic stress in volunteers.',
-        question: 'According to neurochemical studies discussed, what key personal benefit do volunteers experience?',
-        options: ['Reinforced psychological resilience and lower chronic stress', 'Immediate guaranteed career promotions', 'Complete immunity to fatigue', 'Higher economic compensation'],
+        audioText: `Debbie: Then I started a degree in Sport Development and I realised that lots of people like me would soon have a degree and be looking for a job and I'd need more experience to compete with them all!
+Interviewer: So you volunteered again?
+Debbie: Yes, I spent a year helping with an online sports volunteering bureau and volunteered at various events including a cricket tournament, a table tennis championship and a half marathon.`,
+        question: 'Why did Debbie decide to undertake volunteering a second time?',
+        options: [
+          'To gain practical experience and be more competitive in the job market',
+          'Because it was a compulsory mandatory module for graduation',
+          'To earn additional financial compensation during university',
+          'To prepare for an upcoming international athletics competition'
+        ],
         correctIndex: 0,
-        explanation: 'Debbie points out that it actively reinforces resilience and mitigates chronic stress.'
+        explanation: 'Debbie states she realised many people would have a degree and she needed more experience to compete in the job market.'
       }
     ]
   }

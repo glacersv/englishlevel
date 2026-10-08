@@ -168,8 +168,8 @@ export default function AudioGroupPlayer({
         </div>
       </div>
 
-      {/* Prompt del reactivo actual */}
-      {currentQ?.prompt && (
+      {/* Prompt / Instrucción del reactivo actual */}
+      {currentQ?.prompt && currentQ.prompt !== currentQ.question && (
         <p className="font-heading font-bold text-lg md:text-xl text-slate-900 leading-snug">
           {currentQ.prompt}
         </p>

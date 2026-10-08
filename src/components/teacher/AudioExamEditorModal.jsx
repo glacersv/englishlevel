@@ -26,6 +26,19 @@ export default function AudioExamEditorModal({ exam, onClose, onSave }) {
     })
   }
 
+  // Si se actualiza el audioText o audioUrl, sincronizarlo opcionalmente en todas las preguntas que comparten la misma pista de audio
+  const updateSharedAudioText = (newText) => {
+    setQuestions(prev => {
+      const curAudio = prev[selectedIdx]?.audioUrl
+      return prev.map((q, idx) => {
+        if (idx === selectedIdx || (curAudio && q.audioUrl === curAudio)) {
+          return { ...q, audioText: newText }
+        }
+        return q
+      })
+    })
+  }
+
   const updateOptionText = (optIdx, text) => {
     setQuestions(prev => {
       const next = [...prev]
@@ -178,14 +191,14 @@ export default function AudioExamEditorModal({ exam, onClose, onSave }) {
                 <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-md">Editable por docentes</span>
               </div>
               <textarea
-                rows={3}
+                rows={4}
                 value={currentQ?.audioText || ''}
-                onChange={(e) => updateCurrentQuestion('audioText', e.target.value)}
+                onChange={(e) => updateSharedAudioText(e.target.value)}
                 placeholder="Escribe o revisa aquí la transcripción exacta de lo que dice el audio..."
                 className="w-full p-3 rounded-xl border border-indigo-200 bg-white text-xs text-slate-800 font-medium leading-relaxed focus:ring-2 focus:ring-purple-400 focus:outline-none"
               />
               <p className="text-[10px] text-slate-500">
-                * Puedes ajustar o corregir la transcripción para que coincida exactamente con la pista de audio.
+                * Al editar la transcripción de este audio, se sincroniza en todas las preguntas que utilicen esta misma pista.
               </p>
             </div>
           </div>
@@ -203,12 +216,11 @@ export default function AudioExamEditorModal({ exam, onClose, onSave }) {
               </label>
               <input
                 type="text"
-                value={currentQ?.question || currentQ?.prompt || ''}
+                value={currentQ?.question || ''}
                 onChange={(e) => {
                   updateCurrentQuestion('question', e.target.value)
-                  updateCurrentQuestion('prompt', e.target.value)
                 }}
-                placeholder="Ej: What class are Tania and Jing assigned to?"
+                placeholder="Ej: What outdoor activity is planned if the weather conditions remain good?"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-400 focus:outline-none"
               />
             </div>
