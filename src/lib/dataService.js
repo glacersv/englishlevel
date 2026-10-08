@@ -615,9 +615,10 @@ export const DEFAULT_EXAM_DISPATCH = {
   updatedBy: null,
   updatedAt: new Date().toISOString(),
 
-  // Control Maestro por Grado (7°, 8°, 9°, 10°/1° Bach, 11°/2° Bach, 12°/3° Bach)
+  // Control Maestro por Grado (6°, 7°, 8°, 9°, 10°/1° Bach, 11°/2° Bach, 12°/3° Bach)
   // Por defecto todos los grados inician en 'paused' (bloqueados)
   gradesControl: {
+    '6': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
     '7': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
     '8': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
     '9': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },

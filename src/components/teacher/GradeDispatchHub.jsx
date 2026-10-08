@@ -5,6 +5,7 @@ import React, { useState, useMemo } from 'react'
  * 7° Grado, 8° Grado, 9° Grado, 1° Bachillerato (10°), 2° Bachillerato (11°)
  */
 const GRADES_DEF = [
+  { id: '6', label: '6° Grado', fullTitle: '6° Grado (Educación Básica)' },
   { id: '7', label: '7° Grado', fullTitle: '7° Grado (Educación Básica)' },
   { id: '8', label: '8° Grado', fullTitle: '8° Grado (Educación Básica)' },
   { id: '9', label: '9° Grado', fullTitle: '9° Grado (Tercer Ciclo)' },
@@ -22,7 +23,11 @@ export default function GradeDispatchHub({
   currentTeacher
 }) {
   // Acordeón: id de grado expandido (o null)
-  const [expandedGrade, setExpandedGrade] = useState('7')
+  const [expandedGrade, setExpandedGrade] = useState(() => {
+    const tEmail = (currentTeacher?.email || '').toLowerCase()
+    if (tEmail.includes('edgar') || tEmail.includes('pacheco')) return '6'
+    return '7'
+  })
 
   // Filtros por grado: { [gradeId]: { section, level, teacher, search } }
   const [filters, setFilters] = useState({})
@@ -40,12 +45,13 @@ export default function GradeDispatchHub({
 
   // Agrupar alumnos por grado
   const studentsByGrade = useMemo(() => {
-    const map = { '7': [], '8': [], '9': [], '10': [], '11': [] }
+    const map = { '6': [], '7': [], '8': [], '9': [], '10': [], '11': [] }
     students.forEach(s => {
       const gStr = (s.grade || '') + ' ' + (s.codigoGrado || '')
       let targetKey = null
 
-      if (gStr.includes('7°') || s.codigoGrado === '07') targetKey = '7'
+      if (gStr.includes('6°') || s.codigoGrado === '06') targetKey = '6'
+      else if (gStr.includes('7°') || s.codigoGrado === '07') targetKey = '7'
       else if (gStr.includes('8°') || s.codigoGrado === '08') targetKey = '8'
       else if (gStr.includes('9°') || s.codigoGrado === '09') targetKey = '9'
       else if (gStr.includes('10°') || gStr.includes('1° Bach') || s.codigoGrado === '10') targetKey = '10'
