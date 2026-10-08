@@ -5,6 +5,7 @@ import { AI_TOPICS, generateAIQuestion } from '../../lib/aiQuestionGenerator'
 import { OFFICIAL_DIAGNOSTIC_EXAMS } from '../../data/officialExamsData'
 import QuestionPlayer from '../student/QuestionPlayer'
 import AudioGroupPlayer from '../student/AudioGroupPlayer'
+import AudioExamEditorModal from './AudioExamEditorModal'
 
 const GRADE_PILLS = [
   { id: 'all', label: 'Universal (Todos)' },
@@ -44,6 +45,7 @@ export default function ExamBuilder({ onPublished }) {
   const [maxPlatformWeight, setMaxPlatformWeight] = useState(60)
 
   // Estado para Edición Rápida de Tiempo y Ponderación sin pasar por el wizard
+  const [audioModalExam, setAudioModalExam] = useState(null)
   const [quickEditModal, setQuickEditModal] = useState(null) // { id, title, timeLimitMinutes, weight }
   const [savingQuickEdit, setSavingQuickEdit] = useState(false)
 
@@ -385,6 +387,19 @@ export default function ExamBuilder({ onPublished }) {
                         <span className="material-symbols-outlined text-[15px]">play_circle</span>
                         <span>Probar Examen</span>
                       </button>
+
+                      {/* Botón exclusivo para Probar Audios, Transcripción y Editar Preguntas/Respuestas */}
+                      {((ex.questions || []).some(q => q.audioUrl || q.audioText || q.type === 'listening')) && (
+                        <button
+                          type="button"
+                          onClick={() => setAudioModalExam(JSON.parse(JSON.stringify(ex)))}
+                          className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-extrabold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Escuchar audios, ver transcripción y editar preguntas, opciones y respuesta correcta"
+                        >
+                          <span className="material-symbols-outlined text-[16px] text-purple-700">headphones</span>
+                          <span>Probar Audios & Editar</span>
+                        </button>
+                      )}
 
                       {/* Botón directo de Tiempo y Porcentaje solicitado por los docentes */}
                       <button
@@ -1128,6 +1143,28 @@ export default function ExamBuilder({ onPublished }) {
 
           </div>
         </div>
+      )}
+
+      {/* MODAL EXCLUSIVO DOCENTE: PROBAR AUDIOS, TRANSCRIPCIÓN Y EDICIÓN DE PREGUNTAS / CLAVES */}
+      {audioModalExam && (
+        <AudioExamEditorModal
+          exam={audioModalExam}
+          onClose={() => setAudioModalExam(null)}
+          onSave={async (updatedQuestions) => {
+            try {
+              const updatedExam = {
+                ...audioModalExam,
+                questions: updatedQuestions
+              }
+              await saveExam(updatedExam)
+              await loadExistingExamsAndConfig()
+              setAudioModalExam(null)
+              alert('✅ Preguntas, respuestas correctas y audios guardados exitosamente.')
+            } catch (err) {
+              alert('Error al guardar examen: ' + err.message)
+            }
+          }}
+        />
       )}
 
       {/* MODAL DE SIMULACIÓN / PRUEBA INTERACTIVA DEL EXAMEN (VISTA ALUMNO) */}
