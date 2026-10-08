@@ -5,6 +5,7 @@ import OralInterviewExam from './OralInterviewExam'
 import TeacherProfile from './TeacherProfile'
 import DiagnosticConfigManager from '../shared/DiagnosticConfigManager'
 import InterviewQuestionsBankManager from './InterviewQuestionsBankManager'
+import GradeDispatchHub from './GradeDispatchHub'
 import teacherAvatar from '../../assets/avatar_teacher.png'
 import AnalyticsDashboard from '../shared/AnalyticsDashboard'
 import {
@@ -19,6 +20,9 @@ import {
   getUserProfile,
   subscribeExamDispatch,
   saveExamDispatchConfig,
+  setGradeExamStatus,
+  setStudentExamStatus,
+  resetGradeExamOverrides,
   unlockStudentExam,
   getCoordinationModulesConfig
 } from '../../lib/dataService'
@@ -2041,227 +2045,41 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                 <InterviewQuestionsBankManager />
               )}
 
-              {/* SECCIÓN DEDICADA: PANEL DE CONTROL DE PRUEBAS DIGITALES, HABILITACIÓN Y PAUSA */}
+              {/* SECCIÓN DEDICADA: PANEL DE CONTROL DE PRUEBAS DIGITALES, HABILITACIÓN Y PAUSA POR GRADOS */}
               {currentSection === 'exam_dispatch' && (
-                <div className="space-y-6 max-w-4xl mx-auto text-left animate-fadeIn">
-                  {/* Banner de Control Global */}
-                  <div className={`p-6 md:p-8 rounded-3xl border shadow-sm transition-all flex flex-col md:flex-row items-center justify-between gap-6 ${
-                    dispatchConfig.isPaused
-                      ? 'bg-amber-50/90 border-amber-300 text-amber-950'
-                      : 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-                  }`}>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="material-symbols-outlined text-3xl">
-                          {dispatchConfig.isPaused ? 'pause_circle' : 'play_circle'}
-                        </span>
-                        <h2 className="text-xl font-heading font-black">
-                          {dispatchConfig.isPaused ? 'EVALUACIONES EN PAUSA (RECESO ACTIVO)' : 'EVALUACIONES ACTIVAS EN PLATAFORMA'}
-                        </h2>
-                      </div>
-                      <p className="text-xs md:text-sm opacity-90 max-w-xl leading-relaxed">
-                        {dispatchConfig.isPaused
-                          ? 'Todos los cronómetros de los estudiantes están congelados. Las respuestas de los alumnos se conservan intactas en memoria y base de datos.'
-                          : 'Los alumnos autorizados por grado y sección pueden ingresar a rendir sus pruebas con cuenta regresiva activa.'}
-                      </p>
-                      <div className="text-[11px] font-mono opacity-70">
-                        Última actualización: {dispatchConfig.updatedAt ? new Date(dispatchConfig.updatedAt).toLocaleTimeString('es-SV') : 'Hoy'} • Por: {dispatchConfig.updatedBy || 'Docente'}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={savingDispatch}
-                      onClick={async () => {
-                        const newPaused = !dispatchConfig.isPaused
-                        setSavingDispatch(true)
-                        try {
-                          const updated = await saveExamDispatchConfig({
-                            ...dispatchConfig,
-                            isPaused: newPaused,
-                            pausedAt: newPaused ? new Date().toISOString() : null,
-                            resumedAt: !newPaused ? new Date().toISOString() : null,
-                            updatedBy: currentTeacher?.name || currentTeacher?.email || 'Docente'
-                          })
-                          setDispatchConfig(updated)
-                        } catch (err) {
-                          alert('Error al cambiar estado de pausa: ' + err.message)
-                        } finally {
-                          setSavingDispatch(false)
-                        }
-                      }}
-                      className={`px-6 py-3.5 rounded-2xl text-xs md:text-sm font-black shadow-lg transition-all cursor-pointer shrink-0 flex items-center gap-2 ${
-                        dispatchConfig.isPaused
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
-                          : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/30'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[20px]">
-                        {dispatchConfig.isPaused ? 'play_arrow' : 'pause'}
-                      </span>
-                      <span>{dispatchConfig.isPaused ? 'Reanudar Exámenes (Fin de Receso)' : 'Pausar Reloj (Salida a Receso)'}</span>
-                    </button>
-                  </div>
-
-                  {/* Panel de Habilitación de Grados y Secciones */}
-                  <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/90 shadow-sm space-y-6">
-                    <div>
-                      <h3 className="font-heading font-black text-base text-slate-900">
-                        1. Habilitación por Grado Escolar
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Define qué grados tienen autorización para iniciar sesión y responder la batería digital.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDispatchConfig({ ...dispatchConfig, enabledGrades: ['all'] })}
-                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          dispatchConfig.enabledGrades?.includes('all')
-                            ? 'bg-primary text-white shadow-sm'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        Universal (Todos los Grados)
-                      </button>
-                      {['6', '7', '8', '9', '10', '11', '12'].map(g => {
-                        const isSelected = !dispatchConfig.enabledGrades?.includes('all') && dispatchConfig.enabledGrades?.includes(g)
-                        const label = g === '10' ? '10° Bach' : g === '11' ? '11° Bach' : g === '12' ? '12° Téc' : `${g}° Grado`
-                        return (
-                          <button
-                            key={g}
-                            type="button"
-                            onClick={() => {
-                              let curr = (dispatchConfig.enabledGrades || []).filter(x => x !== 'all')
-                              if (curr.includes(g)) {
-                                curr = curr.filter(x => x !== g)
-                              } else {
-                                curr.push(g)
-                              }
-                              if (curr.length === 0) curr = ['all']
-                              setDispatchConfig({ ...dispatchConfig, enabledGrades: curr })
-                            }}
-                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-primary text-white shadow-sm'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
-
-                    <hr className="border-slate-100" />
-
-                    <div>
-                      <h3 className="font-heading font-black text-base text-slate-900">
-                        2. Habilitación por Sección (A, B, C, D)
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Si las docentes aplican la prueba por turnos de aula, selecciona la sección que está en turno.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDispatchConfig({ ...dispatchConfig, enabledSections: ['all'] })}
-                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          dispatchConfig.enabledSections?.includes('all')
-                            ? 'bg-primary text-white shadow-sm'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        Todas las Secciones
-                      </button>
-                      {['A', 'B', 'C', 'D'].map(sec => {
-                        const isSelected = !dispatchConfig.enabledSections?.includes('all') && dispatchConfig.enabledSections?.includes(sec)
-                        return (
-                          <button
-                            key={sec}
-                            type="button"
-                            onClick={() => {
-                              let curr = (dispatchConfig.enabledSections || []).filter(x => x !== 'all')
-                              if (curr.includes(sec)) {
-                                curr = curr.filter(x => x !== sec)
-                              } else {
-                                curr.push(sec)
-                              }
-                              if (curr.length === 0) curr = ['all']
-                              setDispatchConfig({ ...dispatchConfig, enabledSections: curr })
-                            }}
-                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-primary text-white shadow-sm'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            Sección {sec}
-                          </button>
-                        )
-                      })}
-                    </div>
-
-                    <hr className="border-slate-100" />
-
-                    {/* Tiempo límite del bloque general (90 minutos reloj) */}
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <div className="font-heading font-black text-sm text-slate-900 flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[18px] text-amber-600">timer</span>
-                          <span>3. Tiempo Global del Bloque Examen (2 horas clase)</span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          Tiempo total reloj asignado a los instrumentos de evaluación con receso intermedio.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <input
-                          type="number"
-                          min="30"
-                          max="180"
-                          value={dispatchConfig.globalTimeLimitMinutes || 90}
-                          onChange={(e) => setDispatchConfig({
-                            ...dispatchConfig,
-                            globalTimeLimitMinutes: parseInt(e.target.value, 10) || 90
-                          })}
-                          className="w-20 px-3 py-2 text-center font-black text-sm rounded-xl border border-slate-300 bg-white shadow-2xs"
-                        />
-                        <span className="text-xs font-bold text-slate-700">minutos reloj</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex justify-end">
-                      <button
-                        type="button"
-                        disabled={savingDispatch}
-                        onClick={async () => {
-                          setSavingDispatch(true)
-                          try {
-                            await saveExamDispatchConfig({
-                              ...dispatchConfig,
-                              updatedBy: currentTeacher?.name || currentTeacher?.email || 'Docente'
-                            })
-                            alert('✅ Configuración de exámenes transmitida y activa en tiempo real para todos los estudiantes.')
-                          } catch (err) {
-                            alert('Error al guardar: ' + err.message)
-                          } finally {
-                            setSavingDispatch(false)
-                          }
-                        }}
-                        className="px-6 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">cloud_sync</span>
-                        <span>{savingDispatch ? 'Sincronizando...' : 'Guardar y Aplicar Habilitación'}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <GradeDispatchHub
+                  students={students}
+                  dispatchConfig={dispatchConfig}
+                  onSetGradeStatus={async (grade, examType, status) => {
+                    try {
+                      const updated = await setGradeExamStatus(grade, examType, status, currentTeacher?.name || currentTeacher?.email || 'Docente')
+                      setDispatchConfig(updated)
+                    } catch (e) {
+                      alert('Error al actualizar estado del grado: ' + e.message)
+                    }
+                  }}
+                  onSetStudentStatus={async (studentEmail, examType, status) => {
+                    try {
+                      const updated = await setStudentExamStatus(studentEmail, examType, status, currentTeacher?.name || currentTeacher?.email || 'Docente')
+                      setDispatchConfig(updated)
+                    } catch (e) {
+                      alert('Error al actualizar estado del alumno: ' + e.message)
+                    }
+                  }}
+                  onResetGradeOverrides={async (grade, studentEmails) => {
+                    try {
+                      const updated = await resetGradeExamOverrides(grade, studentEmails, currentTeacher?.name || currentTeacher?.email || 'Docente')
+                      setDispatchConfig(updated)
+                    } catch (e) {
+                      alert('Error al restablecer excepciones: ' + e.message)
+                    }
+                  }}
+                  onCallInterviewStudent={(st) => {
+                    handleStartInterview(st)
+                    setCurrentSection('interview')
+                  }}
+                  currentTeacher={currentTeacher}
+                />
               )}
 
               {/* SECCIÓN 3: CONSTRUCTOR DE EXAMEN */}

@@ -604,16 +604,30 @@ export async function getAllExamsForTeacher(teacherEmail) {
 // ---------- HABILITACIÓN POR GRADO/SECCIÓN, PAUSA GLOBAL Y CRONÓMETRO DOCENTE ----------
 
 export const DEFAULT_EXAM_DISPATCH = {
-  enabledGrades: ['all'],        // ['all'] o ['6°', '7°', '8°', '9°', '10°', '11°', '12°']
-  enabledSections: ['all'],     // ['all'] o ['A', 'B', 'C', 'D']
-  isPaused: false,              // Pausa general activada por la teacher (ej. para receso)
-  pausedAt: null,               // Timestamp ISO de la pausa
-  pauseReason: 'receso',        // 'receso' | 'indicacion' | 'mantenimiento'
-  pausedDurationSeconds: 0,     // Segundos acumulados en pausa
-  resumedAt: null,              // Última reanudación
-  globalTimeLimitMinutes: 90,   // Tiempo total de bloque (90 min reloj / 2 horas clase)
-  updatedBy: null,              // Email o nombre de la teacher
-  updatedAt: new Date().toISOString()
+  enabledGrades: ['all'],        // Compatibilidad previa
+  enabledSections: ['all'],     // Compatibilidad previa
+  isPaused: false,              // Pausa global de compatibilidad
+  pausedAt: null,
+  pauseReason: 'receso',
+  pausedDurationSeconds: 0,
+  resumedAt: null,
+  globalTimeLimitMinutes: 90,
+  updatedBy: null,
+  updatedAt: new Date().toISOString(),
+
+  // Control Maestro por Grado (7°, 8°, 9°, 10°/1° Bach, 11°/2° Bach, 12°/3° Bach)
+  // Por defecto todos los grados inician en 'paused' (bloqueados)
+  gradesControl: {
+    '7': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
+    '8': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
+    '9': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
+    '10': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
+    '11': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
+    '12': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() }
+  },
+
+  // Overrides / Excepciones individuales por alumno (indexado por email sanitizado o email directo)
+  studentOverrides: {}
 }
 
 export async function getExamDispatchConfig() {
@@ -622,8 +636,19 @@ export async function getExamDispatchConfig() {
       const snap = await getDoc(doc(db, 'systemSettings', 'examDispatch'))
       if (snap.exists()) {
         const data = snap.data()
-        writeLS(LS_EXAM_DISPATCH, data)
-        return { ...DEFAULT_EXAM_DISPATCH, ...data }
+        const merged = {
+          ...DEFAULT_EXAM_DISPATCH,
+          ...data,
+          gradesControl: {
+            ...DEFAULT_EXAM_DISPATCH.gradesControl,
+            ...(data.gradesControl || {})
+          },
+          studentOverrides: {
+            ...(data.studentOverrides || {})
+          }
+        }
+        writeLS(LS_EXAM_DISPATCH, merged)
+        return merged
       }
     } catch (e) {
       console.warn('Error leyendo examDispatch de Firestore:', e)
@@ -632,7 +657,18 @@ export async function getExamDispatchConfig() {
   const local = localStorage.getItem(LS_EXAM_DISPATCH)
   if (local) {
     try {
-      return { ...DEFAULT_EXAM_DISPATCH, ...JSON.parse(local) }
+      const parsed = JSON.parse(local)
+      return {
+        ...DEFAULT_EXAM_DISPATCH,
+        ...parsed,
+        gradesControl: {
+          ...DEFAULT_EXAM_DISPATCH.gradesControl,
+          ...(parsed.gradesControl || {})
+        },
+        studentOverrides: {
+          ...(parsed.studentOverrides || {})
+        }
+      }
     } catch {
       // fallback
     }
@@ -641,9 +677,18 @@ export async function getExamDispatchConfig() {
 }
 
 export async function saveExamDispatchConfig(config) {
+  const current = await getExamDispatchConfig().catch(() => DEFAULT_EXAM_DISPATCH)
   const merged = {
-    ...DEFAULT_EXAM_DISPATCH,
+    ...current,
     ...config,
+    gradesControl: {
+      ...current.gradesControl,
+      ...(config.gradesControl || {})
+    },
+    studentOverrides: {
+      ...current.studentOverrides,
+      ...(config.studentOverrides || {})
+    },
     updatedAt: new Date().toISOString()
   }
 
@@ -663,6 +708,86 @@ export async function saveExamDispatchConfig(config) {
   } catch {}
 
   return merged
+}
+
+/**
+ * Cambia el estado de un grado ('platform' o 'interview') a 'active', 'paused' o 'finished'
+ */
+export async function setGradeExamStatus(grade, examType, status, updatedBy = 'Docente') {
+  const gKey = String(grade)
+  const current = await getExamDispatchConfig()
+  const gradeData = current.gradesControl?.[gKey] || { platformStatus: 'paused', interviewStatus: 'paused' }
+
+  const updatedGrade = {
+    ...gradeData,
+    [examType === 'platform' ? 'platformStatus' : 'interviewStatus']: status,
+    updatedAt: new Date().toISOString(),
+    ...(status === 'paused' ? { pausedAt: new Date().toISOString() } : {})
+  }
+
+  const newGradesControl = {
+    ...(current.gradesControl || {}),
+    [gKey]: updatedGrade
+  }
+
+  return await saveExamDispatchConfig({
+    gradesControl: newGradesControl,
+    updatedBy
+  })
+}
+
+/**
+ * Establece una excepción individual para un alumno (Play/Pausa individual o acceso a entrevista)
+ */
+export async function setStudentExamStatus(studentEmail, examType, status, updatedBy = 'Docente') {
+  if (!studentEmail) return
+  const cleanEmail = sanitizeDocId(studentEmail)
+  const current = await getExamDispatchConfig()
+  const prevOverride = current.studentOverrides?.[cleanEmail] || current.studentOverrides?.[studentEmail.toLowerCase()] || {}
+
+  const newOverride = {
+    ...prevOverride,
+    updatedAt: new Date().toISOString(),
+    updatedBy
+  }
+
+  if (examType === 'platform') {
+    newOverride.platformStatus = status // 'active' | 'paused' | 'finished'
+    newOverride.platformAllowed = (status === 'active')
+  } else if (examType === 'interview') {
+    newOverride.interviewStatus = status
+    newOverride.interviewAllowed = (status === 'active')
+  }
+
+  const newOverrides = {
+    ...(current.studentOverrides || {}),
+    [cleanEmail]: newOverride,
+    [studentEmail.toLowerCase()]: newOverride
+  }
+
+  return await saveExamDispatchConfig({
+    studentOverrides: newOverrides,
+    updatedBy
+  })
+}
+
+/**
+ * Limpia las excepciones individuales de los alumnos de un grado
+ */
+export async function resetGradeExamOverrides(grade, studentEmailsInGrade = [], updatedBy = 'Docente') {
+  const current = await getExamDispatchConfig()
+  const newOverrides = { ...(current.studentOverrides || {}) }
+
+  studentEmailsInGrade.forEach(em => {
+    if (!em) return
+    delete newOverrides[sanitizeDocId(em)]
+    delete newOverrides[em.toLowerCase()]
+  })
+
+  return await saveExamDispatchConfig({
+    studentOverrides: newOverrides,
+    updatedBy
+  })
 }
 
 export function subscribeExamDispatch(callback) {

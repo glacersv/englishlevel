@@ -49,7 +49,9 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     isPaused: false,
     pausedAt: null,
     pauseReason: 'receso',
-    globalTimeLimitMinutes: 90
+    globalTimeLimitMinutes: 90,
+    gradesControl: {},
+    studentOverrides: {}
   })
 
   // Escuchar configuración de habilitación y pausa en tiempo real
@@ -59,6 +61,61 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     })
     return () => unsub()
   }, [])
+
+  // Detectar clave de grado normalizada del alumno ('7', '8', '9', '10', '11', '12')
+  const studentGradeKey = (() => {
+    const gStr = (student.grade || '') + ' ' + (student.codigoGrado || '')
+    if (gStr.includes('7°') || student.codigoGrado === '07') return '7'
+    if (gStr.includes('8°') || student.codigoGrado === '08') return '8'
+    if (gStr.includes('9°') || student.codigoGrado === '09') return '9'
+    if (gStr.includes('10°') || gStr.includes('1° Bach') || student.codigoGrado === '10') return '10'
+    if (gStr.includes('11°') || gStr.includes('2° Bach') || student.codigoGrado === '11') return '11'
+    if (gStr.includes('12°') || gStr.includes('3° Bach') || student.codigoGrado === '32') return '12'
+    if (gStr.includes('6°') || student.codigoGrado === '06') return '6'
+    return '7'
+  })()
+
+  // Comprobar override individual de este alumno
+  const studentOverride = (() => {
+    const clean = sanitizeDocId(student.email)
+    const overrides = dispatchConfig.studentOverrides || {}
+    return overrides[clean] || overrides[(student.email || '').toLowerCase()] || null
+  })()
+
+  // Estado del grado en controles maestros
+  const gradeControl = dispatchConfig.gradesControl?.[studentGradeKey] || {
+    platformStatus: 'paused',
+    interviewStatus: 'paused'
+  }
+
+  // ¿Está la plataforma activa, pausada o finalizada para este alumno?
+  const isPlatformFinishedForStudent = studentOverride?.platformStatus === 'finished' || gradeControl.platformStatus === 'finished'
+
+  const isPlatformActiveForStudent = (() => {
+    // 1. Si hay override individual activo, tiene prioridad directa
+    if (studentOverride && studentOverride.platformStatus) {
+      return studentOverride.platformStatus === 'active'
+    }
+    // 2. Si el grado está finalizado
+    if (gradeControl.platformStatus === 'finished') return false
+    // 3. Si el grado está en pausa
+    if (gradeControl.platformStatus === 'paused') return false
+    // 4. Si hay pausa global
+    if (dispatchConfig.isPaused) return false
+    // 5. Si está activo en el grado
+    return gradeControl.platformStatus === 'active'
+  })()
+
+  // Pausa efectiva para congelar temporizador y mostrar modal
+  const isPlatformPausedForStudent = !isPlatformActiveForStudent && !isPlatformFinishedForStudent
+
+  // Estado de entrevista oral habilitada para este alumno
+  const isInterviewActiveForStudent = (() => {
+    if (studentOverride && studentOverride.interviewStatus) {
+      return studentOverride.interviewStatus === 'active'
+    }
+    return gradeControl.interviewStatus === 'active'
+  })()
 
   const [tabSwitchWarnings, setTabSwitchWarnings] = useState(0)
   const [examIncidents, setExamIncidents] = useState([])
@@ -114,9 +171,9 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }
 
-  // 3. Temporizador regresivo sincronizado para el test activo (Se congela si el docente pausa la evaluación)
+  // 3. Temporizador regresivo sincronizado para el test activo (Se congela si el docente pausa la evaluación o el grado está pausado)
   useEffect(() => {
-    if (!activeExam || examTimeLeft <= 0 || dispatchConfig.isPaused) return
+    if (!activeExam || examTimeLeft <= 0 || isPlatformPausedForStudent || isPlatformFinishedForStudent) return
     const timer = setInterval(() => {
       setExamTimeLeft(prev => {
         if (prev <= 1) {
@@ -128,7 +185,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
       })
     }, 1000)
     return () => clearInterval(timer)
-  }, [activeExam, examTimeLeft > 0, dispatchConfig.isPaused])
+  }, [activeExam, examTimeLeft > 0, isPlatformPausedForStudent, isPlatformFinishedForStudent])
 
   // 4. DETECCIÓN DE CAMBIO DE PESTAÑA / VENTANA (Anti-trampa)
   useEffect(() => {
@@ -402,8 +459,12 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   // El nivel oficial solo se publica al alumno si el docente ya lo asignó Y el alumno terminó todos sus tests
   const isPlacementFullyConcluded = Boolean(student.assignedLevel) && allTestsCompleted
 
-  // Verificar si el grado y sección de este alumno están autorizados por las teachers
+  // Verificar si el grado y sección de este alumno están autorizados por las teachers y activos
   const isStudentAuthorizedForExam = (() => {
+    // Si la plataforma está finalizada o en pausa específica para el grado/estudiante
+    if (isPlatformFinishedForStudent) return false
+    if (isPlatformPausedForStudent) return false
+
     const enabledGrades = dispatchConfig.enabledGrades || ['all']
     const enabledSections = dispatchConfig.enabledSections || ['all']
 
@@ -433,9 +494,24 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
   // Menú dinámico del alumno
   const studentMenuItems = [
-    { key: 'interview', label: 'Entrevista Oral (Docente)', icon: 'hearing', badge: 'Presencial' },
-    { key: 'battery', label: 'Batería de Tests Digitales', icon: 'quiz', badge: `${totalCompletedCount}/${examsList.length} Listos` },
-    { key: 'results', label: 'Estado de Colocación', icon: 'military_tech', badge: isPlacementFullyConcluded ? 'Listo' : 'En Proceso' },
+    {
+      key: 'interview',
+      label: 'Entrevista Oral (Docente)',
+      icon: 'record_voice_over',
+      badge: isInterviewActiveForStudent ? '🎙️ En Turno' : 'Presencial'
+    },
+    {
+      key: 'battery',
+      label: 'Batería de Tests Digitales',
+      icon: 'quiz',
+      badge: isPlatformPausedForStudent ? '⏸️ En Pausa' : isPlatformFinishedForStudent ? '⏹️ Cerrado' : `${totalCompletedCount}/${examsList.length} Listos`
+    },
+    {
+      key: 'results',
+      label: 'Estado de Colocación',
+      icon: 'military_tech',
+      badge: isPlacementFullyConcluded ? 'Listo' : 'En Proceso'
+    },
   ]
 
   return (
@@ -539,8 +615,8 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
               </div>
             )}
 
-            {/* ================= PANTALLA DE PAUSA GENERAL / RECESO (ACTIVADA POR LAS TEACHERS) ================= */}
-            {dispatchConfig.isPaused && (
+            {/* ================= PANTALLA DE PAUSA GENERAL O POR GRADO (ACTIVADA POR LAS TEACHERS) ================= */}
+            {isPlatformPausedForStudent && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
                 <div className="bg-white rounded-[32px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-amber-400 text-center space-y-6 animate-scaleUp">
                   <div className="w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
@@ -549,13 +625,15 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
                   <div className="space-y-2">
                     <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-900">
-                      Evaluación en Pausa • Receso / Instrucción
+                      Evaluación en Pausa • Espera Docente
                     </span>
                     <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
-                      El examen se encuentra pausado por el docente
+                      {gradeControl.platformStatus === 'paused'
+                        ? `La plataforma de ${studentGradeKey}° Grado está pausada`
+                        : 'El examen se encuentra pausado por el docente'}
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                      El reloj y temporizador de tu prueba están congelados. Tus respuestas y avances se encuentran guardados de forma segura en la plataforma.
+                      Tu tiempo ha sido congelado. Espera la indicación de tu profesor para continuar.
                     </p>
                   </div>
 
@@ -566,13 +644,51 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     </div>
                     <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-500 pl-1">
                       <li>El tiempo restante de tu prueba se reanudará exactamente donde quedó.</li>
-                      <li>La prueba se reanudará en pantalla en el momento en que las teachers den la indicación.</li>
-                      <li>Por favor mantén esta pestaña abierta durante el receso.</li>
+                      <li>La prueba se reanudará en tu pantalla en el momento en que las teachers inicien el grado o habiliten tu usuario.</li>
+                      <li>Tus respuestas previas están guardadas de manera segura.</li>
                     </ul>
                   </div>
 
                   <div className="text-[11px] font-mono text-slate-400">
                     Sincronización en tiempo real activa • Esperando reanudación...
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ================= PANTALLA DE GRADO FINALIZADO ================= */}
+            {isPlatformFinishedForStudent && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+                <div className="bg-white rounded-[32px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-rose-500 text-center space-y-6 animate-scaleUp">
+                  <div className="w-20 h-20 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+                    <span className="material-symbols-outlined text-[42px]">stop_circle</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-900">
+                      Evaluación Concluida por Docente
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
+                      La prueba de plataforma para tu grado ha sido cerrada
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+                      El periodo de evaluación en plataforma ha finalizado oficialmente. Las respuestas enviadas hasta este momento fueron registradas satisfactoriamente.
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activeExam) {
+                          handleFinishActiveExam(activeExam.id, true)
+                        }
+                        setCurrentSection('results')
+                      }}
+                      className="px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-lg transition-all cursor-pointer"
+                    >
+                      Aceptar y ver estado
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1014,6 +1130,19 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     Hola <strong className="text-gray-900">{student.name}</strong>. Puedes ingresar a la pestaña <span className="font-bold text-blue-700">"Batería de Tests Digitales"</span> en el menú izquierdo para responder las pruebas con su tiempo asignado.
                   </p>
                 </div>
+
+                {/* Banner de Entrevista Oral en Turno Activo */}
+                {isInterviewActiveForStudent && (
+                  <div className="p-5 rounded-3xl bg-indigo-50 border-2 border-indigo-500 max-w-md mx-auto text-center space-y-2 animate-pulse">
+                    <div className="flex items-center justify-center gap-2 text-indigo-900 font-extrabold text-sm uppercase">
+                      <span className="material-symbols-outlined text-[24px] text-indigo-600">record_voice_over</span>
+                      <span>¡Es tu turno para la Entrevista Oral!</span>
+                    </div>
+                    <p className="text-xs text-indigo-700 font-medium">
+                      Tu docente te ha llamado para la evaluación oral en vivo. Acércate con tu docente evaluador para iniciar las preguntas.
+                    </p>
+                  </div>
+                )}
 
                 {/* Ficha Informativa del Alumno */}
                 <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/90 text-left space-y-4 max-w-md mx-auto shadow-xs">
