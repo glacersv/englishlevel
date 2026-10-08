@@ -293,7 +293,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     const matchModality = modalityPill === 'all' || s.especialidad === modalityPill
 
     // Filtro por nivel institucional actual (L1-A, L1-B, etc.)
-    const matchLevel = levelPill === 'all' || s.currentLevel === levelPill
+    // 6° Grado no posee nivel previo institucional. Siempre se muestra si se está en 6° grado o 'all'
+    const isSixth = (s.grade || '').includes('6°') || s.codigoGrado === '06' || s.codigoGrado === '6'
+    const matchLevel = levelPill === 'all' || (isSixth && (levelPill === 'none' || levelPill === 'Sin Nivel')) || s.currentLevel === levelPill
 
     // Filtro por docente asignado
     let matchTeacher = true
@@ -965,7 +967,11 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
                                   {/* Columna: Nivel Actual (Inicial) */}
                                   <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                                    {s.currentLevel && s.currentLevel !== 'Sin Nivel' ? (
+                                    {((s.grade || '').includes('6°') || s.codigoGrado === '06' || s.codigoGrado === '6') ? (
+                                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="Sexto grado no tiene nivel previo; el nivel se le asignará al iniciar 7° grado según esta evaluación.">
+                                        Asignación 7°
+                                      </span>
+                                    ) : s.currentLevel && s.currentLevel !== 'Sin Nivel' ? (
                                       <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
                                         {s.currentLevel}
                                       </span>
