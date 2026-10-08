@@ -72,6 +72,7 @@ export default function AuthPortal({ onLoginSuccess }) {
       cleanEmail === 'ronald.cardona@salesianosanjose.edu.sv' ||
       cleanEmail === 'silvia.herrera@salesianosanjose.edu.sv' ||
       cleanEmail === 'nelsi.ramos@salesianosanjose.edu.sv' ||
+      cleanEmail === 'edgar.pacheco@salesianosanjose.edu.sv' ||
       cleanEmail.includes('prof') ||
       cleanEmail.includes('docente') ||
       cleanEmail.includes('teacher') ||
@@ -83,6 +84,7 @@ export default function AuthPortal({ onLoginSuccess }) {
       if (cleanEmail.includes('ronald')) { tName = 'Ronald Cardona'; tId = 'DOC-CSSJ-01'; }
       else if (cleanEmail.includes('silvia')) { tName = 'Silvia Herrera'; tId = 'DOC-CSSJ-02'; }
       else if (cleanEmail.includes('nelsi')) { tName = 'Nelsi Ramos'; tId = 'DOC-CSSJ-03'; }
+      else if (cleanEmail.includes('edgar') || cleanEmail.includes('pacheco')) { tName = 'Edgar Pacheco'; tId = 'DOC-CSSJ-04'; }
 
       const existingTeacher = await getUserProfile(cleanEmail)
 
@@ -293,6 +295,7 @@ export default function AuthPortal({ onLoginSuccess }) {
     if (teacherEmail.includes('ronald')) tName = 'Ronald Cardona'
     else if (teacherEmail.includes('silvia')) tName = 'Silvia Herrera'
     else if (teacherEmail.includes('nelsi')) tName = 'Nelsi Ramos'
+    else if (teacherEmail.includes('edgar') || teacherEmail.includes('pacheco')) tName = 'Edgar Pacheco'
     const userObj = await processUserAccount(teacherEmail, tName)
     setIsLoading(false)
     if (userObj) onLoginSuccess(userObj)

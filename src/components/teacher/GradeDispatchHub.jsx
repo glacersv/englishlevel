@@ -440,6 +440,7 @@ export default function GradeDispatchHub({
                           <option value="ronald">Teacher Ronald</option>
                           <option value="silvia">Teacher Silvia</option>
                           <option value="nelsi">Teacher Nelsi</option>
+                          <option value="edgar">Teacher Edgar</option>
                         </select>
                       </div>
 

@@ -50,6 +50,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     if (email.includes('ronald')) return 'ronald'
     if (email.includes('silvia')) return 'silvia'
     if (email.includes('nelsi')) return 'nelsi'
+    if (email.includes('edgar') || email.includes('pacheco')) return 'edgar'
     return 'all'
   })
   const [statusToggle, setStatusToggle] = useState('all') // 'all' | 'pending' | 'completed'
@@ -365,7 +366,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     ...(isAnalyticsEnabled ? [{ key: 'analytics', label: 'Dashboard Analítico', icon: 'analytics', badge: `${students.filter(s => Boolean(s.assignedLevel)).length} eval.` }] : []),
     { key: 'security_audit', label: 'Alertas de Fraude y Pestaña', icon: 'security', badge: totalStudentsWithIncidents > 0 ? `${totalStudentsWithIncidents} alertas` : null },
     { key: 'interview_questions', label: 'Banco de Preguntas Orales', icon: 'quiz' },
-    { key: 'exam_dispatch', label: 'Habilitar y Pausar Pruebas', icon: 'alarm_on', badge: dispatchConfig.isPaused ? 'Pausa' : 'Activo' },
+    { key: 'exam_dispatch', label: 'Despacho por Grados (Control)', icon: 'hub', badge: 'En Vivo' },
     { key: 'results', label: 'Resultados y Niveles', icon: 'military_tech', badge: `${evaluations.length}` },
     { key: 'builder', label: 'Batería y Tests MCER', icon: 'auto_stories' },
     { key: 'diagnostic_config', label: 'Ponderaciones y Cortes 2026', icon: 'tune' },
@@ -626,7 +627,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         { id: 'all', label: 'Todos los Docentes' },
                         { id: 'ronald', label: 'Ronald Cardona', short: 'Teacher Ronald' },
                         { id: 'silvia', label: 'Silvia Herrera', short: 'Teacher Silvia' },
-                        { id: 'nelsi', label: 'Nelsi Ramos', short: 'Teacher Nelsi' }
+                        { id: 'nelsi', label: 'Nelsi Ramos', short: 'Teacher Nelsi' },
+                        { id: 'edgar', label: 'Edgar Pacheco', short: 'Teacher Edgar' }
                       ].map(t => (
                         <button
                           key={t.id}
@@ -1048,7 +1050,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         (userEmail && studentTeacherEmail && userEmail === studentTeacherEmail) ||
                                         (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
                                         (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
-                                        (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi')))
+                                        (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi'))) ||
+                                         ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar')))
 
                                       return (
                                         <button
@@ -1095,6 +1098,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
                                         (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
                                         (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi'))) ||
+                                         ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar'))) ||
                                         (userName && studentTeacher && userName.includes(studentTeacher))
 
                                       return (
@@ -1405,7 +1409,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           { key: 'all', label: 'Todos' },
                           { key: 'ronald', label: 'Ronald' },
                           { key: 'silvia', label: 'Silvia' },
-                          { key: 'nelsi', label: 'Nelsi' }
+                          { key: 'nelsi', label: 'Nelsi' },
+                          { key: 'edgar', label: 'Edgar' }
                         ].map((t) => (
                           <button
                             key={t.key}
