@@ -26,12 +26,26 @@ export function speakText(text) {
   window.speechSynthesis.speak(u)
 }
 
+// Barajar opciones preservando el índice original para no alterar la corrección ni los registros
+function shuffleOptions(options) {
+  if (!Array.isArray(options) || options.length <= 1) {
+    return (options || []).map((text, origIndex) => ({ text, origIndex }))
+  }
+  const items = options.map((text, origIndex) => ({ text, origIndex }))
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[items[i], items[j]] = [items[j], items[i]]
+  }
+  return items
+}
+
 /**
  * AudioGroupPlayer:
  * - Mantiene el Audio Player IDÉNTICO al diseño original (tarjeta con bordes redondeados y fondo azul claro).
  * - El audio NUNCA se reinicia ni se detiene al cambiar de pregunta dentro del mismo audio.
  * - Mantiene las reproducciones compartidas para todo el audio (no se gastan al pasar con Next/Previous ni con pestañas).
  * - Permite navegar entre preguntas mediante TABS (Pregunta 1, Pregunta 2, etc.) o botones Previous / Next.
+ * - Opciones de respuesta barajadas/desordenadas aleatoriamente cada vez que se ingresa a la prueba.
  */
 export default function AudioGroupPlayer({
   group,
@@ -40,6 +54,32 @@ export default function AudioGroupPlayer({
 }) {
   const { audioUrl, audioText, questions } = group
   const maxPlays = typeof questions[0]?.maxPlays === 'number' ? questions[0].maxPlays : 2
+
+  // Mapa de opciones desordenadas por pregunta (se inicializa o actualiza cada vez que se entra o cambia el grupo)
+  const [shuffledOptionsMap, setShuffledOptionsMap] = useState(() => {
+    const map = {}
+    ;(questions || []).forEach(q => {
+      if (q?.id) {
+        map[q.id] = shuffleOptions(q.options)
+      }
+    })
+    return map
+  })
+
+  // Si cambia el grupo de preguntas o entran nuevas preguntas, nos aseguramos de que tengan su orden barajado
+  useEffect(() => {
+    setShuffledOptionsMap(prev => {
+      const updated = { ...prev }
+      let changed = false
+      ;(questions || []).forEach(q => {
+        if (q?.id && !updated[q.id]) {
+          updated[q.id] = shuffleOptions(q.options)
+          changed = true
+        }
+      })
+      return changed ? updated : prev
+    })
+  }, [questions])
 
   // Índice de la pregunta actualmente visible dentro de este bloque de audio
   const [activeQuestionIdx, setActiveQuestionIdx] = useState(0)
@@ -141,7 +181,7 @@ export default function AudioGroupPlayer({
           <span>LISTENING COMPREHENSION</span>
         </div>
 
-        {/* Pestañas (Tabs) de navegación directa entre preguntas de este audio */}
+        {/* Tabs for direct navigation between questions in this audio block */}
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
           {questions.map((q, idx) => {
             const hasAns = examAnswers[q.id] != null
@@ -158,9 +198,9 @@ export default function AudioGroupPlayer({
                     ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                     : 'text-slate-600 hover:bg-white'
                 }`}
-                title={`Pregunta ${idx + 1}`}
+                title={`Question ${idx + 1}`}
               >
-                <span>P{idx + 1}</span>
+                <span>Q{idx + 1}</span>
                 {hasAns && <span className="text-[10px]">✓</span>}
               </button>
             )
@@ -168,17 +208,17 @@ export default function AudioGroupPlayer({
         </div>
       </div>
 
-      {/* Prompt / Instrucción del reactivo actual */}
+      {/* Question prompt */}
       {currentQ?.prompt && currentQ.prompt !== currentQ.question && (
         <p className="font-heading font-bold text-lg md:text-xl text-slate-900 leading-snug">
           {currentQ.prompt}
         </p>
       )}
 
-      {/* ================= REPRODUCTOR DE AUDIO (IDÉNTICO AL DISEÑO ORIGINAL) ================= */}
+      {/* Audio Player */}
       {audioUrl ? (
         <div className="p-4 md:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/70 border border-indigo-200/90 shadow-xs flex flex-col gap-3.5">
-          {/* Header del reproductor: Icono y badge de reproducciones */}
+          {/* Header */}
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <span className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
@@ -186,15 +226,15 @@ export default function AudioGroupPlayer({
               </span>
               <div>
                 <span className="text-xs font-black text-indigo-950 block leading-tight">
-                  Audio Oficial de Evaluación
+                  Official Assessment Audio
                 </span>
                 <span className="text-[10px] text-gray-500 font-medium">
-                  {canPlay ? 'Escucha con atención antes de responder' : 'Límite de reproducciones alcanzado'}
+                  {canPlay ? 'Listen carefully before answering' : 'Maximum plays reached'}
                 </span>
               </div>
             </div>
 
-            {/* Contador de Reproducciones Restantes (compartidas en todas las preguntas) */}
+            {/* Remaining plays counter */}
             <div className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 border transition-all ${
               remainingPlays > 1
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
@@ -206,12 +246,12 @@ export default function AudioGroupPlayer({
                 {remainingPlays > 0 ? 'replay' : 'block'}
               </span>
               <span>
-                {remainingPlays > 0 ? `${remainingPlays} de ${maxPlays} escuchas` : '0 escuchas restantes'}
+                {remainingPlays > 0 ? `${remainingPlays} of ${maxPlays} plays remaining` : '0 plays remaining'}
               </span>
             </div>
           </div>
 
-          {/* Elemento de audio HTML oculto controlado por el componente */}
+          {/* Hidden audio element */}
           <audio
             ref={audioRef}
             src={audioUrl}
@@ -221,7 +261,7 @@ export default function AudioGroupPlayer({
             preload="metadata"
           />
 
-          {/* Barra de progreso visual y tiempos */}
+          {/* Progress bar and times */}
           <div className="space-y-1.5 w-full">
             <div className="w-full h-2.5 bg-indigo-100/80 rounded-full overflow-hidden relative">
               <div
@@ -235,7 +275,7 @@ export default function AudioGroupPlayer({
             </div>
           </div>
 
-          {/* Botón principal de Reproducción / Pausa */}
+          {/* Play/Pause Button */}
           <div className="flex items-center justify-center pt-1">
             <button
               type="button"
@@ -253,14 +293,14 @@ export default function AudioGroupPlayer({
                 {isPlaying ? 'pause' : 'play_arrow'}
               </span>
               <span>
-                {isPlaying ? 'Pausar Audio' : canPlay ? 'Reproducir Audio' : 'Sin reproducciones'}
+                {isPlaying ? 'Pause Audio' : canPlay ? 'Play Audio' : 'No plays left'}
               </span>
             </button>
           </div>
 
           {remainingPlays === 0 && !isPlaying && (
             <p className="text-[11px] text-center text-rose-600 font-semibold">
-              ⚠️ Has completado las {maxPlays} reproducciones permitidas para este audio. Selecciona tus respuestas a continuación.
+              ⚠️ You have used all {maxPlays} plays allowed for this audio. Select your answers below.
             </p>
           )}
         </div>
@@ -287,22 +327,22 @@ export default function AudioGroupPlayer({
             </p>
           )}
 
-          {/* Opciones de respuesta */}
+          {/* Opciones de respuesta desordenadas aleatoriamente */}
           <div className="flex flex-col gap-2.5">
-            {currentQ.options?.map((opt, i) => {
-              const isSelected = currentAnswer === i
+            {(shuffledOptionsMap[currentQ.id] || currentQ.options?.map((text, origIndex) => ({ text, origIndex })) || []).map((item, displayIdx) => {
+              const isSelected = currentAnswer === item.origIndex
               return (
                 <button
-                  key={i}
+                  key={`${currentQ.id}-${item.origIndex}-${displayIdx}`}
                   type="button"
-                  onClick={() => onAnswerChange(currentQ.id, i)}
+                  onClick={() => onAnswerChange(currentQ.id, item.origIndex)}
                   className={`w-full text-left p-4 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${
                     isSelected
                       ? 'border-indigo-600 bg-indigo-50/80 text-indigo-900 shadow-sm ring-1 ring-indigo-500'
                       : 'border-gray-200 bg-white hover:bg-slate-50 text-gray-800'
                   }`}
                 >
-                  <span>{opt}</span>
+                  <span>{item.text}</span>
                   <span
                     className={`w-5 h-5 rounded-full border flex items-center justify-center ${
                       isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300'
@@ -317,23 +357,23 @@ export default function AudioGroupPlayer({
         </div>
       )}
 
-      {/* Footer informativo de estado de respuesta */}
+      {/* Footer status information */}
       <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
         <span className="flex items-center gap-1.5 font-medium">
           {isAnswered ? (
             <>
               <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-              <span className="text-slate-700 font-bold">Respuesta registrada</span>
+              <span className="text-slate-700 font-bold">Answer recorded</span>
             </>
           ) : (
             <>
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span>Selecciona tu respuesta para continuar</span>
+              <span>Select your answer to continue</span>
             </>
           )}
         </span>
 
-        {/* Sub-navegación entre preguntas de este mismo audio */}
+        {/* Sub-navigation across questions within this same audio */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -342,11 +382,11 @@ export default function AudioGroupPlayer({
             className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer flex items-center gap-1"
           >
             <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-            <span>Anterior</span>
+            <span>Previous</span>
           </button>
 
           <span className="text-[11px] font-mono text-slate-400">
-            {activeQuestionIdx + 1} de {questions.length}
+            {activeQuestionIdx + 1} of {questions.length}
           </span>
 
           <button
@@ -355,7 +395,7 @@ export default function AudioGroupPlayer({
             onClick={() => setActiveQuestionIdx(i => Math.min(questions.length - 1, i + 1))}
             className="px-3 py-1.5 rounded-lg bg-[#2528b7] text-white text-xs font-bold hover:brightness-110 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer flex items-center gap-1 shadow-xs"
           >
-            <span>Siguiente</span>
+            <span>Next</span>
             <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
           </button>
         </div>

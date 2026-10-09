@@ -8,12 +8,15 @@ import InterviewQuestionsBankManager from './InterviewQuestionsBankManager'
 import GradeDispatchHub from './GradeDispatchHub'
 import teacherAvatar from '../../assets/avatar_teacher.png'
 import AnalyticsDashboard from '../shared/AnalyticsDashboard'
+import FinalVerdictModal from './FinalVerdictModal'
 import {
   getAllUsers,
+  registerOrUpdateUser,
   updateUserStatus,
   updateUsersStatusBatch,
   getOralEvaluations,
   getAcademicStructure,
+  getDiagnosticConfig,
   resetStudentEvaluation,
   resetAllEvaluations,
   deleteOralEvaluation,
@@ -117,22 +120,28 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
   // Configuración de módulos activados desde el Admin
   const [coordinationModules, setCoordinationModules] = useState({})
+  // Configuración diagnóstica (ponderaciones y matriz de libros por grado)
+  const [diagnosticConfig, setDiagnosticConfig] = useState(null)
+  // Alumno seleccionado para revisar y emitir veredicto final
+  const [selectedVerdictStudent, setSelectedVerdictStudent] = useState(null)
 
   // Cargar lista de alumnos, evaluaciones, estructura académica y datos frescos del docente
   const loadData = async () => {
     setLoadingStudents(true)
     try {
-      const [all, evals, struct, freshTeacher, modulesCfg] = await Promise.all([
+      const [all, evals, struct, freshTeacher, modulesCfg, diagCfg] = await Promise.all([
         getAllUsers(),
         getOralEvaluations(),
         getAcademicStructure(),
         user?.email ? getUserProfile(user.email) : Promise.resolve(null),
-        getCoordinationModulesConfig()
+        getCoordinationModulesConfig(),
+        getDiagnosticConfig()
       ])
       setStudents((all || []).filter(u => u.role === 'student'))
       setEvaluations(evals || [])
       if (struct) setAcademic(struct)
       if (modulesCfg) setCoordinationModules(modulesCfg)
+      if (diagCfg) setDiagnosticConfig(diagCfg)
       if (freshTeacher) {
         setCurrentTeacher(prev => ({ ...(prev || {}), ...freshTeacher }))
         onUpdateCurrentUser?.(freshTeacher)
@@ -141,6 +150,52 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
       console.error('Error cargando alumnos en vista docente:', e)
     } finally {
       setLoadingStudents(false)
+    }
+  }
+
+  // Guardar Veredicto Final en Firebase Firestore y sincronizar localmente
+  const handleSaveFinalVerdict = async (verdictData) => {
+    try {
+      // 1. Actualización visual reactiva e inmediata
+      setStudents(prev => prev.map(s => {
+        if ((s.email || '').toLowerCase() === (verdictData.studentEmail || '').toLowerCase()) {
+          return {
+            ...s,
+            assignedLevel: verdictData.assignedLevel,
+            assignedGroup: verdictData.assignedGroup,
+            assignedCefr: verdictData.assignedCefr,
+            verdictJustification: verdictData.verdictJustification,
+            verdictByTeacher: verdictData.verdictByTeacher,
+            verdictDate: verdictData.verdictDate,
+            totalDiagnosticScore: verdictData.totalScorePercent,
+            evaluationCompleted: true
+          }
+        }
+        return s
+      }))
+
+      // 2. Guardar y persistir en Firebase Firestore
+      await registerOrUpdateUser({
+        email: verdictData.studentEmail,
+        assignedLevel: verdictData.assignedLevel,
+        assignedGroup: verdictData.assignedGroup,
+        assignedCefr: verdictData.assignedCefr,
+        verdictJustification: verdictData.verdictJustification,
+        verdictByTeacher: verdictData.verdictByTeacher,
+        verdictDate: verdictData.verdictDate,
+        totalDiagnosticScore: verdictData.totalScorePercent,
+        evaluationCompleted: true
+      })
+
+      // 3. Cerrar modal y notificar al profesor
+      setSelectedVerdictStudent(null)
+      alert(`✅ Veredicto guardado y sincronizado exitosamente en Firebase:\n\nEstudiante: ${verdictData.studentEmail}\nGrupo Oficial Asignado: ${verdictData.assignedGroup}\nNivel MCER: ${verdictData.assignedCefr}\nPuntaje Global: ${verdictData.totalScorePercent}%\nDocente: ${verdictData.verdictByTeacher}`)
+      
+      // Recargar datos para asegurar consistencia
+      await loadData()
+    } catch (err) {
+      console.error('Error guardando veredicto final en Firebase:', err)
+      alert('Error guardando veredicto: ' + err.message)
     }
   }
 
@@ -375,6 +430,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
   const menuItems = [
     { key: 'interview', label: 'Entrevista Oral (A1-C1)', icon: 'record_voice_over', badge: `${students.length}` },
+    { key: 'final_verdict', label: 'Veredicto Final (360°)', icon: 'gavel', badge: `${students.filter(s => Boolean(s.assignedLevel)).length}/${students.length}` },
     ...(isAnalyticsEnabled ? [{ key: 'analytics', label: 'Dashboard Analítico', icon: 'analytics', badge: `${students.filter(s => Boolean(s.assignedLevel)).length} eval.` }] : []),
     { key: 'security_audit', label: 'Alertas de Fraude y Pestaña', icon: 'security', badge: totalStudentsWithIncidents > 0 ? `${totalStudentsWithIncidents} alertas` : null },
     { key: 'interview_questions', label: 'Banco de Preguntas Orales', icon: 'quiz' },
@@ -1089,22 +1145,44 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                               <span>No se evalúa</span>
                                             </span>
                                           ) : isMyStudent ? (
-                                            <button
-                                              type="button"
-                                              onClick={() => handleStartInterview(s)}
-                                              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#2528b7] to-[#4f46e5] hover:brightness-110 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer"
-                                            >
-                                              <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
-                                              <span>{hasLevel ? 'Reevaluar' : 'Llamar'}</span>
-                                            </button>
+                                            <div className="flex items-center gap-1.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => setSelectedVerdictStudent(s)}
+                                                className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center gap-1 cursor-pointer transition-all"
+                                                title="Revisar notas consolidadas (plataforma + oral) y emitir veredicto final"
+                                              >
+                                                <span className="material-symbols-outlined text-[15px]">gavel</span>
+                                                <span>Veredicto</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleStartInterview(s)}
+                                                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#2528b7] to-[#4f46e5] hover:brightness-110 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer"
+                                              >
+                                                <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
+                                                <span>{hasLevel ? 'Reevaluar' : 'Llamar'}</span>
+                                              </button>
+                                            </div>
                                           ) : (
-                                            <span
-                                              className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs flex items-center gap-1 cursor-not-allowed select-none"
-                                              title={`Solo puede ser evaluado por ${s.assignedTeacher || 'su docente titular'}`}
-                                            >
-                                              <span className="material-symbols-outlined text-[15px]">lock</span>
-                                              <span>Otro Docente</span>
-                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => setSelectedVerdictStudent(s)}
+                                                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer transition-all"
+                                                title="Consultar notas consolidadas y veredicto"
+                                              >
+                                                <span className="material-symbols-outlined text-[15px]">gavel</span>
+                                                <span>Veredicto</span>
+                                              </button>
+                                              <span
+                                                className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs flex items-center gap-1 cursor-not-allowed select-none"
+                                                title={`Solo puede ser evaluado por ${s.assignedTeacher || 'su docente titular'}`}
+                                              >
+                                                <span className="material-symbols-outlined text-[15px]">lock</span>
+                                                <span>Otro Docente</span>
+                                              </span>
+                                            </div>
                                           )}
                                         </div>
                                       )
@@ -1186,6 +1264,518 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       </div>
                     </div>
 
+                  </div>
+                </div>
+              )}
+
+              {/* SECCIÓN 1.5: MESA DE VEREDICTO FINAL Y ASIGNACIÓN 360° */}
+              {currentSection === 'final_verdict' && (
+                <div className="space-y-6">
+                  {/* Encabezado informativo con Ponderaciones Dinámicas en Tiempo Real */}
+                  <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-[#1e1b4b] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                      <div className="space-y-2">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-emerald-300 text-xs font-bold border border-white/10">
+                          <span className="material-symbols-outlined text-[16px]">gavel</span>
+                          <span>Fase Final de Asignación Oficial 2026</span>
+                        </div>
+                        <h2 className="text-2xl lg:text-3xl font-black font-heading tracking-tight">
+                          Mesa de Veredicto Final (360°)
+                        </h2>
+                        <p className="text-emerald-100/80 text-xs sm:text-sm max-w-2xl leading-relaxed">
+                          Revisa el desempeño integral (Plataforma + Entrevista Oral), contrasta el <strong>nivel previo</strong> con el <strong>nivel asignado</strong>, y evalúa el progreso del alumno según los cortes oficiales.
+                        </p>
+                      </div>
+
+                      {/* Tarjetas de Métricas y Ponderaciones Dinámicas del Módulo "Ponderaciones y Cortes" */}
+                      <div className="flex flex-wrap items-center gap-3 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15">
+                        <div className="text-center px-2">
+                          <span className="text-[10px] uppercase font-bold text-emerald-200 block">Veredictos</span>
+                          <span className="text-2xl font-black text-white">
+                            {students.filter(s => Boolean(s.assignedLevel)).length}
+                          </span>
+                        </div>
+                        <div className="w-[1px] h-9 bg-white/20"></div>
+                        <div className="text-center px-2">
+                          <span className="text-[10px] uppercase font-bold text-amber-200 block">Pendientes</span>
+                          <span className="text-2xl font-black text-amber-300">
+                            {students.filter(s => !s.assignedLevel).length}
+                          </span>
+                        </div>
+                        <div className="w-[1px] h-9 bg-white/20"></div>
+                        <div className="text-left px-2">
+                          <span className="text-[10px] uppercase font-bold text-teal-200 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">tune</span>
+                            Ponderación Activa:
+                          </span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/30 text-blue-200 text-xs font-extrabold border border-blue-400/30">
+                              Plataforma: {diagnosticConfig?.weights?.platform ?? 60}%
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-purple-500/30 text-purple-200 text-xs font-extrabold border border-purple-400/30">
+                              Oral: {diagnosticConfig?.weights?.oral ?? 40}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* BARRA DE FILTROS EN TIEMPO REAL: GRADO, MAESTRO, SECCIÓN, ESTADO */}
+                  <div className="bg-surface-container-lowest rounded-3xl p-5 border border-outline-variant/30 shadow-sm space-y-3">
+                    {/* Fila 1: Botones Ovalados de Grado */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                        Grado:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGradePill('all')
+                          setCurrentPage(1)
+                        }}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                          gradePill === 'all'
+                            ? 'bg-[#2528b7] text-white shadow-sm'
+                            : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        Todos los Grados
+                      </button>
+                      {(academic.grades && academic.grades.length > 0 ? academic.grades : [
+                        { id: '6', label: '6°' },
+                        { id: '7', label: '7°' },
+                        { id: '8', label: '8°' },
+                        { id: '9', label: '9°' },
+                        { id: '10', label: '10°' },
+                        { id: '11', label: '11°' },
+                        { id: '12', label: '12°' }
+                      ]).map(g => {
+                        const shortLabel = g.id ? `${parseInt(g.id, 10)}°` : g.label
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={() => {
+                              setGradePill(g.id)
+                              setCurrentPage(1)
+                            }}
+                            className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                              gradePill === g.id
+                                ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
+                                : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            {shortLabel}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Fila 2: Filtro por Docente Titular */}
+                    <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-100">
+                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">school</span>
+                        Maestro:
+                      </span>
+                      {[
+                        { id: 'all', label: 'Todos los Maestros' },
+                        { id: 'ronald', label: 'Ronald Cardona', short: 'Teacher Ronald' },
+                        { id: 'silvia', label: 'Silvia Herrera', short: 'Teacher Silvia' },
+                        { id: 'nelsi', label: 'Nelsi Ramos', short: 'Teacher Nelsi' },
+                        { id: 'edgar', label: 'Edgar Pacheco', short: 'Teacher Edgar' }
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setTeacherFilter(t.id)
+                            setCurrentPage(1)
+                          }}
+                          className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            teacherFilter === t.id
+                              ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-200'
+                              : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          <span>{t.short || t.label}</span>
+                          {t.id !== 'all' && (
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                              teacherFilter === t.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                            }`}>
+                              {students.filter(s => (s.assignedTeacher || '').toLowerCase().includes(t.id)).length}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Fila 3: Filtro por Sección, Estado de Veredicto y Buscador */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-gray-100">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Secciones */}
+                        <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                          Sección:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSectionPill('all')
+                            setCurrentPage(1)
+                          }}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                            sectionPill === 'all'
+                              ? 'bg-indigo-900 text-white shadow-sm'
+                              : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          Todas
+                        </button>
+                        {(academic.sections && academic.sections.length > 0 ? academic.sections : ['A', 'B', 'C', 'D']).map(sec => (
+                          <button
+                            key={sec}
+                            type="button"
+                            onClick={() => {
+                              setSectionPill(sec)
+                              setCurrentPage(1)
+                            }}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                              sectionPill === sec
+                                ? 'bg-indigo-900 text-white shadow-sm ring-2 ring-indigo-200'
+                                : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            Sección {sec}
+                          </button>
+                        ))}
+
+                        <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
+
+                        {/* Filtro por Estado de Veredicto */}
+                        <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                          Estado:
+                        </span>
+                        {[
+                          { id: 'all', label: 'Todos' },
+                          { id: 'completed', label: 'Con Veredicto', color: 'bg-emerald-600' },
+                          { id: 'pending', label: 'Pendientes', color: 'bg-amber-600' }
+                        ].map(st => (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => {
+                              setStatusToggle(st.id)
+                              setCurrentPage(1)
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                              statusToggle === st.id
+                                ? `${st.color || 'bg-gray-800'} text-white shadow-xs`
+                                : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {st.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Buscador reactivo */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value)
+                            setCurrentPage(1)
+                          }}
+                          placeholder="Buscar carnet o nombre..."
+                          className="w-full sm:w-64 pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                        />
+                        <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">
+                          search
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tabla Principal de la Mesa de Veredicto */}
+                  <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
+                    <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50">
+                      <div>
+                        <h3 className="font-heading font-extrabold text-base text-gray-900 flex items-center gap-2">
+                          <span>Nómina para Veredicto Definitivo</span>
+                          <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black">
+                            {filteredStudents.length} alumnos filtrados
+                          </span>
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Calculando con ponderaciones dinámicas: <strong>{diagnosticConfig?.weights?.platform ?? 60}% Plataforma</strong> + <strong>{diagnosticConfig?.weights?.oral ?? 40}% Oral</strong>.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentSection('diagnostic_config')}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all border border-slate-300 cursor-pointer self-start sm:self-auto"
+                        title="Modificar ponderaciones y cortes institucionales"
+                      >
+                        <span className="material-symbols-outlined text-[16px] text-teal-700">tune</span>
+                        <span>Configurar Ponderaciones</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-200 bg-gray-100/70 text-[11px] font-black text-gray-600 uppercase tracking-wider">
+                            <th className="py-3 px-4">Alumno / Carnet</th>
+                            <th className="py-3 px-3">Grado / Sec.</th>
+                            <th className="py-3 px-3 text-center">Nivel Previo (Antes)</th>
+                            <th className="py-3 px-3 text-center">Plataforma ({diagnosticConfig?.weights?.platform ?? 60}%)</th>
+                            <th className="py-3 px-3 text-center">Oral ({diagnosticConfig?.weights?.oral ?? 40}%)</th>
+                            <th className="py-3 px-3 text-center">Nota Global</th>
+                            <th className="py-3 px-3 text-center">Nivel Oficial (Asignado)</th>
+                            <th className="py-3 px-3 text-center">Evolución</th>
+                            <th className="py-3 px-3">Maestro Asignado</th>
+                            <th className="py-3 px-4 text-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 text-xs">
+                          {paginatedStudents.length === 0 ? (
+                            <tr>
+                              <td colSpan="10" className="text-center py-12 text-gray-400 font-medium">
+                                No se encontraron alumnos con los filtros seleccionados.
+                              </td>
+                            </tr>
+                          ) : (
+                            paginatedStudents.map((s) => {
+                              const hasOfficial = Boolean(s.assignedLevel)
+                              const oralEval = evaluations.find(ev => (ev.studentEmail || '').toLowerCase() === (s.email || '').toLowerCase())
+
+                              // 1. Cálculo dinámico de plataforma según completedExams
+                              const completed = s.completedExams || {}
+                              const examEntries = Object.entries(completed)
+                              let totalQuestions = 0
+                              let totalCorrect = 0
+                              let sumPercent = 0
+                              examEntries.forEach(([_, exData]) => {
+                                if (typeof exData.scorePercent === 'number') {
+                                  sumPercent += exData.scorePercent
+                                } else if (exData.totalQuestions && exData.correctCount != null) {
+                                  totalQuestions += exData.totalQuestions
+                                  totalCorrect += exData.correctCount
+                                }
+                              })
+                              const platformPercent = examEntries.length > 0
+                                ? (totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : Math.round(sumPercent / examEntries.length))
+                                : 0
+
+                              // 2. Cálculo dinámico de oral
+                              const oralPercent = oralEval
+                                ? (typeof oralEval.oralScorePercent === 'number'
+                                    ? oralEval.oralScorePercent
+                                    : typeof oralEval.score === 'number'
+                                    ? oralEval.score
+                                    : typeof oralEval.scorePercent === 'number'
+                                    ? oralEval.scorePercent
+                                    : (oralEval.finalLevel === 'A1' ? 40 : oralEval.finalLevel === 'A2' ? 60 : oralEval.finalLevel === 'B1' ? 80 : oralEval.finalLevel === 'B2' ? 95 : 100))
+                                : (typeof s.oralScorePercent === 'number' ? s.oralScorePercent : (typeof s.oralInterviewScore === 'number' ? s.oralInterviewScore : 0))
+
+                              // 3. Nota ponderada según configuración dinámica
+                              const wP = (diagnosticConfig?.weights?.platform ?? 60) / 100
+                              const wO = (diagnosticConfig?.weights?.oral ?? 40) / 100
+                              const globalWeightedScore = Math.min(100, Math.max(0, Math.round((platformPercent * wP) + (oralPercent * wO))))
+
+                              // Nivel previo (antes de la prueba)
+                              const isSixth = (s.grade || '').includes('6°') || s.codigoGrado === '06' || s.codigoGrado === '6'
+                              const prevLevel = isSixth ? 'Asignación 7°' : (s.currentLevel && s.currentLevel !== 'Sin Nivel' ? s.currentLevel : '-')
+
+                              // Comparativa de progreso
+                              const newLevel = s.assignedLevel || null
+
+                              return (
+                                <tr key={s.id || s.carnet} className="hover:bg-slate-50/80 transition-colors">
+                                  {/* Alumno */}
+                                  <td className="py-3 px-4">
+                                    <div className="font-extrabold text-gray-900">{s.name}</div>
+                                    <div className="text-[11px] text-gray-500 font-mono">{s.carnet} • {s.email}</div>
+                                  </td>
+
+                                  {/* Grado y Sección */}
+                                  <td className="py-3 px-3 whitespace-nowrap">
+                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-gray-100 text-gray-700">
+                                      {s.grade || s.codigoGrado || '-'} {s.section || ''}
+                                    </span>
+                                  </td>
+
+                                  {/* Nivel Previo (Antes) */}
+                                  <td className="py-3 px-3 text-center whitespace-nowrap">
+                                    {isSixth ? (
+                                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                        Asignación 7°
+                                      </span>
+                                    ) : s.currentLevel && s.currentLevel !== 'Sin Nivel' ? (
+                                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-700 border border-slate-300">
+                                        {s.currentLevel}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs">-</span>
+                                    )}
+                                  </td>
+
+                                  {/* Plataforma con % dinámico */}
+                                  <td className="py-3 px-3 text-center">
+                                    {examEntries.length > 0 ? (
+                                      <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                                        {platformPercent}%
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] text-gray-400 italic">Pendiente</span>
+                                    )}
+                                  </td>
+
+                                  {/* Oral con % dinámico */}
+                                  <td className="py-3 px-3 text-center">
+                                    {oralEval || s.oralInterviewScore != null || s.oralScorePercent != null ? (
+                                      <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
+                                        {oralPercent}%
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] text-gray-400 italic">Sin evaluar</span>
+                                    )}
+                                  </td>
+
+                                  {/* Nota Global Ponderada */}
+                                  <td className="py-3 px-3 text-center">
+                                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-black ${
+                                      globalWeightedScore >= (diagnosticConfig?.cutoffs?.intermediateMax || 75)
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        : globalWeightedScore >= (diagnosticConfig?.cutoffs?.basicMax || 45)
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    }`}>
+                                      {globalWeightedScore}%
+                                    </span>
+                                  </td>
+
+                                  {/* Nivel Asignado Oficial (Veredicto) */}
+                                  <td className="py-3 px-3 text-center whitespace-nowrap">
+                                    {hasOfficial ? (
+                                      <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-emerald-600 text-white shadow-2xs">
+                                        {s.assignedLevel}
+                                      </span>
+                                    ) : (
+                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                        Pendiente
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* Indicador de Progreso / Evolución */}
+                                  <td className="py-3 px-3 text-center whitespace-nowrap">
+                                    {hasOfficial ? (
+                                      !prevLevel || prevLevel === '-' || isSixth ? (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                          <span>★ Inicial</span>
+                                        </span>
+                                      ) : newLevel > prevLevel || (newLevel.includes('B') && prevLevel.includes('A')) ? (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200" title={`Avanzó de ${prevLevel} a ${newLevel}`}>
+                                          <span className="material-symbols-outlined text-[13px] text-emerald-600">trending_up</span>
+                                          <span>Mejoró</span>
+                                        </span>
+                                      ) : newLevel === prevLevel ? (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200" title={`Mantiene nivel ${newLevel}`}>
+                                          <span className="material-symbols-outlined text-[13px] text-blue-600">equal</span>
+                                          <span>Mantuvo</span>
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200" title={`Ajuste pedagógico de ${prevLevel} a ${newLevel}`}>
+                                          <span className="material-symbols-outlined text-[13px] text-slate-500">sync_alt</span>
+                                          <span>Ajustado</span>
+                                        </span>
+                                      )
+                                    ) : (
+                                      <span className="text-gray-300 text-xs">-</span>
+                                    )}
+                                  </td>
+
+                                  {/* Maestro Asignado */}
+                                  <td className="py-3 px-3 whitespace-nowrap text-gray-700 text-xs">
+                                    {s.assignedTeacher ? (
+                                      <span className="inline-flex items-center gap-1 font-semibold">
+                                        <span>👨‍🏫</span>
+                                        <span>{s.assignedTeacher}</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400 italic">Sin asignar</span>
+                                    )}
+                                  </td>
+
+                                  {/* Acción */}
+                                  <td className="py-3 px-4 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedVerdictStudent(s)}
+                                      className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 ml-auto cursor-pointer shadow-xs transition-all ${
+                                        hasOfficial
+                                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300'
+                                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                                      }`}
+                                    >
+                                      <span className="material-symbols-outlined text-[16px]">gavel</span>
+                                      <span>{hasOfficial ? 'Editar Veredicto' : 'Emitir Veredicto'}</span>
+                                    </button>
+                                  </td>
+                                </tr>
+                              )
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* PAGINACIÓN VEREDICTO */}
+                    <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+                      <span className="text-xs text-gray-500">
+                        Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong> ({filteredStudents.length} total)
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={currentPage <= 1}
+                          onClick={() => setCurrentPage(1)}
+                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                        >
+                          «
+                        </button>
+                        <button
+                          type="button"
+                          disabled={currentPage <= 1}
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                        >
+                          Anterior
+                        </button>
+                        <span className="px-3 py-1.5 text-xs font-extrabold text-[#2528b7]">
+                          {currentPage} / {totalPages}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                        >
+                          Siguiente
+                        </button>
+                        <button
+                          type="button"
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setCurrentPage(totalPages)}
+                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                        >
+                          »
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1500,6 +2090,26 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                   </td>
                                   <td className="py-3.5 px-3 text-right whitespace-nowrap">
                                     <div className="flex items-center justify-end gap-1.5">
+                                      {/* BOTÓN VEREDICTO FINAL */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const matchedStudent = students.find(s => (s.email || '').toLowerCase() === (ev.studentEmail || '').toLowerCase()) || {
+                                            name: ev.studentName,
+                                            email: ev.studentEmail,
+                                            carnet: ev.studentCarnet,
+                                            grade: ev.grade,
+                                            section: ev.section
+                                          }
+                                          setSelectedVerdictStudent(matchedStudent)
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                        title="Revisar notas consolidadas y emitir veredicto final"
+                                      >
+                                        <span className="material-symbols-outlined text-[15px]">gavel</span>
+                                        <span>Veredicto</span>
+                                      </button>
+
                                       {/* BOTÓN VER DETALLES DE RÚBRICA */}
                                       <button
                                         type="button"
@@ -2067,7 +2677,12 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
               {/* SECCIÓN NUEVA: PONDERACIONES Y CORTES 2026 */}
               {currentSection === 'diagnostic_config' && (
-                <DiagnosticConfigManager canEdit={true} />
+                <DiagnosticConfigManager
+                  canEdit={true}
+                  onConfigSaved={(updatedCfg) => {
+                    setDiagnosticConfig(updatedCfg)
+                  }}
+                />
               )}
 
               {/* SECCIÓN 4: MI PERFIL DOCENTE */}
@@ -2373,6 +2988,18 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* MODAL 360° DE VEREDICTO FINAL Y ASIGNACIÓN DE NIVEL */}
+              {selectedVerdictStudent && (
+                <FinalVerdictModal
+                  student={selectedVerdictStudent}
+                  oralEvaluation={evaluations.find(e => (e.studentEmail || '').toLowerCase() === (selectedVerdictStudent.email || '').toLowerCase())}
+                  diagnosticConfig={diagnosticConfig}
+                  currentTeacher={currentTeacher}
+                  onSaveVerdict={handleSaveFinalVerdict}
+                  onClose={() => setSelectedVerdictStudent(null)}
+                />
               )}
             </>
           )}

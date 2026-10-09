@@ -48,6 +48,9 @@ export default function ExamBuilder({ onPublished }) {
   const [audioModalExam, setAudioModalExam] = useState(null)
   const [quickEditModal, setQuickEditModal] = useState(null) // { id, title, timeLimitMinutes, weight }
   const [savingQuickEdit, setSavingQuickEdit] = useState(false)
+  const [batchWeightsModal, setBatchWeightsModal] = useState(false)
+  const [batchWeightsMap, setBatchWeightsMap] = useState({})
+  const [savingBatchWeights, setSavingBatchWeights] = useState(false)
 
   // Modo de configuración de ponderación:
   // 'internal_100': Los tests se reparten un 100% interno de la batería (y se escala automáticamente al % de plataforma)
@@ -260,17 +263,36 @@ export default function ExamBuilder({ onPublished }) {
                 Total Asignado: {allocatedWeightOtherExams}% de {targetBudget}% (Batería de Tests)
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode('create')
-                setStep(1)
-              }}
-              className="text-xs font-bold text-[#2528b7] hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px]">add</span>
-              <span>Crear otro examen</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const initialMap = {}
+                  existingExams.forEach(e => {
+                    initialMap[e.id] = Number(e.weight) || 0
+                  })
+                  setBatchWeightsMap(initialMap)
+                  setBatchWeightsModal(true)
+                }}
+                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-[#2528b7] border border-indigo-200 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title="Ajustar y balancear los porcentajes de todos los exámenes en una sola pantalla"
+              >
+                <span className="material-symbols-outlined text-[16px]">tune</span>
+                <span>Editar Todos los Porcentajes (%)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode('create')
+                  setStep(1)
+                }}
+                className="text-xs font-bold text-[#2528b7] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                <span>Crear otro examen</span>
+              </button>
+            </div>
           </div>
 
           {existingExams.length === 0 ? (
@@ -300,10 +322,23 @@ export default function ExamBuilder({ onPublished }) {
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-50 text-[#2528b7] border border-indigo-200">
                         Nivel {ex.level || 'A1'}
                       </span>
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600">
-                        <span className="material-symbols-outlined text-[15px] text-indigo-600">percent</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuickEditModal({
+                            id: ex.id,
+                            title: ex.title,
+                            timeLimitMinutes: ex.timeLimitMinutes || 15,
+                            weight: ex.weight || 15
+                          })
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold transition-all cursor-pointer shadow-2xs hover:scale-105"
+                        title="Haz clic para modificar el porcentaje (%) y tiempo de este examen"
+                      >
+                        <span className="material-symbols-outlined text-[15px] text-amber-700">percent</span>
                         <span>{ex.weight || 15}% peso</span>
-                      </div>
+                        <span className="material-symbols-outlined text-[13px] text-amber-600">edit</span>
+                      </button>
                     </div>
 
                     <h5 className="font-heading font-extrabold text-sm text-gray-900 leading-snug">
@@ -575,6 +610,161 @@ export default function ExamBuilder({ onPublished }) {
                   >
                     <span className="material-symbols-outlined text-[16px]">save</span>
                     <span>{savingQuickEdit ? 'Guardando...' : 'Guardar Ajuste'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal para Edición Integral y Balanceo de Todos los Porcentajes */}
+          {batchWeightsModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-fadeIn">
+              <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl border border-slate-200 text-left space-y-4 animate-scaleUp">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 text-[#2528b7] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[20px]">percent</span>
+                    </span>
+                    <div>
+                      <h4 className="font-heading font-extrabold text-sm text-slate-900 leading-tight">
+                        Modificar Porcentajes de Evaluaciones
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Ajusta el peso (%) individual de cada test de la batería
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBatchWeightsModal(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">close</span>
+                  </button>
+                </div>
+
+                {/* Resumen de suma total */}
+                {(() => {
+                  const sumWeights = Object.values(batchWeightsMap).reduce((acc, val) => acc + (Number(val) || 0), 0)
+                  const is100 = sumWeights === 100
+                  return (
+                    <div className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs ${
+                      is100
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                        : sumWeights > 100
+                        ? 'bg-rose-50 border-rose-200 text-rose-900'
+                        : 'bg-amber-50 border-amber-200 text-amber-900'
+                    }`}>
+                      <div className="flex items-center gap-2 font-bold">
+                        <span className="material-symbols-outlined text-[18px]">
+                          {is100 ? 'check_circle' : sumWeights > 100 ? 'error' : 'info'}
+                        </span>
+                        <span>Total Acumulado de la Batería:</span>
+                      </div>
+                      <div className="font-mono font-black text-sm">
+                        {sumWeights}% / 100%
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Lista de exámenes con input numérico directo */}
+                <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                  {existingExams.map((ex, idx) => {
+                    const currentVal = batchWeightsMap[ex.id] ?? (Number(ex.weight) || 0)
+                    return (
+                      <div
+                        key={ex.id || idx}
+                        className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 hover:bg-slate-100/70 transition-colors"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Test {idx + 1} • {ex.level || 'A1-C1'}
+                          </span>
+                          <h5 className="font-bold text-xs text-slate-800 truncate" title={ex.title}>
+                            {ex.title}
+                          </h5>
+                          <span className="text-[10px] text-slate-500">
+                            {(ex.questions || []).length} reactivos • {ex.timeLimitMinutes || 15} min
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={currentVal}
+                            onChange={(e) => {
+                              const val = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0))
+                              setBatchWeightsMap(prev => ({
+                                ...prev,
+                                [ex.id]: val
+                              }))
+                            }}
+                            className="w-16 px-2 py-1.5 rounded-xl border border-indigo-300 text-xs font-black text-center bg-white shadow-xs focus:ring-2 focus:ring-indigo-400 outline-none"
+                          />
+                          <span className="text-xs font-bold text-slate-600">%</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Acciones de balanceo rápido: Distribuir equitativamente */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (existingExams.length === 0) return
+                      const base = Math.floor(100 / existingExams.length)
+                      const remainder = 100 % existingExams.length
+                      const distributed = {}
+                      existingExams.forEach((e, idx) => {
+                        distributed[e.id] = base + (idx < remainder ? 1 : 0)
+                      })
+                      setBatchWeightsMap(distributed)
+                    }}
+                    className="text-[11px] font-bold text-[#2528b7] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">balance</span>
+                    <span>Repartir equitativamente (100% parejo)</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setBatchWeightsModal(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingBatchWeights}
+                    onClick={async () => {
+                      setSavingBatchWeights(true)
+                      try {
+                        for (const ex of existingExams) {
+                          const newWeight = batchWeightsMap[ex.id]
+                          if (newWeight !== undefined && newWeight !== ex.weight) {
+                            await updateExamSettings(ex.id, { weight: newWeight })
+                          }
+                        }
+                        await loadExistingExamsAndConfig()
+                        setBatchWeightsModal(false)
+                        alert('✅ Ponderaciones y porcentajes actualizados exitosamente.')
+                      } catch (err) {
+                        alert('Error al guardar ponderaciones: ' + err.message)
+                      } finally {
+                        setSavingBatchWeights(false)
+                      }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-[#2528b7] hover:brightness-110 text-white text-xs font-black shadow-md transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    <span>{savingBatchWeights ? 'Guardando...' : 'Guardar Todos los Porcentajes'}</span>
                   </button>
                 </div>
               </div>

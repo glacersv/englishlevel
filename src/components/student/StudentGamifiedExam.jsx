@@ -204,11 +204,11 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        logIncident('tab_switch', 'Cambió de pestaña o minimizó el navegador')
+        logIncident('tab_switch', 'Switched tab or minimized browser window')
         setTabSwitchWarnings(prev => {
           const newCount = prev + 1
           setSecurityNotice(
-            `⚠️ ALERTA DE SEGURIDAD #${newCount}: Has cambiado de pestaña o minimizado la ventana del examen. Esta incidencia queda registrada en tu bitácora de evaluación para revisión docente.`
+            `⚠️ SECURITY ALERT #${newCount}: You switched tabs or minimized the assessment window. This incident is being logged in your assessment record for teacher review.`
           )
           setSecurityModalVisible(true)
           return newCount
@@ -217,12 +217,12 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
 
     const handleWindowBlur = () => {
-      if (document.hidden) return // ya cubierto por visibilitychange
-      logIncident('window_blur', 'Perdió el foco de la pantalla del examen (abrió otra app o ventana)')
+      if (document.hidden) return // already covered by visibilitychange
+      logIncident('window_blur', 'Lost focus from assessment window (opened another app or window)')
       setTabSwitchWarnings(prev => {
         const newCount = prev + 1
         setSecurityNotice(
-          `⚠️ ALERTA DE SEGURIDAD #${newCount}: Saliste del foco del examen hacia otra ventana o aplicación. Por favor permanece dentro de la prueba.`
+          `⚠️ SECURITY ALERT #${newCount}: You left the assessment window focus. Please remain within the test.`
         )
         setSecurityModalVisible(true)
         return newCount
@@ -238,15 +238,15 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }, [activeExam, currentQuestionIndex])
 
-  // 5. PROTECCIÓN CONTRA ATAJOS DE TECLADO (Copiar, Cortar, Captura de pantalla, Inspeccionar)
+  // 5. KEYBOARD SHORTCUT RESTRICTIONS (Copy, Cut, Screenshots, Inspect)
   useEffect(() => {
     if (!activeExam) return
 
     const handleKeyDown = (e) => {
-      // Bloquear teclas de captura de pantalla: PrintScreen
+      // Block screenshot keys: PrintScreen
       if (e.key === 'PrintScreen' || e.keyCode === 44) {
         e.preventDefault()
-        setSecurityNotice('🔒 Acción denegada: Las capturas de pantalla están estrictamente bloqueadas durante la evaluación.')
+        setSecurityNotice('🔒 Action restricted: Screenshots are strictly blocked during the assessment.')
         setSecurityModalVisible(true)
         if (navigator.clipboard) {
           navigator.clipboard.writeText('').catch(() => {})
@@ -254,20 +254,20 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
         return false
       }
 
-      // Bloquear Ctrl+C (Copiar), Ctrl+X (Cortar), Ctrl+U (Ver código fuente), Ctrl+Shift+I / F12 (Inspeccionar)
+      // Block Ctrl+C (Copy), Ctrl+X (Cut), Ctrl+U (View Source), Ctrl+Shift+I / F12 (Inspect)
       if (
         (e.ctrlKey || e.metaKey) &&
         ['c', 'C', 'x', 'X', 'u', 'U', 's', 'S', 'p', 'P'].includes(e.key)
       ) {
         e.preventDefault()
-        setSecurityNotice(`🔒 Acción restringida: La combinación Ctrl+${e.key.toUpperCase()} está inhabilitada por protocolo de seguridad.`)
+        setSecurityNotice(`🔒 Restricted action: The Ctrl+${e.key.toUpperCase()} shortcut is disabled for security protocol.`)
         setSecurityModalVisible(true)
         return false
       }
 
       if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key))) {
         e.preventDefault()
-        setSecurityNotice('🔒 El acceso a herramientas de inspección técnica se encuentra bloqueado.')
+        setSecurityNotice('🔒 Access to developer / inspection tools is blocked.')
         setSecurityModalVisible(true)
         return false
       }
@@ -290,7 +290,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   // Iniciar un examen de la batería (solo si no ha sido completado)
   const handleStartExam = (exam) => {
     if (completedExams[exam.id]) {
-      alert('🔒 Ya has enviado y completado este test previamente. Por directriz académica, cada instrumento de la prueba solo puede presentarse una vez.')
+      alert('🔒 You have already completed and submitted this test. By academic policy, each test instrument can only be taken once.')
       return
     }
     setActiveExam(exam)
@@ -491,33 +491,33 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     return matchGrade && matchSection
   })()
 
-  // Menú dinámico del alumno
+  // Dynamic student navigation menu
   const studentMenuItems = [
     {
       key: 'interview',
-      label: 'Entrevista Oral (Docente)',
+      label: 'Oral Interview (Teacher)',
       icon: 'record_voice_over',
-      badge: isInterviewActiveForStudent ? '🎙️ En Turno' : 'Presencial'
+      badge: isInterviewActiveForStudent ? '🎙️ In Turn' : 'In-person'
     },
     {
       key: 'battery',
-      label: 'Batería de Tests Digitales',
+      label: 'Digital Test Battery',
       icon: 'quiz',
-      badge: isPlatformPausedForStudent ? '⏸️ En Pausa' : isPlatformFinishedForStudent ? '⏹️ Cerrado' : `${totalCompletedCount}/${examsList.length} Listos`
+      badge: isPlatformPausedForStudent ? '⏸️ Paused' : isPlatformFinishedForStudent ? '⏹️ Closed' : `${totalCompletedCount}/${examsList.length} Completed`
     },
     {
       key: 'results',
-      label: 'Estado de Colocación',
+      label: 'Placement Status',
       icon: 'military_tech',
-      badge: isPlacementFullyConcluded ? 'Listo' : 'En Proceso'
+      badge: isPlacementFullyConcluded ? 'Ready' : 'In Progress'
     },
   ]
 
   return (
     <div className="flex h-screen bg-[#f8fafc] font-sans overflow-hidden">
-      {/* Menú Lateral Institucional del Estudiante */}
+      {/* Student Institutional Sidebar */}
       <Sidebar
-        title="Estudiante Salesiano"
+        title="Student Portal"
         subtitle="Colegio Salesiano San José"
         icon="school"
         menuItems={studentMenuItems}
@@ -534,22 +534,25 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
           role: 'student'
         }}
         onLogout={onLogout}
+        logoutLabel="Sign Out"
+        collapseTooltip="Collapse sidebar"
+        expandTooltip="Expand sidebar"
       />
 
-      {/* Área Principal con Header y Contenido */}
+      {/* Main Container */}
       <div className="flex-1 flex flex-col h-full overflow-y-auto">
         <header className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between sticky top-0 z-20 shadow-xs">
           <div className="flex items-center gap-3">
             <h1 className="font-heading font-extrabold text-base md:text-lg text-gray-900">
-              {activeExam ? activeExam.title : (studentMenuItems.find(m => m.key === currentSection)?.label || 'Batería Diagnóstica')}
+              {activeExam ? activeExam.title : (studentMenuItems.find(m => m.key === currentSection)?.label || 'Diagnostic Battery')}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-800">
-              Colocación 2027
+              Placement 2027
             </span>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Si hay un examen activo con temporizador */}
+            {/* Active exam countdown timer */}
             {activeExam && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white font-mono text-xs font-bold shadow-xs">
                 <span className="material-symbols-outlined text-[16px] text-amber-400 animate-pulse">timer</span>
@@ -559,14 +562,14 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
             <div className="hidden sm:block text-right">
               <span className="text-xs font-bold text-gray-800 block leading-tight">{student.name}</span>
-              <span className="text-[10px] text-gray-500 font-mono">Carnet: {student.carnet || 'N/A'}</span>
+              <span className="text-[10px] text-gray-500 font-mono">ID: {student.carnet || 'N/A'}</span>
             </div>
             <button
               onClick={onLogout}
               className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-all flex items-center gap-1 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[16px]">logout</span>
-              <span>Salir</span>
+              <span>Sign Out</span>
             </button>
           </div>
         </header>
@@ -575,7 +578,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
         <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
           <div className="max-w-3xl w-full mx-auto my-auto">
 
-            {/* Modal de Advertencia de Seguridad / Cambio de Pestaña / Captura */}
+            {/* Security Warning Modal / Tab Switch / Screenshot */}
             {securityModalVisible && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-fadeIn">
                 <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-2 border-rose-500 text-center space-y-5 animate-scaleUp">
@@ -585,10 +588,10 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
                   <div className="space-y-2">
                     <span className="inline-block px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800">
-                      Advertencia de Seguridad Académica
+                      Academic Security Warning
                     </span>
                     <h3 className="text-lg font-heading font-black text-slate-900 leading-snug">
-                      Incidencia Registrada en la Prueba
+                      Security Incident Recorded
                     </h3>
                     <p className="text-xs text-slate-600 leading-relaxed font-medium">
                       {securityNotice}
@@ -598,7 +601,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                   <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-left flex items-start gap-2.5 text-[11px] text-amber-900 leading-tight">
                     <span className="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">warning</span>
                     <span>
-                      Por directriz de evaluación, no está permitido abandonar la pestaña, copiar reactivos ni realizar capturas. Cada evento queda registrado en tu bitácora de examen.
+                      Under assessment guidelines, switching tabs, copying test items, or capturing screenshots is not permitted. Each event is recorded in your evaluation log.
                     </span>
                   </div>
 
@@ -607,14 +610,14 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     onClick={() => setSecurityModalVisible(false)}
                     className="w-full py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <span>Entendido, regresar a mi prueba</span>
+                    <span>Understood, return to my test</span>
                     <span className="material-symbols-outlined text-[16px]">check</span>
                   </button>
                 </div>
               </div>
             )}
 
-            {/* ================= PANTALLA DE PAUSA GENERAL O POR GRADO (ACTIVADA POR LAS TEACHERS) ================= */}
+            {/* ================= PLATFORM PAUSE SCREEN (TEACHER CONTROLLED) ================= */}
             {isPlatformPausedForStudent && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
                 <div className="bg-white rounded-[32px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-amber-400 text-center space-y-6 animate-scaleUp">
@@ -624,38 +627,38 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
                   <div className="space-y-2">
                     <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-900">
-                      Evaluación en Pausa • Espera Docente
+                      Assessment Paused • Awaiting Teacher
                     </span>
                     <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
                       {gradeControl.platformStatus === 'paused'
-                        ? `La plataforma de ${studentGradeKey}° Grado está pausada`
-                        : 'El examen se encuentra pausado por el docente'}
+                        ? `Grade ${studentGradeKey} platform is paused`
+                        : 'The test is currently paused by the teacher'}
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                      Tu tiempo ha sido congelado. Espera la indicación de tu profesor para continuar.
+                      Your time has been frozen. Please wait for your teacher's instructions to resume.
                     </p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2 text-xs text-slate-600">
                     <div className="flex items-center gap-2 font-bold text-slate-800">
                       <span className="material-symbols-outlined text-emerald-600 text-[18px]">verified_user</span>
-                      <span>Tu progreso no se perderá:</span>
+                      <span>Your progress is safe:</span>
                     </div>
                     <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-500 pl-1">
-                      <li>El tiempo restante de tu prueba se reanudará exactamente donde quedó.</li>
-                      <li>La prueba se reanudará en tu pantalla en el momento en que las teachers inicien el grado o habiliten tu usuario.</li>
-                      <li>Tus respuestas previas están guardadas de manera segura.</li>
+                      <li>Remaining test time will resume exactly where it was paused.</li>
+                      <li>The test will automatically resume on your screen once teachers restart your grade or section.</li>
+                      <li>All your previous answers are securely saved.</li>
                     </ul>
                   </div>
 
                   <div className="text-[11px] font-mono text-slate-400">
-                    Sincronización en tiempo real activa • Esperando reanudación...
+                    Real-time synchronization active • Waiting for teacher resume...
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ================= PANTALLA DE GRADO FINALIZADO ================= */}
+            {/* ================= ASSESSMENT CONCLUDED SCREEN ================= */}
             {isPlatformFinishedForStudent && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
                 <div className="bg-white rounded-[32px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-rose-500 text-center space-y-6 animate-scaleUp">
@@ -665,13 +668,13 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
                   <div className="space-y-2">
                     <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-900">
-                      Evaluación Concluida por Docente
+                      Assessment Concluded by Teacher
                     </span>
                     <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
-                      La prueba de plataforma para tu grado ha sido cerrada
+                      The assessment session for your grade has closed
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                      El periodo de evaluación en plataforma ha finalizado oficialmente. Las respuestas enviadas hasta este momento fueron registradas satisfactoriamente.
+                      The official testing window has ended. Answers submitted up to this moment have been successfully recorded.
                     </p>
                   </div>
 
@@ -686,7 +689,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                       }}
                       className="px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-lg transition-all cursor-pointer"
                     >
-                      Aceptar y ver estado
+                      Acknowledge & View Status
                     </button>
                   </div>
                 </div>
@@ -731,15 +734,15 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
                 return (
                   <div className="space-y-5 animate-fadeIn text-left exam-secure-mode select-none">
-                    {/* Barra de progreso superior del examen de audio */}
+                    {/* Audio assessment top progress bar */}
                     <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                           <span>
-                            Audio {currentGroupIndex + 1} de {audioGroups.length} • {currentGroup?.questions.length} preguntas en esta pantalla
+                            Audio {currentGroupIndex + 1} of {audioGroups.length} • {currentGroup?.questions.length} questions on this screen
                           </span>
                           <span className="text-indigo-700 font-mono">
-                            Total respondidas: {totalAnsweredQuestions} de {totalExamQuestions}
+                            Total answered: {totalAnsweredQuestions} of {totalExamQuestions}
                           </span>
                         </div>
                         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -750,14 +753,14 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                         </div>
                       </div>
 
-                      {/* Indicador de Examen en Curso */}
+                      {/* Active Test Status Badge */}
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 text-[11px] font-black border border-indigo-200 shrink-0 self-start sm:self-auto">
                         <span className="material-symbols-outlined text-[15px] animate-spin">sync</span>
-                        <span>Evaluación de Audio</span>
+                        <span>Audio Assessment</span>
                       </div>
                     </div>
 
-                    {/* Componente del grupo de audio: 1 Reproductor + TODAS las preguntas en la misma ventana */}
+                    {/* Audio group component */}
                     {currentGroup && (
                       <div className="exam-secure-mode select-none">
                         <AudioGroupPlayer
@@ -769,7 +772,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                       </div>
                     )}
 
-                    {/* Botones de navegación entre audios */}
+                    {/* Audio navigation buttons */}
                     <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center justify-between gap-2">
                       <button
                         type="button"
@@ -781,13 +784,13 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                         className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                        <span>Audio Anterior</span>
+                        <span>Previous Audio</span>
                       </button>
 
                       <span className="text-xs text-slate-500 font-medium hidden sm:inline">
                         {groupAnsweredQuestions === currentGroup?.questions.length
-                          ? '✓ Todas respondidas en esta pantalla'
-                          : `${groupAnsweredQuestions} de ${currentGroup?.questions.length} respondidas en este audio`}
+                          ? '✓ All answered on this screen'
+                          : `${groupAnsweredQuestions} of ${currentGroup?.questions.length} answered in this audio`}
                       </span>
 
                       {isLastGroup ? (
@@ -797,7 +800,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                           className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                          <span>Completar Test</span>
+                          <span>Submit Test</span>
                         </button>
                       ) : (
                         <button
@@ -808,7 +811,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                           }}
                           className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
-                          <span>Siguiente Audio / Preguntas</span>
+                          <span>Next Audio / Questions</span>
                           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                         </button>
                       )}
@@ -817,19 +820,19 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                 )
               }
 
-              // Si es otro tipo de examen (Sentence Scramble, Cloze, etc.), se mantiene navegación individual estándar
+              // Standard single question navigation (Sentence Scramble, Cloze, etc.)
               const currentQ = activeExam.questions[currentQuestionIndex]
               const isAnswered = currentExamAnswers[currentQ?.id] != null
               const isLast = currentQuestionIndex === activeExam.questions.length - 1
 
               return (
                 <div className="space-y-4 animate-fadeIn text-left exam-secure-mode select-none">
-                  {/* Barra de progreso superior del examen */}
+                  {/* Top Progress bar */}
                   <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex items-center justify-between gap-3">
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                        <span>Pregunta {currentQuestionIndex + 1} de {activeExam.questions.length}</span>
-                        <span className="text-blue-700 font-mono">Nivel Reactivo: {currentQ?.level || 'A1-C1'}</span>
+                        <span>Question {currentQuestionIndex + 1} of {activeExam.questions.length}</span>
+                        <span className="text-blue-700 font-mono">Item Level: {currentQ?.level || 'A1-C1'}</span>
                       </div>
                       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                         <div
@@ -839,14 +842,14 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                       </div>
                     </div>
 
-                    {/* Indicador de Examen en Curso */}
+                    {/* Progress indicator */}
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-[11px] font-black border border-blue-200 shrink-0">
                       <span className="material-symbols-outlined text-[15px] animate-spin">sync</span>
-                      <span>Evaluación en Curso</span>
+                      <span>Test in Progress</span>
                     </div>
                   </div>
 
-                  {/* Reproductor de la pregunta individual */}
+                  {/* Individual Question Player */}
                   {currentQ && (
                     <div className="exam-secure-mode select-none">
                       <QuestionPlayer
@@ -859,7 +862,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     </div>
                   )}
 
-                  {/* Botones de navegación del alumno: Anterior, Siguiente o Finalizar Test */}
+                  {/* Student Navigation Controls */}
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center justify-between">
                     <button
                       type="button"
@@ -868,11 +871,11 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                       className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                      <span>Pregunta Anterior</span>
+                      <span>Previous Question</span>
                     </button>
 
                     <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-                      {isAnswered ? '✓ Respondida' : '○ Pendiente'}
+                      {isAnswered ? '✓ Answered' : '○ Pending'}
                     </span>
 
                     {isLast ? (
@@ -882,7 +885,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                         className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                        <span>Completar Test</span>
+                        <span>Submit Test</span>
                       </button>
                     ) : (
                       <button
@@ -890,7 +893,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                         onClick={() => setCurrentQuestionIndex(i => Math.min(activeExam.questions.length - 1, i + 1))}
                         className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <span>Siguiente Pregunta</span>
+                        <span>Next Question</span>
                         <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </button>
                     )}
@@ -900,36 +903,36 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
             })() : currentSection === 'battery' ? (
               /* ================= VISTA B: LISTADO COMPLETO DE LOS 6 TESTS OFICIALES ================= */
               <div className="space-y-6 animate-fadeIn text-left">
-                {/* Resumen del conjunto de tests */}
+                {/* Test battery summary header */}
                 <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                     <div>
                       <h2 className="font-heading font-extrabold text-xl text-slate-900">
-                        Batería Oficial de Tests Diagnósticos
+                        Official Diagnostic Test Battery
                       </h2>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Instrumentos estandarizados configurados por los docentes (A1 a C1).
+                        Standardized instruments configured by your English teachers (A1 to C1).
                       </p>
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/80 text-center">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tiempo Total</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Time</span>
                         <span className="text-sm font-extrabold text-slate-800 font-mono">{totalBatteryMinutes} min</span>
                       </div>
                       <div className="px-3.5 py-2 rounded-2xl bg-blue-50 border border-blue-100 text-center">
-                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">Total Reactivos</span>
-                        <span className="text-sm font-extrabold text-blue-900 font-mono">{totalBatteryQuestions} preg.</span>
+                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">Total Items</span>
+                        <span className="text-sm font-extrabold text-blue-900 font-mono">{totalBatteryQuestions} q's</span>
                       </div>
                     </div>
                   </div>
 
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Puedes resolver cada test en el orden que prefieras. Cada prueba cuenta con su propio temporizador individual asignado por el docente evaluador.
+                    You can take each test in any order you prefer. Each instrument features its own individual timer managed by the evaluating teacher.
                   </p>
                 </div>
 
-                {/* Si el grado o sección no está habilitado actualmente por las teachers */}
+                {/* If grade/section not authorized by teachers */}
                 {!isStudentAuthorizedForExam ? (
                   <div className="bg-amber-50 rounded-3xl p-8 border border-amber-200 text-center space-y-4 animate-fadeIn">
                     <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-inner">
@@ -937,18 +940,18 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     </div>
                     <div className="space-y-1">
                       <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase bg-amber-200 text-amber-900">
-                        Acceso Restringido por Horario Docente
+                        Access Restricted by Teacher Schedule
                       </span>
                       <h3 className="font-heading font-black text-base text-slate-900 mt-2">
-                        La batería de exámenes no está habilitada para tu Grado o Sección en este momento
+                        The test battery is not enabled for your Grade or Section at this time
                       </h3>
                       <p className="text-xs text-slate-600 max-w-md mx-auto">
-                        Las teachers habilitan las evaluaciones por secciones específicas de forma escalonada (ej. 7° Grado A/B). Por favor espera las indicaciones de tu docente.
+                        Teachers activate testing sessions sequentially by assigned groups (e.g., Grade 7 A/B). Please await directions from your teacher.
                       </p>
                     </div>
                   </div>
                 ) : (
-                /* Lista de las pruebas con sus porcentajes y tiempos dinámicos */
+                /* Test instruments grid */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {examsList.map((exam, idx) => {
                     const isDone = Boolean(completedExams[exam.id])
@@ -969,7 +972,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                               Test {idx + 1} • {exam.level || 'A1-C1'}
                             </span>
                             <span className="text-xs font-black text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
-                              Ponderación: {exam.weight || 15}%
+                              Weight: {exam.weight || 15}%
                             </span>
                           </div>
 
@@ -985,7 +988,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <span className="material-symbols-outlined text-[15px]">help</span>
-                              {exam.questions?.length || 0} preguntas
+                              {exam.questions?.length || 0} questions
                             </span>
                           </div>
                         </div>
@@ -995,14 +998,14 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                             {isDone ? (
                               <span className="text-emerald-700 font-bold flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                                Completado
+                                Completed
                               </span>
                             ) : answersCount > 0 ? (
                               <span className="text-blue-600 font-bold">
-                                {answersCount}/{exam.questions?.length || 0} respondidas
+                                {answersCount}/{exam.questions?.length || 0} answered
                               </span>
                             ) : (
-                              'No iniciado'
+                              'Not started'
                             )}
                           </span>
 
@@ -1016,7 +1019,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                                 : 'bg-[#2528b7] hover:brightness-110 text-white shadow-xs cursor-pointer'
                             }`}
                           >
-                            <span>{isDone ? 'Test Enviado' : 'Comenzar Test'}</span>
+                            <span>{isDone ? 'Submitted' : 'Start Test'}</span>
                             <span className="material-symbols-outlined text-[14px]">
                               {isDone ? 'lock' : 'play_arrow'}
                             </span>
@@ -1029,7 +1032,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                 )}
               </div>
             ) : (Boolean(student.placementReleased) && Boolean(student.assignedLevel) && currentSection === 'results') ? (
-              /* ================= VISTA C: RESULTADO OFICIAL ASIGNADO POR DOCENTES ================= */
+              /* ================= VISTA C: OFFICIAL RESULTS (RELEASED BY TEACHERS) ================= */
               <div className="bg-white rounded-[32px] p-8 md:p-12 border border-gray-200 shadow-xl space-y-6 animate-fadeIn text-center">
                 <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center shadow-inner">
                   <span className="material-symbols-outlined text-5xl">verified</span>
@@ -1037,45 +1040,45 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                 
                 <div className="space-y-2">
                   <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold tracking-wider uppercase">
-                    Colocación Concluida
+                    Placement Finalized
                   </span>
                   <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
-                    Nivel y Grupo Asignado para el Ciclo 2027
+                    Official Level & Group Assigned for 2027 Cycle
                   </h2>
                   <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
-                    El equipo docente de inglés ha finalizado tu evaluación y definido tu grupo oficial para el próximo ciclo escolar.
+                    The English faculty has concluded your assessment and determined your official placement group.
                   </p>
                 </div>
 
                 <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 max-w-sm mx-auto border border-indigo-100 shadow-inner">
                   <span className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">
-                    Grupo / Nivel Interno (Get Involved)
+                    Assigned Group / Level (Get Involved)
                   </span>
                   <h3 className="font-heading font-black text-4xl md:text-5xl text-[#2528b7] mt-1">
                     {student.assignedLevel}
                   </h3>
                   <span className="text-xs text-indigo-700 font-semibold mt-2 block">
-                    {student.grade || '7° Grado'} {student.section ? `- Sección ${student.section}` : ''}
+                    {student.grade || 'Grade 7'} {student.section ? `- Section ${student.section}` : ''}
                   </span>
                 </div>
 
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-w-sm mx-auto text-left text-xs text-slate-700 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Docente asignado al nivel:</span>
-                    <strong className="text-slate-900">{student.assignedTeacher || 'Equipo Docente de Inglés'}</strong>
+                    <span className="text-slate-500">Teacher assigned to level:</span>
+                    <strong className="text-slate-900">{student.assignedTeacher || 'English Teaching Team'}</strong>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Plan Curricular:</span>
+                    <span className="text-slate-500">Curricular Series:</span>
                     <span className="font-semibold text-slate-800">Get Involved (Macmillan)</span>
                   </div>
                 </div>
 
                 <p className="text-xs text-gray-400">
-                  Pronto se te brindarán los detalles de tu salón y textos correspondientes al ciclo 2027.
+                  Further classroom logistics and textbook details for the 2027 school year will be announced shortly.
                 </p>
               </div>
             ) : currentSection === 'results' ? (
-              /* ================= VISTA C.2: EN ESPERA DE RESOLUCIÓN DEL TEACHER ================= */
+              /* ================= VISTA C.2: AWAITING TEACHER RESOLUTION ================= */
               <div className="bg-white rounded-[32px] p-8 md:p-12 border border-gray-200 shadow-xl space-y-6 animate-fadeIn text-center">
                 <div className="w-20 h-20 rounded-full bg-amber-50 text-amber-600 mx-auto flex items-center justify-center relative shadow-inner">
                   <span className="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
@@ -1083,20 +1086,20 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
                 <div className="space-y-2">
                   <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold tracking-wider uppercase border border-amber-200/60">
-                    En Proceso de Colocación
+                    Placement In Progress
                   </span>
                   <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
-                    Evaluación en Revisión Docente (Ciclo 2027)
+                    Assessment Under Faculty Review (2027 Cycle)
                   </h2>
                   <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-                    Tu proceso de diagnóstico y nivelación para el ciclo 2027 se encuentra en curso. Ningún nivel es definitivo ni visible hasta que el equipo docente cierre oficialmente la jornada de evaluación.
+                    Your diagnostic evaluation is currently being reviewed. Placement levels will be released once teachers finalize all oral and digital scores.
                   </p>
                 </div>
 
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-w-sm mx-auto text-center text-xs text-slate-600">
-                  <span className="font-semibold text-slate-800 block">Docente Evaluador Asignado:</span>
+                  <span className="font-semibold text-slate-800 block">Assigned Evaluator:</span>
                   <span className="text-blue-700 font-extrabold text-sm mt-0.5 block">{student.assignedTeacher || 'Silvia Herrera'}</span>
-                  <span className="text-[11px] text-slate-400 mt-1 block">Estado: En Proceso de Colocación</span>
+                  <span className="text-[11px] text-slate-400 mt-1 block">Status: Processing Diagnostic Data</span>
                 </div>
 
                 <div className="pt-2">
@@ -1105,13 +1108,13 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     onClick={() => setCurrentSection('battery')}
                     className="px-6 py-2.5 rounded-2xl bg-slate-900 text-white font-extrabold text-xs hover:bg-slate-800 transition-all cursor-pointer inline-flex items-center gap-2"
                   >
-                    <span>Ir a Batería de Tests</span>
+                    <span>Go to Test Battery</span>
                     <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                   </button>
                 </div>
               </div>
             ) : (
-              /* ================= VISTA D: EN ESPERA / RESUMEN GENERAL DEL ALUMNO ================= */
+              /* ================= VISTA D: WELCOME & STUDENT OVERVIEW ================= */
               <div className="bg-white rounded-[32px] p-8 md:p-12 border border-gray-200 shadow-xl space-y-6 animate-fadeIn text-center">
                 <div className="w-20 h-20 rounded-full bg-blue-50 text-blue-700 mx-auto flex items-center justify-center relative shadow-inner">
                   <span className="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
@@ -1120,55 +1123,55 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
                 <div className="space-y-2">
                   <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-900 text-xs font-bold tracking-wider uppercase border border-amber-200/60">
-                    En Proceso de Colocación
+                    Placement In Progress
                   </span>
                   <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
-                    Evaluación Diagnóstica Institucional
+                    Institutional Diagnostic Assessment
                   </h2>
                   <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-                    Hola <strong className="text-gray-900">{student.name}</strong>. Puedes ingresar a la pestaña <span className="font-bold text-blue-700">"Batería de Tests Digitales"</span> en el menú izquierdo para responder las pruebas con su tiempo asignado.
+                    Welcome, <strong className="text-gray-900">{student.name}</strong>. Access the <span className="font-bold text-blue-700">"Digital Test Battery"</span> tab on the left menu to complete your timed instruments.
                   </p>
                 </div>
 
-                {/* Banner de Entrevista Oral en Turno Activo */}
+                {/* Banner: Oral interview turn notification */}
                 {isInterviewActiveForStudent && (
                   <div className="p-5 rounded-3xl bg-indigo-50 border-2 border-indigo-500 max-w-md mx-auto text-center space-y-2 animate-pulse">
                     <div className="flex items-center justify-center gap-2 text-indigo-900 font-extrabold text-sm uppercase">
                       <span className="material-symbols-outlined text-[24px] text-indigo-600">record_voice_over</span>
-                      <span>¡Es tu turno para la Entrevista Oral!</span>
+                      <span>It's your turn for the Oral Interview!</span>
                     </div>
                     <p className="text-xs text-indigo-700 font-medium">
-                      Tu docente te ha llamado para la evaluación oral en vivo. Acércate con tu docente evaluador para iniciar las preguntas.
+                      Your teacher has called you for the live speaking assessment. Please proceed to the evaluator's desk.
                     </p>
                   </div>
                 )}
 
-                {/* Ficha Informativa del Alumno */}
+                {/* Student Registration & Info Card */}
                 <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/90 text-left space-y-4 max-w-md mx-auto shadow-xs">
                   <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
                     <span className="material-symbols-outlined text-blue-700 text-[22px]">badge</span>
                     <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                      Datos de Matrícula y Asignación
+                      Student Enrollment Details
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3.5">
                     <div className="p-3.5 bg-white rounded-2xl border border-slate-200/70">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Grado y Sección
+                        Grade & Section
                       </span>
                       <span className="text-sm font-extrabold text-slate-800 mt-1 block">
-                        {student.grade || '7° Grado'} {student.section ? `• Secc. ${student.section}` : ''}
+                        {student.grade || 'Grade 7'} {student.section ? `• Sec. ${student.section}` : ''}
                       </span>
                     </div>
 
                     <div className="p-3.5 bg-white rounded-2xl border border-slate-200/70">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Estado de Nivel
+                        Placement Status
                       </span>
                       <span className="text-xs font-extrabold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/60 inline-flex items-center gap-1 mt-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                        <span>En Proceso</span>
+                        <span>In Progress</span>
                       </span>
                     </div>
                   </div>
@@ -1180,7 +1183,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                       </div>
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                          Docente Evaluador Actual
+                          Assigned Evaluator
                         </span>
                         <span className="text-xs font-extrabold text-slate-800">
                           {student.assignedTeacher || 'Silvia Herrera'}
@@ -1188,7 +1191,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                       </div>
                     </div>
                     <span className="text-[11px] font-extrabold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/60">
-                      En Proceso
+                      Active
                     </span>
                   </div>
                 </div>
@@ -1199,7 +1202,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     onClick={() => setCurrentSection('battery')}
                     className="px-6 py-3 rounded-2xl bg-[#2528b7] hover:brightness-110 text-white font-heading font-extrabold text-xs shadow-md shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 mx-auto cursor-pointer"
                   >
-                    <span>Ir a la Batería de Tests Digitales</span>
+                    <span>Go to Digital Test Battery</span>
                     <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                   </button>
                 </div>
@@ -1209,7 +1212,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
         </main>
 
         <footer className="py-3 text-center text-[11px] text-gray-400 border-t border-gray-100 bg-white">
-          © 2026 Colegio Salesiano San José · Sistema de Diagnóstico y Nivelación de Inglés
+          © 2026 Colegio Salesiano San José · English Placement & Diagnostic System
         </footer>
       </div>
     </div>

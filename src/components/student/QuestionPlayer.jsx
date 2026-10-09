@@ -53,18 +53,18 @@ export default function QuestionPlayer({ question, initialAnswer = null, onResul
         {QUESTION_VIEWS[question.type](question, answer, handleUpdateAnswer, false)}
       </div>
 
-      {/* Botón de confirmación / Siguiente en silencio (Sin revelar si está bien o mal) */}
+      {/* Confirmation / quiet status indicator */}
       <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
         <span className="flex items-center gap-1.5 font-medium">
           {answer != null ? (
             <>
               <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-              <span className="text-slate-700 font-bold">Respuesta registrada</span>
+              <span className="text-slate-700 font-bold">Answer recorded</span>
             </>
           ) : (
             <>
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span>Selecciona tu respuesta para continuar</span>
+              <span>Select your answer to continue</span>
             </>
           )}
         </span>
@@ -171,6 +171,29 @@ function getScrambledWordTiles(question) {
   return scrambled
 }
 
+// Shuffles options while preserving the original index for accurate answer evaluation
+const optionsShuffleCache = new WeakMap()
+
+function getShuffledOptions(question) {
+  const options = question.options || []
+  if (options.length <= 1) {
+    return options.map((text, origIndex) => ({ text, origIndex }))
+  }
+
+  if (optionsShuffleCache.has(question)) {
+    return optionsShuffleCache.get(question)
+  }
+
+  const items = options.map((text, origIndex) => ({ text, origIndex }))
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[items[i], items[j]] = [items[j], items[i]]
+  }
+
+  optionsShuffleCache.set(question, items)
+  return items
+}
+
 const QUESTION_VIEWS = {
   trueFalse: (q, answer, setAnswer, checked) => (
     <div className="space-y-4">
@@ -212,31 +235,34 @@ const QUESTION_VIEWS = {
     </div>
   ),
 
-  multipleChoice: (q, answer, setAnswer, checked) => (
-    <div className="flex flex-col gap-2.5">
-      {q.options.map((opt, i) => (
-        <button
-          key={i}
-          disabled={checked}
-          onClick={() => setAnswer(i)}
-          className={`w-full text-left p-4 rounded-xl border text-sm md:text-base font-semibold transition-all flex items-center justify-between ${
-            answer === i
-              ? 'border-primary bg-primary-fixed/30 text-primary shadow-sm ring-1 ring-primary'
-              : 'border-outline-variant/50 bg-surface-container-low hover:bg-surface-container text-on-surface'
-          }`}
-        >
-          <span>{opt}</span>
-          <span
-            className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-              answer === i ? 'border-primary bg-primary text-white' : 'border-outline-variant'
+  multipleChoice: (q, answer, setAnswer, checked) => {
+    const shuffled = getShuffledOptions(q)
+    return (
+      <div className="flex flex-col gap-2.5">
+        {shuffled.map((item, displayIdx) => (
+          <button
+            key={`${q.id}-${item.origIndex}-${displayIdx}`}
+            disabled={checked}
+            onClick={() => setAnswer(item.origIndex)}
+            className={`w-full text-left p-4 rounded-xl border text-sm md:text-base font-semibold transition-all flex items-center justify-between ${
+              answer === item.origIndex
+                ? 'border-primary bg-primary-fixed/30 text-primary shadow-sm ring-1 ring-primary'
+                : 'border-outline-variant/50 bg-surface-container-low hover:bg-surface-container text-on-surface'
             }`}
           >
-            {answer === i && <span className="w-2 h-2 rounded-full bg-white"></span>}
-          </span>
-        </button>
-      ))}
-    </div>
-  ),
+            <span>{item.text}</span>
+            <span
+              className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                answer === item.origIndex ? 'border-primary bg-primary text-white' : 'border-outline-variant'
+              }`}
+            >
+              {answer === item.origIndex && <span className="w-2 h-2 rounded-full bg-white"></span>}
+            </span>
+          </button>
+        ))}
+      </div>
+    )
+  },
 
   orderSentence: (q, answer, setAnswer, checked) => {
     const chosen = answer || []
@@ -259,7 +285,7 @@ const QUESTION_VIEWS = {
         <div className="flex items-center justify-between px-1">
           <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-[16px] text-indigo-600">shuffle</span>
-            <span>Haz clic en las palabras en el orden correcto:</span>
+            <span>Click the words in the correct order:</span>
           </span>
           {chosen.length > 0 && !checked && (
             <button
@@ -268,7 +294,7 @@ const QUESTION_VIEWS = {
               className="text-xs text-rose-600 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
             >
               <span className="material-symbols-outlined text-[14px]">restart_alt</span>
-              Reiniciar
+              Reset
             </button>
           )}
         </div>
@@ -277,7 +303,7 @@ const QUESTION_VIEWS = {
         <div className="min-h-[64px] p-3.5 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/30 flex flex-wrap gap-2 items-center">
           {chosen.length === 0 ? (
             <span className="text-xs text-slate-400 italic">
-              Construye la oración aquí haciendo clic en las fichas desordenadas de abajo...
+              Build your sentence here by clicking the scrambled words below...
             </span>
           ) : (
             chosen.map((idx, pos) => (
@@ -287,7 +313,7 @@ const QUESTION_VIEWS = {
                 disabled={checked}
                 onClick={() => toggle(idx)}
                 className="px-3.5 py-2 rounded-xl bg-[#2528b7] text-white font-bold text-sm shadow-sm hover:bg-[#1f2196] active:scale-95 transition-all animate-scaleIn cursor-pointer flex items-center gap-1.5"
-                title="Haz clic para quitar de la oración"
+                title="Click to remove from sentence"
               >
                 <span>{q.words[idx]}</span>
                 <span className="text-[11px] opacity-70">✕</span>
@@ -299,7 +325,7 @@ const QUESTION_VIEWS = {
         {/* Scrambled Word bank */}
         <div className="space-y-1.5 pt-1">
           <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 px-1">
-            Banco de palabras disponibles (desordenadas):
+            Available words (scrambled):
           </div>
           <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200">
             {scrambledTiles.map(tile => {
@@ -380,7 +406,7 @@ const QUESTION_VIEWS = {
       if (checked) return
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition
       if (!SR) {
-        setError('Tu navegador no soporta reconocimiento de voz nativo.')
+        setError('Your browser does not support native speech recognition.')
         return
       }
       const rec = new SR()
@@ -394,14 +420,14 @@ const QUESTION_VIEWS = {
         setAnswer(text)
         setRecording(false)
       }
-      rec.onerror = () => { setError('Error al capturar audio'); setRecording(false) }
+      rec.onerror = () => { setError('Error capturing audio'); setRecording(false) }
       rec.onend = () => setRecording(false)
       rec.start()
     }
 
     return (
       <div className="text-center space-y-4">
-        <p className="text-sm text-on-surface-variant">Pronuncia en voz alta la siguiente frase:</p>
+        <p className="text-sm text-on-surface-variant">Pronounce the following sentence clearly out loud:</p>
         <div className="p-4 rounded-xl bg-surface-container-high/60 font-heading font-extrabold text-xl md:text-2xl text-primary">
           "{q.targetText}"
         </div>
@@ -420,13 +446,13 @@ const QUESTION_VIEWS = {
             <span className="material-symbols-outlined text-[24px]">
               {recording ? 'mic' : 'mic_none'}
             </span>
-            <span>{recording ? 'Escuchando tu voz...' : 'Presionar y Hablar'}</span>
+            <span>{recording ? 'Listening to your voice...' : 'Press and Speak'}</span>
           </button>
         </div>
 
         {answer && (
           <div className="p-3 rounded-lg bg-surface-container text-xs text-on-surface-variant font-mono">
-            Capturado: "{answer}"
+            Captured: "{answer}"
           </div>
         )}
         {error && <p className="text-xs text-error font-medium">{error}</p>}
@@ -443,7 +469,7 @@ const QUESTION_VIEWS = {
           className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-white font-bold text-xs shadow-sm hover:bg-primary-container"
         >
           <span className="material-symbols-outlined text-[20px]">volume_up</span>
-          <span>Escuchar frase</span>
+          <span>Listen to sentence</span>
         </button>
       </div>
 
@@ -453,7 +479,7 @@ const QUESTION_VIEWS = {
           disabled={checked}
           value={answer || ''}
           onChange={e => setAnswer(e.target.value)}
-          placeholder="Escribe aquí exactamente lo que escuchaste en inglés..."
+          placeholder="Type here exactly what you heard in English..."
           className="w-full p-3.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
       </div>
@@ -573,15 +599,15 @@ function ListeningAudioSection({ q, answer, setAnswer, checked }) {
               </span>
               <div>
                 <span className="text-xs font-black text-indigo-950 block leading-tight">
-                  Audio Oficial de Evaluación
+                  Official Assessment Audio
                 </span>
                 <span className="text-[10px] text-gray-500 font-medium">
-                  {canPlay ? 'Escucha con atención antes de responder' : 'Límite de reproducciones alcanzado'}
+                  {canPlay ? 'Listen carefully before answering' : 'Maximum plays reached'}
                 </span>
               </div>
             </div>
 
-            {/* Contador de Reproducciones Restantes */}
+            {/* Remaining plays counter */}
             <div className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 border transition-all ${
               remainingPlays > 1
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
@@ -593,12 +619,12 @@ function ListeningAudioSection({ q, answer, setAnswer, checked }) {
                 {remainingPlays > 0 ? 'replay' : 'block'}
               </span>
               <span>
-                {remainingPlays > 0 ? `${remainingPlays} de ${maxPlays} escuchas` : '0 escuchas restantes'}
+                {remainingPlays > 0 ? `${remainingPlays} of ${maxPlays} plays remaining` : '0 plays remaining'}
               </span>
             </div>
           </div>
 
-          {/* Elemento de audio HTML oculto controlado por el componente */}
+          {/* Hidden audio element */}
           <audio
             ref={audioRef}
             src={q.audioUrl}
@@ -608,7 +634,7 @@ function ListeningAudioSection({ q, answer, setAnswer, checked }) {
             preload="metadata"
           />
 
-          {/* Barra de progreso visual y tiempos */}
+          {/* Progress bar */}
           <div className="space-y-1.5 w-full">
             <div className="w-full h-2.5 bg-indigo-100/80 rounded-full overflow-hidden relative">
               <div
@@ -622,7 +648,7 @@ function ListeningAudioSection({ q, answer, setAnswer, checked }) {
             </div>
           </div>
 
-          {/* Botón principal de Reproducción / Pausa */}
+          {/* Play/Pause Button */}
           <div className="flex items-center justify-center pt-1">
             <button
               type="button"
@@ -640,14 +666,14 @@ function ListeningAudioSection({ q, answer, setAnswer, checked }) {
                 {isPlaying ? 'pause' : 'play_arrow'}
               </span>
               <span>
-                {isPlaying ? 'Pausar Audio' : canPlay ? 'Reproducir Audio' : 'Sin reproducciones'}
+                {isPlaying ? 'Pause Audio' : canPlay ? 'Play Audio' : 'No plays left'}
               </span>
             </button>
           </div>
 
           {remainingPlays === 0 && !isPlaying && (
             <p className="text-[11px] text-center text-rose-600 font-semibold">
-              ⚠️ Has completado las {maxPlays} reproducciones permitidas para esta pregunta. Selecciona tu respuesta a continuación.
+              ⚠️ You have used all {maxPlays} plays allowed for this question. Select your answer below.
             </p>
           )}
         </div>
@@ -671,26 +697,26 @@ function ListeningAudioSection({ q, answer, setAnswer, checked }) {
         </p>
       )}
 
-      {/* Opciones de respuesta */}
+      {/* Opciones de respuesta desordenadas aleatoriamente */}
       <div className="flex flex-col gap-2.5">
-        {q.options?.map((opt, i) => (
+        {getShuffledOptions(q).map((item, displayIdx) => (
           <button
-            key={i}
+            key={`${q.id}-${item.origIndex}-${displayIdx}`}
             disabled={checked}
-            onClick={() => setAnswer(i)}
+            onClick={() => setAnswer(item.origIndex)}
             className={`w-full text-left p-4 rounded-xl border text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${
-              answer === i
+              answer === item.origIndex
                 ? 'border-indigo-600 bg-indigo-50/80 text-indigo-900 shadow-sm ring-1 ring-indigo-500'
                 : 'border-gray-200 bg-white hover:bg-slate-50 text-gray-800'
             }`}
           >
-            <span>{opt}</span>
+            <span>{item.text}</span>
             <span
               className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                answer === i ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300'
+                answer === item.origIndex ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300'
               }`}
             >
-              {answer === i && <span className="w-2 h-2 rounded-full bg-white"></span>}
+              {answer === item.origIndex && <span className="w-2 h-2 rounded-full bg-white"></span>}
             </span>
           </button>
         ))}

@@ -11,7 +11,10 @@ export default function Sidebar({
   collapsed,
   onToggleCollapse,
   user,
-  onLogout
+  onLogout,
+  logoutLabel = 'Cerrar Sesión',
+  collapseTooltip = 'Colapsar barra',
+  expandTooltip = 'Expandir barra'
 }) {
   return (
     <aside
@@ -51,7 +54,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={onToggleCollapse}
-            title={collapsed ? 'Expandir barra' : 'Colapsar barra'}
+            title={collapsed ? expandTooltip : collapseTooltip}
             className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all"
           >
             <span className="material-symbols-outlined text-[18px]">
@@ -140,10 +143,10 @@ export default function Sidebar({
           className={`w-full flex items-center gap-2 p-2 rounded-xl text-xs font-semibold text-error hover:bg-error-container/40 transition-all ${
             collapsed ? 'justify-center' : ''
           }`}
-          title="Cerrar sesión"
+          title={logoutLabel}
         >
           <span className="material-symbols-outlined text-[18px]">logout</span>
-          {!collapsed && <span>Cerrar Sesión</span>}
+          {!collapsed && <span>{logoutLabel}</span>}
         </button>
       </div>
     </aside>
