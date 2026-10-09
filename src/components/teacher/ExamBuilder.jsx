@@ -1192,7 +1192,24 @@ export default function ExamBuilder({ onPublished }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {/* Botón para calibrar o editar audios directamente desde la simulación */}
+                {((simulatingExam.questions || []).some(q => q.audioUrl || q.audioText || q.type === 'listening')) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const examCopy = JSON.parse(JSON.stringify(simulatingExam))
+                      setSimulatingExam(null)
+                      setAudioModalExam(examCopy)
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                    title="Editar preguntas y transcripciones de este examen"
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-purple-700">edit_note</span>
+                    <span className="hidden sm:inline">Editar / Calibrar Audios</span>
+                  </button>
+                )}
+
                 {/* Cronómetro activo de simulación */}
                 {(simulatingExam.timeLimitMinutes || 0) > 0 && (
                   <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 font-mono text-xs font-black transition-all ${

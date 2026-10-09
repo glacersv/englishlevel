@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { db, isFirebaseConfigured } from '../../lib/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { getUserProfile, sanitizeDocId, getExams, subscribeExamDispatch, saveResult } from '../../lib/dataService'
+import { getUserProfile, sanitizeDocId, getExams, subscribeExams, subscribeExamDispatch, saveResult } from '../../lib/dataService'
 import Sidebar from '../shared/Sidebar'
 import QuestionPlayer, { QUESTION_CHECKERS } from './QuestionPlayer'
 import AudioGroupPlayer from './AudioGroupPlayer'
@@ -152,24 +152,23 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }, [student?.email])
 
-  // 2. Cargar la batería oficial de exámenes configurada por los docentes
+  // 2. Suscribirse a la batería oficial de exámenes en tiempo real (para reflejar cambios de preguntas añadidas por docentes)
   useEffect(() => {
-    loadBatteryExams()
-  }, [])
-
-  const loadBatteryExams = async () => {
     setLoadingExams(true)
-    try {
-      const all = await getExams()
-      const list = (all && all.length > 0) ? all : OFFICIAL_DIAGNOSTIC_EXAMS
-      setExamsList(list)
-    } catch (e) {
-      console.warn('Error cargando batería de exámenes para alumno:', e)
-      setExamsList(OFFICIAL_DIAGNOSTIC_EXAMS)
-    } finally {
+    const unsub = subscribeExams((exams) => {
+      if (exams && exams.length > 0) {
+        setExamsList(exams)
+        // Si el examen actualmente activo fue actualizado por el docente, sincronizar sus preguntas en vivo
+        setActiveExam(prev => {
+          if (!prev) return null
+          const updated = exams.find(e => e.id === prev.id)
+          return updated ? { ...prev, ...updated } : prev
+        })
+      }
       setLoadingExams(false)
-    }
-  }
+    })
+    return () => unsub?.()
+  }, [])
 
   // 3. Temporizador regresivo sincronizado para el test activo (Se congela si el docente pausa la evaluación o el grado está pausado)
   useEffect(() => {

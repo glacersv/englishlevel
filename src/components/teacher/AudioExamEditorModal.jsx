@@ -15,6 +15,55 @@ export default function AudioExamEditorModal({ exam, onClose, onSave }) {
 
   const currentQ = questions[selectedIdx] || questions[0]
 
+  // Contar preguntas asociadas al audio actual
+  const currentAudioKey = currentQ?.audioUrl || currentQ?.audioText || `audio_${selectedIdx}`
+  const questionsInCurrentAudio = questions.filter(q => (q.audioUrl || q.audioText || `audio_${questions.indexOf(q)}`) === currentAudioKey)
+  const isAtMaxQuestionsForAudio = questionsInCurrentAudio.length >= 12
+
+  // Agregar una pregunta adicional vinculada a este mismo audio (máximo 12 por audio)
+  const handleAddQuestionToCurrentAudio = () => {
+    if (isAtMaxQuestionsForAudio) {
+      alert(`⚠️ ADVERTENCIA: Se ha alcanzado el límite máximo de 12 preguntas para este audio.\n\nCada bloque o sesión de audio permite un máximo de 12 reactivos para mantener un balance pedagógico adecuado.`)
+      return
+    }
+
+    const newQuestionNumber = questions.length + 1
+    const newQ = {
+      id: `q_audio_custom_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      type: 'listening',
+      level: currentQ?.level || exam?.level || 'A1',
+      prompt: currentQ?.prompt || 'Listen to the audio and answer the question:',
+      audioUrl: currentQ?.audioUrl || '',
+      audioText: currentQ?.audioText || '',
+      question: `Nueva pregunta sobre este audio #${questionsInCurrentAudio.length + 1}`,
+      options: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
+      correctIndex: 0,
+      explanation: 'Explicación de la respuesta correcta.'
+    }
+
+    // Insertar la nueva pregunta justo después del bloque actual
+    const lastIndexInAudio = questions.map((q, i) => ({ q, i })).filter(item => (item.q.audioUrl || item.q.audioText || `audio_${item.i}`) === currentAudioKey).pop()?.i ?? selectedIdx
+
+    const nextQuestions = [...questions]
+    nextQuestions.splice(lastIndexInAudio + 1, 0, newQ)
+
+    setQuestions(nextQuestions)
+    setSelectedIdx(lastIndexInAudio + 1)
+  }
+
+  // Eliminar la pregunta seleccionada (si hay más de 1 en el examen)
+  const handleDeleteCurrentQuestion = () => {
+    if (questions.length <= 1) {
+      alert('El examen debe tener al menos una pregunta.')
+      return
+    }
+    if (!window.confirm(`¿Seguro que deseas eliminar la pregunta #${selectedIdx + 1}?`)) return
+
+    const nextQuestions = questions.filter((_, idx) => idx !== selectedIdx)
+    setQuestions(nextQuestions)
+    setSelectedIdx(Math.max(0, Math.min(selectedIdx, nextQuestions.length - 1)))
+  }
+
   const updateCurrentQuestion = (field, value) => {
     setQuestions(prev => {
       const next = [...prev]
@@ -118,16 +167,67 @@ export default function AudioExamEditorModal({ exam, onClose, onSave }) {
 
         {/* Cuerpo principal con selector de preguntas */}
         <div className="p-6 space-y-6">
-          {/* Selector de número de pregunta */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-bold text-gray-700">
-              <span>Seleccionar Pregunta a Calibrar:</span>
-              <span className="text-indigo-600 font-mono">Pregunta {selectedIdx + 1} de {questions.length}</span>
+          {/* Selector de número de pregunta y acciones de gestión */}
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-gray-700">
+              <div className="flex items-center gap-2">
+                <span>Seleccionar Pregunta a Calibrar:</span>
+                <span className="text-indigo-600 font-mono">Pregunta {selectedIdx + 1} de {questions.length}</span>
+              </div>
+
+              {/* Acciones para agregar pregunta adicional al audio o eliminar */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddQuestionToCurrentAudio}
+                  disabled={isAtMaxQuestionsForAudio}
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                    isAtMaxQuestionsForAudio
+                      ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-95'
+                  }`}
+                  title={isAtMaxQuestionsForAudio ? 'Límite de 12 preguntas alcanzado para este audio' : 'Agregar una nueva pregunta asociada a esta misma pista de audio'}
+                >
+                  <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                  <span>+ Agregar Pregunta a este Audio ({questionsInCurrentAudio.length}/12)</span>
+                </button>
+
+                {questions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteCurrentQuestion}
+                    className="p-1.5 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                    title="Eliminar esta pregunta del examen"
+                  >
+                    <span className="material-symbols-outlined text-[17px]">delete</span>
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Aviso / Advertencia de balance si se llega a 12 o cerca */}
+            {isAtMaxQuestionsForAudio ? (
+              <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl flex items-center gap-2 text-[11px] text-amber-900 font-semibold animate-pulse">
+                <span className="material-symbols-outlined text-[18px] text-amber-700">warning</span>
+                <span>
+                  <strong>Límite alcanzado:</strong> Este audio ya cuenta con el máximo permitido de 12 preguntas por sesión para garantizar una carga cognitiva y pedagógica equilibrada.
+                </span>
+              </div>
+            ) : questionsInCurrentAudio.length >= 10 ? (
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2 text-[11px] text-blue-900 font-medium">
+                <span className="material-symbols-outlined text-[16px] text-blue-700">info</span>
+                <span>
+                  Este audio tiene {questionsInCurrentAudio.length} preguntas asociadas (máximo recomendado: 12 preguntas por bloque de audio).
+                </span>
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap gap-1.5">
               {questions.map((q, idx) => {
                 const isCur = idx === selectedIdx
                 const hasAudio = Boolean(q.audioUrl || q.audioText)
+                const isSameAudioAsSelected = (q.audioUrl || q.audioText || `audio_${idx}`) === currentAudioKey
+
                 return (
                   <button
                     key={q.id || idx}
@@ -136,8 +236,11 @@ export default function AudioExamEditorModal({ exam, onClose, onSave }) {
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                       isCur
                         ? 'bg-purple-600 text-white shadow-xs ring-2 ring-purple-200'
+                        : isSameAudioAsSelected
+                        ? 'bg-purple-100/70 hover:bg-purple-200 text-purple-900 border border-purple-300'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}
+                    title={isSameAudioAsSelected ? 'Pregunta de la misma sesión de audio' : 'Pregunta de otra sesión'}
                   >
                     <span>#{idx + 1}</span>
                     {hasAudio && (

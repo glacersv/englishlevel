@@ -555,7 +555,56 @@ export async function saveExam(exam) {
     i >= 0 ? (all[i] = prepared) : all.push(prepared)
     writeLS(LS_EXAMS, all)
   }
+
+  // Notificar actualización de exámenes a los alumnos y docentes en tiempo real
+  try {
+    window.dispatchEvent(new CustomEvent('el_exams_updated', { detail: prepared }))
+  } catch {}
+
   return prepared
+}
+
+export function subscribeExams(callback) {
+  let unsubFirestore = null
+
+  if (isFirebaseConfigured()) {
+    try {
+      unsubFirestore = onSnapshot(collection(db, 'exams'), (snap) => {
+        const exams = snap.docs.map(d => d.data())
+        if (exams.length > 0) {
+          writeLS(LS_EXAMS, exams)
+          callback(exams)
+        }
+      }, (err) => {
+        console.warn('Error en onSnapshot exams:', err)
+      })
+    } catch (e) {
+      console.warn('Error conectando listener exams:', e)
+    }
+  }
+
+  const handleCustom = () => {
+    getExams().then(exs => callback(exs)).catch(() => {})
+  }
+  const handleStorage = (e) => {
+    if (e.key === LS_EXAMS && e.newValue) {
+      try {
+        callback(JSON.parse(e.newValue))
+      } catch {}
+    }
+  }
+
+  window.addEventListener('el_exams_updated', handleCustom)
+  window.addEventListener('storage', handleStorage)
+
+  // Carga inicial
+  getExams().then(exs => callback(exs)).catch(() => {})
+
+  return () => {
+    if (unsubFirestore) unsubFirestore()
+    window.removeEventListener('el_exams_updated', handleCustom)
+    window.removeEventListener('storage', handleStorage)
+  }
 }
 
 export async function getExams(levelId, grade) {
