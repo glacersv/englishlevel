@@ -635,24 +635,22 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
       {/* ================= BARRA LATERAL (SIDEBAR IZQUIERDO ESTILO NESTLY EN VERDE) ================= */}
       <aside className={`${collapsed ? 'md:w-20' : 'md:w-64'} w-full bg-white border-b md:border-b-0 md:border-r border-[#e8f3ed] p-4 sm:p-5 flex flex-col justify-between shrink-0 transition-all duration-300 z-30 shadow-xs`}>
         <div>
-          {/* Logo Oficial NEXT PLUS en el menú lateral */}
+          {/* Logotipo Oficial Next Plus (Únicamente Isotipo Circular) */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-white border border-[#e8f3ed] p-1.5 flex items-center justify-center shadow-xs shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-white border border-[#e8f3ed] p-1 flex items-center justify-center shadow-xs shrink-0">
                 <img
                   src={iconNextApp}
-                  alt="Next App Logo"
+                  alt="Next Plus"
                   className="w-full h-full object-contain"
                 />
               </div>
               {!collapsed && (
                 <div className="flex flex-col">
-                  <img
-                    src={nextPlusLogo}
-                    alt="Next Plus English Platform"
-                    className="h-6 w-auto object-contain object-left"
-                  />
-                  <span className="text-[10px] font-bold text-[#00875a] uppercase tracking-wider block mt-1">
+                  <span className="font-heading font-black text-base text-[#1b382b] tracking-tight leading-tight">
+                    Next Plus
+                  </span>
+                  <span className="text-[10px] font-bold text-[#00875a] uppercase tracking-wider block mt-0.5">
                     Colegio San José
                   </span>
                 </div>
@@ -769,13 +767,14 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
               </div>
             )}
 
-            {/* Logo distintivo Next Plus en Header */}
-            <div className="hidden lg:flex items-center px-3 py-1.5 rounded-2xl bg-white border border-[#e8f3ed] shadow-xs">
+            {/* Isotipo Oficial Next Plus en Header */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white border border-[#e8f3ed] shadow-xs">
               <img
-                src={nextPlusLogo}
+                src={iconNextApp}
                 alt="Next Plus"
-                className="h-5 w-auto object-contain"
+                className="w-5 h-5 object-contain"
               />
+              <span className="font-heading font-black text-xs text-[#1b382b]">Next Plus</span>
             </div>
 
             {/* Badges de Grado y Alumno */}

@@ -1,5 +1,5 @@
 import React from 'react'
-import nextPlusLogo from '../../assets/logo_next_plus.png'
+import iconNextApp from '../../assets/icon_next_app.png'
 
 export default function Sidebar({
   title,
@@ -29,7 +29,7 @@ export default function Sidebar({
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="w-10 h-10 rounded-2xl bg-white border border-[#eceaf6] p-1 flex items-center justify-center shadow-xs shrink-0">
                 <img
-                  src={nextPlusLogo}
+                  src={iconNextApp}
                   alt="Next Plus"
                   className="w-full h-full object-contain"
                 />
@@ -47,7 +47,7 @@ export default function Sidebar({
             <div className="mx-auto flex items-center justify-center">
               <div className="w-10 h-10 rounded-2xl bg-white border border-[#eceaf6] p-1 flex items-center justify-center shadow-xs">
                 <img
-                  src={nextPlusLogo}
+                  src={iconNextApp}
                   alt="Next Plus"
                   className="w-full h-full object-contain"
                 />
