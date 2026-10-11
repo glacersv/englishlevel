@@ -166,15 +166,31 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }, [student?.email])
 
-  // 2. Suscribirse a la batería de exámenes
+  // Función para extraer el número de Test del título o ID para un ordenamiento numérico estricto
+  const extractTestNumber = (exam) => {
+    if (!exam) return 99
+    const match = (exam.title || '').match(/Test\s*(\d+)/i)
+    if (match) return parseInt(match[1], 10)
+    // Fallback por ID si no tiene "Test X" en el título
+    if (exam.id?.includes('listening_battery')) return 1
+    if (exam.id?.includes('scramble')) return 2
+    if (exam.id?.includes('reading')) return 3
+    if (exam.id?.includes('cloze')) return 4
+    if (exam.id?.includes('listening_b1')) return 5
+    if (exam.id?.includes('listening_b2') || exam.id?.includes('listening_c1')) return 6
+    return 99
+  }
+
+  // 2. Suscribirse a la batería de exámenes y ordenar estrictamente Test 1, Test 2, Test 3...
   useEffect(() => {
     setLoadingExams(true)
     const unsub = subscribeExams((exams) => {
       if (exams && exams.length > 0) {
-        setExamsList(exams)
+        const sorted = [...exams].sort((a, b) => extractTestNumber(a) - extractTestNumber(b))
+        setExamsList(sorted)
         setActiveExam(prev => {
           if (!prev) return null
-          const updated = exams.find(e => e.id === prev.id)
+          const updated = sorted.find(e => e.id === prev.id)
           return updated ? { ...prev, ...updated } : prev
         })
       }
@@ -549,13 +565,35 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     { key: 'results', label: 'Progress & Level', icon: 'donut_large', badge: isPlacementFullyConcluded ? 'Listo' : null }
   ]
 
-  // Iconos y colores temáticos suaves para los módulos de la ruta de aprendizaje
-  const getModuleMeta = (index) => {
+  // Lista de exámenes ordenada estrictamente por número: Test 1, Test 2, Test 3, Test 4, Test 5, Test 6
+  const sortedExams = [...examsList].sort((a, b) => extractTestNumber(a) - extractTestNumber(b))
+
+  // Iconos y colores temáticos suaves para los módulos de la ruta de aprendizaje asociados a su contenido real
+  const getModuleMeta = (exam, index) => {
+    const testNum = extractTestNumber(exam)
+    if (testNum === 1) {
+      return { tag: 'Listening Lab', bg: 'bg-[#fff4e6]', text: 'text-[#f76707]', icon: 'headphones' }
+    }
+    if (testNum === 2) {
+      return { tag: 'Sentence Structure & Syntax', bg: 'bg-[#e6fcf5]', text: 'text-[#00875a]', icon: 'tune' }
+    }
+    if (testNum === 3) {
+      return { tag: 'Reading & Textual Analysis', bg: 'bg-[#ffebf0]', text: 'text-[#e64980]', icon: 'menu_book' }
+    }
+    if (testNum === 4) {
+      return { tag: 'Use of English & Cloze', bg: 'bg-[#e7f5ff]', text: 'text-[#1c7ed6]', icon: 'palette' }
+    }
+    if (testNum === 5) {
+      return { tag: 'Intermediate Listening Lab', bg: 'bg-[#fff4e6]', text: 'text-[#f76707]', icon: 'headphones' }
+    }
+    if (testNum === 6) {
+      return { tag: 'Advanced Listening & Tech', bg: 'bg-[#f3f0ff]', text: 'text-[#7950f2]', icon: 'volume_up' }
+    }
     const metas = [
-      { tag: 'Reading & Grammar', bg: 'bg-[#ffebf0]', text: 'text-[#e64980]', icon: 'menu_book' },
       { tag: 'Listening Lab', bg: 'bg-[#fff4e6]', text: 'text-[#f76707]', icon: 'headphones' },
-      { tag: 'Vocabulary & Use', bg: 'bg-[#e7f5ff]', text: 'text-[#1c7ed6]', icon: 'palette' },
       { tag: 'Sentence Structure', bg: 'bg-[#e6fcf5]', text: 'text-[#00875a]', icon: 'tune' },
+      { tag: 'Reading & Grammar', bg: 'bg-[#ffebf0]', text: 'text-[#e64980]', icon: 'menu_book' },
+      { tag: 'Vocabulary & Use', bg: 'bg-[#e7f5ff]', text: 'text-[#1c7ed6]', icon: 'palette' },
       { tag: 'Speaking Skills', bg: 'bg-[#ebfbee]', text: 'text-[#2b8a3e]', icon: 'mic' },
       { tag: 'Diagnostic Mastery', bg: 'bg-[#fff9db]', text: 'text-[#f59f00]', icon: 'star' }
     ]
@@ -1232,10 +1270,10 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     </div>
                   </div>
 
-                  {/* PÍLDORAS DE CADA INSTRUMENTO DIGITAL DE LA BATERÍA */}
-                  {examsList.map((exam, idx) => {
+                  {/* PÍLDORAS DE CADA INSTRUMENTO DIGITAL DE LA BATERÍA (ORDENADOS TEST 1, 2, 3...) */}
+                  {sortedExams.map((exam, idx) => {
                     const isDone = Boolean(completedExams[exam.id])
-                    const meta = getModuleMeta(idx)
+                    const meta = getModuleMeta(exam, idx)
                     const answersCount = Object.keys(studentAnswers[exam.id] || {}).length
 
                     return (
@@ -1543,9 +1581,9 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {examsList.map((exam, idx) => {
+                  {sortedExams.map((exam, idx) => {
                     const isDone = Boolean(completedExams[exam.id])
-                    const meta = getModuleMeta(idx)
+                    const meta = getModuleMeta(exam, idx)
                     return (
                       <div
                         key={exam.id}
