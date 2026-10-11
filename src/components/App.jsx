@@ -98,12 +98,10 @@ export default function App() {
     }
 
     return (
-      <div className="relative min-h-screen bg-surface">
-        <StudentGamifiedExam
-          student={studentToRender}
-          onLogout={handleLogout}
-        />
-      </div>
+      <StudentGamifiedExam
+        student={studentToRender}
+        onLogout={handleLogout}
+      />
     )
   }
 

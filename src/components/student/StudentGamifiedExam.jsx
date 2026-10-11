@@ -502,12 +502,9 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f1fa] font-sans flex items-center justify-center p-2 sm:p-4 md:p-6 select-none">
-      {/* Contenedor tipo iPad / Tablet Mockup con bordes redondeados y sombra 3D suave */}
-      <div className="w-full max-w-[1360px] min-h-[92vh] bg-white rounded-[36px] sm:rounded-[44px] shadow-[0_20px_60px_-15px_rgba(84,70,168,0.18)] border border-[#ede9f7] flex flex-col md:flex-row overflow-hidden relative">
-
-        {/* ================= BARRA LATERAL (SIDEBAR IZQUIERDO ESTILO PILL) ================= */}
-        <aside className={`${collapsed ? 'md:w-20' : 'md:w-60'} w-full bg-white border-b md:border-b-0 md:border-r border-[#f1eef8] p-4 sm:p-6 flex flex-col justify-between shrink-0 transition-all duration-300`}>
+    <div className="w-full h-screen bg-[#faf9fe] font-sans flex flex-col md:flex-row overflow-hidden select-none">
+      {/* ================= BARRA LATERAL (SIDEBAR IZQUIERDO ESTILO PILL) ================= */}
+      <aside className={`${collapsed ? 'md:w-20' : 'md:w-64'} w-full bg-white border-b md:border-b-0 md:border-r border-[#f1eef8] p-4 sm:p-5 flex flex-col justify-between shrink-0 transition-all duration-300 z-30 shadow-xs`}>
           <div>
             {/* Logo Nestly / Next Plus estilo amigable */}
             <div className="flex items-center justify-between mb-8">
@@ -660,8 +657,8 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
             </div>
           </header>
 
-          {/* Área de Contenido Principal */}
-          <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-6">
+          {/* Área de Contenido Principal - Full Width & Fluid */}
+          <main className="flex-1 px-4 sm:px-8 md:px-10 lg:px-12 py-6 md:py-8 space-y-8 w-full max-w-[1700px] mx-auto">
 
             {/* Modal de Alerta de Seguridad (Anti-trampa) */}
             {securityModalVisible && (
@@ -1183,7 +1180,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                     {examsList.map((exam, idx) => {
                       const isDone = Boolean(completedExams[exam.id])
                       const meta = getModuleMeta(idx, exam.toolType)
@@ -1335,7 +1332,6 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
           </main>
         </div>
-      </div>
     </div>
   )
 }
