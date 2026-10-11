@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { db, isFirebaseConfigured } from '../../lib/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { getUserProfile, sanitizeDocId, getExams, subscribeExams, subscribeExamDispatch, saveResult } from '../../lib/dataService'
-import Sidebar from '../shared/Sidebar'
+import { getUserProfile, sanitizeDocId, subscribeExams, subscribeExamDispatch, saveResult } from '../../lib/dataService'
 import QuestionPlayer, { QUESTION_CHECKERS } from './QuestionPlayer'
 import AudioGroupPlayer from './AudioGroupPlayer'
 import { OFFICIAL_DIAGNOSTIC_EXAMS } from '../../data/officialExamsData'
+import studentHeroImg from '../../assets/student_hero.jpg'
 
 export default function StudentGamifiedExam({ student: propStudent, onLogout }) {
   const [currentStudent, setCurrentStudent] = useState(propStudent || {})
-  const [currentSection, setCurrentSection] = useState('interview')
+  const [currentSection, setCurrentSection] = useState('home') // 'home' | 'battery' | 'interview' | 'results'
   const [collapsed, setCollapsed] = useState(false)
 
   // Datos consolidados del alumno en sesión
@@ -26,12 +26,12 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
   // Estado de la batería de pruebas y reactivos
   const [examsList, setExamsList] = useState(OFFICIAL_DIAGNOSTIC_EXAMS)
-  const [loadingExams, setLoadingExams] = useState(false)
+  const [, setLoadingExams] = useState(false)
   const [activeExam, setActiveExam] = useState(null)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [examTimeLeft, setExamTimeLeft] = useState(0)
 
-  // Respuestas persistidas para que no se pierdan al pausar, salir a receso o recargar
+  // Respuestas persistidas para que no se pierdan al pausar o recargar
   const answersStorageKey = `el_draft_answers_${student.email || student.carnet || 'student'}`
   const [studentAnswers, setStudentAnswers] = useState(() => {
     try {
@@ -62,7 +62,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     return () => unsub()
   }, [])
 
-  // Detectar clave de grado normalizada del alumno ('7', '8', '9', '10', '11', '12')
+  // Clave de grado normalizada
   const studentGradeKey = (() => {
     const gStr = (student.grade || '') + ' ' + (student.codigoGrado || '')
     if (gStr.includes('7°') || student.codigoGrado === '07') return '7'
@@ -75,41 +75,32 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     return '7'
   })()
 
-  // Comprobar override individual de este alumno
+  // Override individual
   const studentOverride = (() => {
     const clean = sanitizeDocId(student.email)
     const overrides = dispatchConfig.studentOverrides || {}
     return overrides[clean] || overrides[(student.email || '').toLowerCase()] || null
   })()
 
-  // Estado del grado en controles maestros
   const gradeControl = dispatchConfig.gradesControl?.[studentGradeKey] || {
     platformStatus: 'paused',
     interviewStatus: 'paused'
   }
 
-  // ¿Está la plataforma activa, pausada o finalizada para este alumno?
   const isPlatformFinishedForStudent = studentOverride?.platformStatus === 'finished' || gradeControl.platformStatus === 'finished'
 
   const isPlatformActiveForStudent = (() => {
-    // 1. Si hay override individual activo, tiene prioridad directa
     if (studentOverride && studentOverride.platformStatus) {
       return studentOverride.platformStatus === 'active'
     }
-    // 2. Si el grado está finalizado
     if (gradeControl.platformStatus === 'finished') return false
-    // 3. Si el grado está en pausa
     if (gradeControl.platformStatus === 'paused') return false
-    // 4. Si hay pausa global
     if (dispatchConfig.isPaused) return false
-    // 5. Si está activo en el grado
     return gradeControl.platformStatus === 'active'
   })()
 
-  // Pausa efectiva para congelar temporizador y mostrar modal
   const isPlatformPausedForStudent = !isPlatformActiveForStudent && !isPlatformFinishedForStudent
 
-  // Estado de entrevista oral habilitada para este alumno
   const isInterviewActiveForStudent = (() => {
     if (studentOverride && studentOverride.interviewStatus) {
       return studentOverride.interviewStatus === 'active'
@@ -152,13 +143,12 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }, [student?.email])
 
-  // 2. Suscribirse a la batería oficial de exámenes en tiempo real (para reflejar cambios de preguntas añadidas por docentes)
+  // 2. Suscribirse a la batería de exámenes
   useEffect(() => {
     setLoadingExams(true)
     const unsub = subscribeExams((exams) => {
       if (exams && exams.length > 0) {
         setExamsList(exams)
-        // Si el examen actualmente activo fue actualizado por el docente, sincronizar sus preguntas en vivo
         setActiveExam(prev => {
           if (!prev) return null
           const updated = exams.find(e => e.id === prev.id)
@@ -170,7 +160,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     return () => unsub?.()
   }, [])
 
-  // 3. Temporizador regresivo sincronizado para el test activo (Se congela si el docente pausa la evaluación o el grado está pausado)
+  // 3. Temporizador regresivo
   useEffect(() => {
     if (!activeExam || examTimeLeft <= 0 || isPlatformPausedForStudent || isPlatformFinishedForStudent) return
     const timer = setInterval(() => {
@@ -186,7 +176,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     return () => clearInterval(timer)
   }, [activeExam, examTimeLeft > 0, isPlatformPausedForStudent, isPlatformFinishedForStudent])
 
-  // 4. DETECCIÓN DE CAMBIO DE PESTAÑA / VENTANA (Anti-trampa)
+  // 4. Detección anti-trampa (cambio de ventana)
   useEffect(() => {
     if (!activeExam) return
 
@@ -208,7 +198,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
         setTabSwitchWarnings(prev => {
           const newCount = prev + 1
           setSecurityNotice(
-            `⚠️ SECURITY ALERT #${newCount}: You switched tabs or minimized the assessment window. This incident is being logged in your assessment record for teacher review.`
+            `⚠️ SECURITY ALERT #${newCount}: Has cambiado de pestaña o minimizado la ventana de evaluación. Este incidente ha sido registrado para revisión docente.`
           )
           setSecurityModalVisible(true)
           return newCount
@@ -217,12 +207,12 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
 
     const handleWindowBlur = () => {
-      if (document.hidden) return // already covered by visibilitychange
-      logIncident('window_blur', 'Lost focus from assessment window (opened another app or window)')
+      if (document.hidden) return
+      logIncident('window_blur', 'Lost focus from assessment window')
       setTabSwitchWarnings(prev => {
         const newCount = prev + 1
         setSecurityNotice(
-          `⚠️ SECURITY ALERT #${newCount}: You left the assessment window focus. Please remain within the test.`
+          `⚠️ SECURITY ALERT #${newCount}: Has salido de la ventana de evaluación. Mantén el foco en la pantalla.`
         )
         setSecurityModalVisible(true)
         return newCount
@@ -238,15 +228,14 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }, [activeExam, currentQuestionIndex])
 
-  // 5. KEYBOARD SHORTCUT RESTRICTIONS (Copy, Cut, Screenshots, Inspect)
+  // 5. Restricción de atajos de teclado y clic derecho
   useEffect(() => {
     if (!activeExam) return
 
     const handleKeyDown = (e) => {
-      // Block screenshot keys: PrintScreen
       if (e.key === 'PrintScreen' || e.keyCode === 44) {
         e.preventDefault()
-        setSecurityNotice('🔒 Action restricted: Screenshots are strictly blocked during the assessment.')
+        setSecurityNotice('🔒 Captura bloqueada: Las capturas de pantalla están deshabilitadas durante la prueba.')
         setSecurityModalVisible(true)
         if (navigator.clipboard) {
           navigator.clipboard.writeText('').catch(() => {})
@@ -254,20 +243,19 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
         return false
       }
 
-      // Block Ctrl+C (Copy), Ctrl+X (Cut), Ctrl+U (View Source), Ctrl+Shift+I / F12 (Inspect)
       if (
         (e.ctrlKey || e.metaKey) &&
         ['c', 'C', 'x', 'X', 'u', 'U', 's', 'S', 'p', 'P'].includes(e.key)
       ) {
         e.preventDefault()
-        setSecurityNotice(`🔒 Restricted action: The Ctrl+${e.key.toUpperCase()} shortcut is disabled for security protocol.`)
+        setSecurityNotice(`🔒 Acción restringida: El atajo Ctrl+${e.key.toUpperCase()} está bloqueado por protocolo.`)
         setSecurityModalVisible(true)
         return false
       }
 
       if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key))) {
         e.preventDefault()
-        setSecurityNotice('🔒 Access to developer / inspection tools is blocked.')
+        setSecurityNotice('🔒 Acceso a herramientas de inspección bloqueado.')
         setSecurityModalVisible(true)
         return false
       }
@@ -287,10 +275,10 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }, [activeExam])
 
-  // Iniciar un examen de la batería (solo si no ha sido completado)
+  // Iniciar examen
   const handleStartExam = (exam) => {
     if (completedExams[exam.id]) {
-      alert('🔒 You have already completed and submitted this test. By academic policy, each test instrument can only be taken once.')
+      alert('🔒 Ya completaste esta prueba. Por normativa académica solo se puede presentar una vez.')
       return
     }
     setActiveExam(exam)
@@ -299,7 +287,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     setExamTimeLeft(minutes * 60)
   }
 
-  // Guardar respuesta del alumno en silencio y persistir en localStorage para proteger ante recarga/pausa
+  // Guardar respuestas
   const handleAnswerChange = (examId, qId, answerValue) => {
     setStudentAnswers(prev => {
       const updated = {
@@ -312,20 +300,18 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
       try {
         localStorage.setItem(answersStorageKey, JSON.stringify(updated))
       } catch (e) {
-        console.warn('Error guardando borrador de respuesta:', e)
+        console.warn('Error guardando borrador:', e)
       }
       return updated
     })
   }
 
-  // Finalizar y enviar examen de manera definitiva
-  // Finalizar y enviar examen de manera definitiva, guardando todas las respuestas de cada pregunta
+  // Finalizar examen
   const handleFinishActiveExam = async (examId, byTimeout = false) => {
     const currentExam = examsList.find(e => e.id === examId) || activeExam || {}
     const examQuestions = currentExam.questions || []
     const rawAnswers = studentAnswers[examId] || {}
 
-    // Desglosar cada pregunta con la respuesta seleccionada por el estudiante y su corrección
     const detailedResponses = examQuestions.map((q, idx) => {
       const studentAns = rawAnswers[q.id]
       const checker = QUESTION_CHECKERS[q.type]
@@ -399,22 +385,17 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     setActiveExam(null)
     setExamIncidents([])
 
-    // Persistir localmente de inmediato para que no pueda volver a presentarlo al recargar
     try {
       localStorage.setItem(storageKey, JSON.stringify(updatedCompleted))
     } catch (e) {
-      console.warn('Error guardando examen completado en localStorage:', e)
+      console.warn('Error en localStorage:', e)
     }
 
-    // Persistir en Firestore en el perfil del alumno y en la colección results
     if (student.email) {
       try {
         const docId = sanitizeDocId(student.email)
         if (isFirebaseConfigured()) {
-          // 1. Guardar en users/{studentId}
           await setDoc(doc(db, 'users', docId), { completedExams: updatedCompleted }, { merge: true })
-
-          // 2. Guardar en results/{resId} para historial y reportes
           const resultPayload = {
             id: `res_${docId}_${examId}`,
             studentEmail: student.email,
@@ -437,30 +418,25 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
           await saveResult(resultPayload)
         }
       } catch (err) {
-        console.warn('Error guardando finalización en Firestore:', err)
+        console.warn('Error guardando en Firestore:', err)
       }
     }
   }
 
-  // Formatear segundos a mm:ss
   const formatSeconds = (secs) => {
     const m = Math.floor(secs / 60)
     const s = secs % 60
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
-  // Cálculo de tiempo total acumulado de toda la batería asignada por los docentes
+  // Cálculos de progreso
   const totalBatteryMinutes = examsList.reduce((acc, ex) => acc + (ex.timeLimitMinutes || 15), 0)
-  const totalBatteryQuestions = examsList.reduce((acc, ex) => acc + (ex.questions?.length || 0), 0)
   const totalCompletedCount = Object.keys(completedExams).length
-
+  const progressPercent = examsList.length > 0 ? Math.round((totalCompletedCount / examsList.length) * 100) : 0
   const allTestsCompleted = examsList.length > 0 && totalCompletedCount >= examsList.length
-  // El nivel oficial solo se publica al alumno si el docente ya lo asignó Y el alumno terminó todos sus tests
   const isPlacementFullyConcluded = Boolean(student.assignedLevel) && allTestsCompleted
 
-  // Verificar si el grado y sección de este alumno están autorizados por las teachers y activos
   const isStudentAuthorizedForExam = (() => {
-    // Si la plataforma está finalizada o en pausa específica para el grado/estudiante
     if (isPlatformFinishedForStudent) return false
     if (isPlatformPausedForStudent) return false
 
@@ -491,221 +467,295 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     return matchGrade && matchSection
   })()
 
-  // Dynamic student navigation menu
-  const studentMenuItems = [
-    {
-      key: 'interview',
-      label: 'Oral Interview (Teacher)',
-      icon: 'record_voice_over',
-      badge: isInterviewActiveForStudent ? '🎙️ In Turn' : 'In-person'
-    },
-    {
-      key: 'battery',
-      label: 'Digital Test Battery',
-      icon: 'quiz',
-      badge: isPlatformPausedForStudent ? '⏸️ Paused' : isPlatformFinishedForStudent ? '⏹️ Closed' : `${totalCompletedCount}/${examsList.length} Completed`
-    },
-    {
-      key: 'results',
-      label: 'Placement Status',
-      icon: 'military_tech',
-      badge: isPlacementFullyConcluded ? 'Ready' : 'In Progress'
-    },
+  // Primer examen pendiente para el botón de acción rápida
+  const nextPendingExam = examsList.find(e => !completedExams[e.id]) || examsList[0]
+
+  // Formato de fecha estética actual
+  const todayFormatted = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  }).format(new Date())
+
+  // Primer nombre para saludo
+  const studentFirstName = (student.name || 'Student').split(' ')[0]
+
+  // Configuración de items del sidebar moderno
+  const navItems = [
+    { key: 'home', label: 'Home', icon: 'home' },
+    { key: 'battery', label: 'My learning', icon: 'play_circle', badge: `${totalCompletedCount}/${examsList.length}` },
+    { key: 'interview', label: 'Oral Interview', icon: 'record_voice_over', badge: isInterviewActiveForStudent ? 'Turno' : null },
+    { key: 'results', label: 'Progress & Level', icon: 'donut_large', badge: isPlacementFullyConcluded ? 'Listo' : null }
   ]
 
-  return (
-    <div className="flex h-screen bg-[#f8fafc] font-sans overflow-hidden">
-      {/* Student Institutional Sidebar */}
-      <Sidebar
-        title="Student Portal"
-        subtitle="Colegio Salesiano San José"
-        icon="school"
-        menuItems={studentMenuItems}
-        activeKey={currentSection}
-        onSelect={(k) => {
-          setActiveExam(null)
-          setCurrentSection(k)
-        }}
-        collapsed={collapsed}
-        onToggleCollapse={() => setCollapsed(!collapsed)}
-        user={{
-          name: student.name,
-          email: student.email || `${student.carnet}@salesiano.edu.sv`,
-          role: 'student'
-        }}
-        onLogout={onLogout}
-        logoutLabel="Sign Out"
-        collapseTooltip="Collapse sidebar"
-        expandTooltip="Expand sidebar"
-      />
+  // Iconos y colores temáticos suaves para los módulos de la ruta de aprendizaje
+  const getModuleMeta = (index, toolType) => {
+    const metas = [
+      { tag: 'Reading & Grammar', bg: 'bg-[#ffebf0]', text: 'text-[#e64980]', icon: 'menu_book' },
+      { tag: 'Listening Lab', bg: 'bg-[#fff4e6]', text: 'text-[#f76707]', icon: 'headphones' },
+      { tag: 'Vocabulary & Use', bg: 'bg-[#e7f5ff]', text: 'text-[#1c7ed6]', icon: 'palette' },
+      { tag: 'Sentence Structure', bg: 'bg-[#f3f0ff]', text: 'text-[#7950f2]', icon: 'tune' },
+      { tag: 'Speaking Skills', bg: 'bg-[#ebfbee]', text: 'text-[#2b8a3e]', icon: 'mic' },
+      { tag: 'Diagnostic Mastery', bg: 'bg-[#fff9db]', text: 'text-[#f59f00]', icon: 'star' }
+    ]
+    return metas[index % metas.length]
+  }
 
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col h-full overflow-y-auto">
-        <header className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between sticky top-0 z-20 shadow-xs">
-          <div className="flex items-center gap-3">
-            <h1 className="font-heading font-extrabold text-base md:text-lg text-gray-900">
-              {activeExam ? activeExam.title : (studentMenuItems.find(m => m.key === currentSection)?.label || 'Diagnostic Battery')}
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-800">
-              Placement 2027
-            </span>
+  return (
+    <div className="min-h-screen bg-[#f3f1fa] font-sans flex items-center justify-center p-2 sm:p-4 md:p-6 select-none">
+      {/* Contenedor tipo iPad / Tablet Mockup con bordes redondeados y sombra 3D suave */}
+      <div className="w-full max-w-[1360px] min-h-[92vh] bg-white rounded-[36px] sm:rounded-[44px] shadow-[0_20px_60px_-15px_rgba(84,70,168,0.18)] border border-[#ede9f7] flex flex-col md:flex-row overflow-hidden relative">
+
+        {/* ================= BARRA LATERAL (SIDEBAR IZQUIERDO ESTILO PILL) ================= */}
+        <aside className={`${collapsed ? 'md:w-20' : 'md:w-60'} w-full bg-white border-b md:border-b-0 md:border-r border-[#f1eef8] p-4 sm:p-6 flex flex-col justify-between shrink-0 transition-all duration-300`}>
+          <div>
+            {/* Logo Nestly / Next Plus estilo amigable */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#e9e3ff] flex items-center justify-center text-[#5446a8] shadow-xs">
+                  <span className="material-symbols-outlined text-[24px]">school</span>
+                </div>
+                {!collapsed && (
+                  <div>
+                    <h2 className="font-heading font-black text-base text-[#2d2c38] tracking-tight leading-none">
+                      English Level
+                    </h2>
+                    <span className="text-[10px] font-bold text-[#8a70d6] uppercase tracking-wider block mt-0.5">
+                      San José Learn
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCollapsed(!collapsed)}
+                className="hidden md:flex p-1.5 rounded-xl text-[#8e8a9f] hover:bg-[#f4f1fd] hover:text-[#5446a8] transition-colors cursor-pointer"
+                title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {collapsed ? 'menu_open' : 'menu'}
+                </span>
+              </button>
+            </div>
+
+            {/* Menú de navegación redondeado y suave */}
+            <nav className="space-y-2">
+              {navItems.map((item) => {
+                const isActive = currentSection === item.key && !activeExam
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveExam(null)
+                      setCurrentSection(item.key)
+                    }}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold text-xs transition-all duration-200 cursor-pointer ${
+                      isActive
+                        ? 'bg-[#e9e3ff] text-[#413689] shadow-xs ring-1 ring-[#8a70d6]/20'
+                        : 'text-[#6b677e] hover:bg-[#faf9fe] hover:text-[#2d2c38]'
+                    } ${collapsed ? 'justify-center px-0' : 'justify-start'}`}
+                  >
+                    <span className={`material-symbols-outlined text-[22px] ${isActive ? 'text-[#5446a8]' : 'text-[#9c97b0]'}`}>
+                      {item.icon}
+                    </span>
+                    {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
+                    {!collapsed && item.badge && (
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-[#5446a8] text-white' : 'bg-[#f4f1fd] text-[#5446a8]'}`}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Active exam countdown timer */}
-            {activeExam && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white font-mono text-xs font-bold shadow-xs">
-                <span className="material-symbols-outlined text-[16px] text-amber-400 animate-pulse">timer</span>
-                <span>{formatSeconds(examTimeLeft)}</span>
+          {/* Tarjeta inferior "Keep wondering!" estilo amigable / Salir */}
+          <div className="pt-6 space-y-3">
+            {!collapsed && (
+              <div className="p-4 rounded-3xl bg-[#fff9db] border border-[#ffec99]/60 relative overflow-hidden text-left">
+                <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-600 flex items-center justify-center mb-2">
+                  <span className="material-symbols-outlined text-[20px]">star</span>
+                </div>
+                <h4 className="text-xs font-black text-amber-950 leading-tight">
+                  ¡Sigue adelante!
+                </h4>
+                <p className="text-[11px] text-amber-800/80 mt-1 leading-relaxed font-medium">
+                  {examsList.length - totalCompletedCount === 0
+                    ? '¡Completaste toda tu batería de inglés!'
+                    : `Estás a ${examsList.length - totalCompletedCount} actividades de tu meta.`}
+                </p>
               </div>
             )}
 
-            <div className="hidden sm:block text-right">
-              <span className="text-xs font-bold text-gray-800 block leading-tight">{student.name}</span>
-              <span className="text-[10px] text-gray-500 font-mono">ID: {student.carnet || 'N/A'}</span>
-            </div>
             <button
+              type="button"
               onClick={onLogout}
-              className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-all flex items-center gap-1 cursor-pointer"
+              className={`w-full flex items-center gap-2 p-3 rounded-2xl text-xs font-bold text-[#8e8a9f] hover:text-rose-600 hover:bg-rose-50/60 transition-all cursor-pointer ${
+                collapsed ? 'justify-center' : 'justify-start'
+              }`}
+              title="Cerrar sesión"
             >
-              <span className="material-symbols-outlined text-[16px]">logout</span>
-              <span>Sign Out</span>
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              {!collapsed && <span>Cerrar sesión</span>}
             </button>
           </div>
-        </header>
+        </aside>
 
-        {/* Contenido Central */}
-        <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
-          <div className="max-w-3xl w-full mx-auto my-auto">
+        {/* ================= CUERPO PRINCIPAL DEL DASHBOARD ================= */}
+        <div className="flex-1 flex flex-col bg-[#faf9fe] overflow-y-auto min-h-0">
 
-            {/* Security Warning Modal / Tab Switch / Screenshot */}
+          {/* Barra Superior Header */}
+          <header className="px-6 sm:px-8 py-5 flex items-center justify-between border-b border-[#f1eef8] bg-white/70 backdrop-blur-md sticky top-0 z-20">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCollapsed(!collapsed)}
+                className="md:hidden p-2 rounded-xl bg-[#f4f1fd] text-[#5446a8]"
+              >
+                <span className="material-symbols-outlined text-[20px]">menu</span>
+              </button>
+
+              <div className="text-left">
+                <span className="text-[11px] font-bold text-[#8e8a9f] uppercase tracking-wider block">
+                  {todayFormatted}
+                </span>
+                <h1 className="font-heading font-black text-lg sm:text-xl text-[#2d2c38] leading-tight">
+                  ¡Hola de nuevo, {studentFirstName}!
+                </h1>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Temporizador si hay examen activo */}
+              {activeExam && (
+                <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-[#5446a8] text-white text-xs font-mono font-bold shadow-xs">
+                  <span className="material-symbols-outlined text-[16px] text-amber-300 animate-pulse">timer</span>
+                  <span>{formatSeconds(examTimeLeft)}</span>
+                </div>
+              )}
+
+              {/* Badges de Grado y Alumno */}
+              <div className="hidden sm:flex flex-col text-right">
+                <span className="text-xs font-extrabold text-[#2d2c38]">{student.name}</span>
+                <span className="text-[10px] font-mono text-[#8a70d6]">
+                  {student.grade || '7° Grado'} {student.section ? `• Sec. ${student.section}` : ''}
+                </span>
+              </div>
+
+              {/* Avatar circular con badge morado */}
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#8a70d6] to-[#b8a5f2] p-0.5 shadow-xs shrink-0 flex items-center justify-center text-white font-black text-xs">
+                {student.photoUrl ? (
+                  <img
+                    src={student.photoUrl}
+                    alt={student.name}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  studentFirstName.substring(0, 2).toUpperCase()
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Área de Contenido Principal */}
+          <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-6">
+
+            {/* Modal de Alerta de Seguridad (Anti-trampa) */}
             {securityModalVisible && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-fadeIn">
-                <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-2 border-rose-500 text-center space-y-5 animate-scaleUp">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+                <div className="bg-white rounded-[32px] p-6 sm:p-8 max-w-md w-full shadow-2xl border-2 border-rose-500 text-center space-y-5 animate-scaleUp">
                   <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
                     <span className="material-symbols-outlined text-[36px]">security_update_warning</span>
                   </div>
-
                   <div className="space-y-2">
                     <span className="inline-block px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800">
-                      Academic Security Warning
+                      Aviso de Seguridad Académica
                     </span>
                     <h3 className="text-lg font-heading font-black text-slate-900 leading-snug">
-                      Security Incident Recorded
+                      Incidente Registrado
                     </h3>
                     <p className="text-xs text-slate-600 leading-relaxed font-medium">
                       {securityNotice}
                     </p>
                   </div>
-
-                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-left flex items-start gap-2.5 text-[11px] text-amber-900 leading-tight">
-                    <span className="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">warning</span>
-                    <span>
-                      Under assessment guidelines, switching tabs, copying test items, or capturing screenshots is not permitted. Each event is recorded in your evaluation log.
-                    </span>
-                  </div>
-
                   <button
                     type="button"
                     onClick={() => setSecurityModalVisible(false)}
-                    className="w-full py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-2xl bg-[#5446a8] hover:bg-[#413689] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
                   >
-                    <span>Understood, return to my test</span>
-                    <span className="material-symbols-outlined text-[16px]">check</span>
+                    Entendido, regresar a la prueba
                   </button>
                 </div>
               </div>
             )}
 
-            {/* ================= PLATFORM PAUSE SCREEN (TEACHER CONTROLLED) ================= */}
+            {/* Pantalla de Pausa Docente */}
             {isPlatformPausedForStudent && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-                <div className="bg-white rounded-[32px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-amber-400 text-center space-y-6 animate-scaleUp">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
+                <div className="bg-white rounded-[36px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-amber-400 text-center space-y-6 animate-scaleUp">
                   <div className="w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
                     <span className="material-symbols-outlined text-[42px] animate-pulse">pause_circle</span>
                   </div>
-
                   <div className="space-y-2">
                     <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-900">
-                      Assessment Paused • Awaiting Teacher
+                      Evaluación en Pausa • Esperando Docente
                     </span>
                     <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
                       {gradeControl.platformStatus === 'paused'
-                        ? `Grade ${studentGradeKey} platform is paused`
-                        : 'The test is currently paused by the teacher'}
+                        ? `La plataforma de ${studentGradeKey}° grado está en pausa`
+                        : 'La prueba está temporalmente pausada por tu docente'}
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                      Your time has been frozen. Please wait for your teacher's instructions to resume.
+                      El tiempo ha quedado congelado. Espera las indicaciones de tu profesor para continuar.
                     </p>
-                  </div>
-
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2 text-xs text-slate-600">
-                    <div className="flex items-center gap-2 font-bold text-slate-800">
-                      <span className="material-symbols-outlined text-emerald-600 text-[18px]">verified_user</span>
-                      <span>Your progress is safe:</span>
-                    </div>
-                    <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-500 pl-1">
-                      <li>Remaining test time will resume exactly where it was paused.</li>
-                      <li>The test will automatically resume on your screen once teachers restart your grade or section.</li>
-                      <li>All your previous answers are securely saved.</li>
-                    </ul>
-                  </div>
-
-                  <div className="text-[11px] font-mono text-slate-400">
-                    Real-time synchronization active • Waiting for teacher resume...
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ================= ASSESSMENT CONCLUDED SCREEN ================= */}
+            {/* Pantalla de Conclusión de Evaluación */}
             {isPlatformFinishedForStudent && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
-                <div className="bg-white rounded-[32px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-rose-500 text-center space-y-6 animate-scaleUp">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
+                <div className="bg-white rounded-[36px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-rose-500 text-center space-y-6 animate-scaleUp">
                   <div className="w-20 h-20 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
                     <span className="material-symbols-outlined text-[42px]">stop_circle</span>
                   </div>
-
                   <div className="space-y-2">
                     <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-900">
-                      Assessment Concluded by Teacher
+                      Sesión de Evaluación Finalizada
                     </span>
                     <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
-                      The assessment session for your grade has closed
+                      El período oficial de pruebas ha concluido
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                      The official testing window has ended. Answers submitted up to this moment have been successfully recorded.
+                      Tus respuestas enviadas han quedado registradas exitosamente en el sistema.
                     </p>
                   </div>
-
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (activeExam) {
-                          handleFinishActiveExam(activeExam.id, true)
-                        }
-                        setCurrentSection('results')
-                      }}
-                      className="px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-lg transition-all cursor-pointer"
-                    >
-                      Acknowledge & View Status
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activeExam) handleFinishActiveExam(activeExam.id, true)
+                      setCurrentSection('results')
+                    }}
+                    className="px-6 py-3 rounded-2xl bg-[#5446a8] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+                  >
+                    Ver estado de colocación
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* ================= VISTA A: EXAMEN ACTIVO EN EJECUCIÓN ================= */}
+            {/* ================= CASO 1: EXAMEN ACTIVO EN EJECUCIÓN ================= */}
             {activeExam ? (() => {
               const currentExamAnswers = studentAnswers[activeExam.id] || {}
               const isListeningExam = activeExam.toolType === 'listening' || activeExam.questions.some(q => q.type === 'listening' && q.audioUrl)
 
-              // Si es examen de audio/listening, agrupamos preguntas contiguas que comparten el mismo audio
               if (isListeningExam) {
                 const audioGroups = []
                 let currentGrp = null
-
                 activeExam.questions.forEach((q, idx) => {
                   const qWithIndex = { ...q, displayNumber: idx + 1 }
                   const key = q.audioUrl || q.audioText || `audio_group_${idx}`
@@ -723,95 +773,65 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                   }
                 })
 
-                // El currentQuestionIndex funciona como groupIndex para la navegación entre audios
                 const currentGroupIndex = Math.min(currentQuestionIndex, audioGroups.length - 1)
                 const currentGroup = audioGroups[currentGroupIndex] || audioGroups[0]
                 const isLastGroup = currentGroupIndex === audioGroups.length - 1
-
                 const totalExamQuestions = activeExam.questions.length
                 const totalAnsweredQuestions = activeExam.questions.filter(q => currentExamAnswers[q.id] != null).length
-                const groupAnsweredQuestions = currentGroup?.questions.filter(q => currentExamAnswers[q.id] != null).length || 0
 
                 return (
-                  <div className="space-y-5 animate-fadeIn text-left exam-secure-mode select-none">
-                    {/* Audio assessment top progress bar */}
-                    <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-5 animate-fadeIn text-left select-none">
+                    <div className="p-4 bg-white rounded-3xl border border-[#eceaf6] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1 flex-1">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                          <span>
-                            Audio {currentGroupIndex + 1} of {audioGroups.length} • {currentGroup?.questions.length} questions on this screen
-                          </span>
-                          <span className="text-indigo-700 font-mono">
-                            Total answered: {totalAnsweredQuestions} of {totalExamQuestions}
+                        <div className="flex items-center justify-between text-xs font-bold text-[#2d2c38]">
+                          <span>Audio {currentGroupIndex + 1} de {audioGroups.length}</span>
+                          <span className="text-[#5446a8] font-mono">
+                            Respondidas: {totalAnsweredQuestions} / {totalExamQuestions}
                           </span>
                         </div>
-                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="w-full h-2.5 bg-[#f4f1fd] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-indigo-600 transition-all duration-300"
+                            className="h-full bg-gradient-to-r from-[#8a70d6] to-[#5446a8] transition-all duration-300 rounded-full"
                             style={{ width: `${(totalAnsweredQuestions / Math.max(1, totalExamQuestions)) * 100}%` }}
                           />
                         </div>
                       </div>
-
-                      {/* Active Test Status Badge */}
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 text-[11px] font-black border border-indigo-200 shrink-0 self-start sm:self-auto">
-                        <span className="material-symbols-outlined text-[15px] animate-spin">sync</span>
-                        <span>Audio Assessment</span>
-                      </div>
                     </div>
 
-                    {/* Audio group component */}
-                    {currentGroup && (
-                      <div className="exam-secure-mode select-none">
-                        <AudioGroupPlayer
-                          key={currentGroup.key || currentGroupIndex}
-                          group={currentGroup}
-                          examAnswers={currentExamAnswers}
-                          onAnswerChange={(qId, ans) => handleAnswerChange(activeExam.id, qId, ans)}
-                        />
-                      </div>
-                    )}
+                    <AudioGroupPlayer
+                      key={currentGroup?.key || currentGroupIndex}
+                      group={currentGroup}
+                      examAnswers={currentExamAnswers}
+                      onAnswerChange={(qId, ans) => handleAnswerChange(activeExam.id, qId, ans)}
+                    />
 
-                    {/* Audio navigation buttons */}
-                    <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center justify-between gap-2">
+                    <div className="p-4 bg-white rounded-3xl border border-[#eceaf6] flex items-center justify-between">
                       <button
                         type="button"
                         disabled={currentGroupIndex === 0}
-                        onClick={() => {
-                          setCurrentQuestionIndex(i => Math.max(0, i - 1))
-                          window.scrollTo({ top: 0, behavior: 'smooth' })
-                        }}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5 cursor-pointer"
+                        onClick={() => setCurrentQuestionIndex(i => Math.max(0, i - 1))}
+                        className="px-4 py-2.5 rounded-2xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                        <span>Previous Audio</span>
+                        <span>Audio anterior</span>
                       </button>
-
-                      <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-                        {groupAnsweredQuestions === currentGroup?.questions.length
-                          ? '✓ All answered on this screen'
-                          : `${groupAnsweredQuestions} of ${currentGroup?.questions.length} answered in this audio`}
-                      </span>
 
                       {isLastGroup ? (
                         <button
                           type="button"
                           onClick={() => handleFinishActiveExam(activeExam.id)}
-                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                          className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                          <span>Submit Test</span>
+                          <span>Finalizar y entregar prueba</span>
                         </button>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => {
-                            setCurrentQuestionIndex(i => Math.min(audioGroups.length - 1, i + 1))
-                            window.scrollTo({ top: 0, behavior: 'smooth' })
-                          }}
-                          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                          onClick={() => setCurrentQuestionIndex(i => Math.min(audioGroups.length - 1, i + 1))}
+                          className="px-6 py-2.5 rounded-2xl bg-[#5446a8] hover:bg-[#413689] text-white text-xs font-black shadow-md shadow-[#5446a8]/25 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
-                          <span>Next Audio / Questions</span>
+                          <span>Siguiente audio</span>
                           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                         </button>
                       )}
@@ -820,38 +840,36 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                 )
               }
 
-              // Standard single question navigation (Sentence Scramble, Cloze, etc.)
+              // Examen normal pregunta a pregunta
               const currentQ = activeExam.questions[currentQuestionIndex]
-              const isAnswered = currentExamAnswers[currentQ?.id] != null
               const isLast = currentQuestionIndex === activeExam.questions.length - 1
+              const isAnswered = currentExamAnswers[currentQ?.id] != null
 
               return (
-                <div className="space-y-4 animate-fadeIn text-left exam-secure-mode select-none">
-                  {/* Top Progress bar */}
-                  <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex items-center justify-between gap-3">
+                <div className="space-y-5 animate-fadeIn text-left select-none">
+                  <div className="p-4 bg-white rounded-3xl border border-[#eceaf6] shadow-xs flex items-center justify-between gap-4">
                     <div className="space-y-1 flex-1">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                        <span>Question {currentQuestionIndex + 1} of {activeExam.questions.length}</span>
-                        <span className="text-blue-700 font-mono">Item Level: {currentQ?.level || 'A1-C1'}</span>
+                      <div className="flex items-center justify-between text-xs font-bold text-[#2d2c38]">
+                        <span>Pregunta {currentQuestionIndex + 1} de {activeExam.questions.length}</span>
+                        <span className="text-[#5446a8] font-mono">
+                          {Math.round(((currentQuestionIndex + 1) / activeExam.questions.length) * 100)}%
+                        </span>
                       </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="w-full h-2.5 bg-[#f4f1fd] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-600 transition-all duration-300"
+                          className="h-full bg-gradient-to-r from-[#8a70d6] to-[#5446a8] transition-all duration-300 rounded-full"
                           style={{ width: `${((currentQuestionIndex + 1) / activeExam.questions.length) * 100}%` }}
                         />
                       </div>
                     </div>
-
-                    {/* Progress indicator */}
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-[11px] font-black border border-blue-200 shrink-0">
-                      <span className="material-symbols-outlined text-[15px] animate-spin">sync</span>
-                      <span>Test in Progress</span>
+                    <div className="flex items-center gap-1 px-3 py-1.5 rounded-2xl bg-[#e9e3ff] text-[#5446a8] text-[11px] font-black shrink-0">
+                      <span className="material-symbols-outlined text-[16px]">timer</span>
+                      <span>{formatSeconds(examTimeLeft)}</span>
                     </div>
                   </div>
 
-                  {/* Individual Question Player */}
                   {currentQ && (
-                    <div className="exam-secure-mode select-none">
+                    <div className="select-none">
                       <QuestionPlayer
                         key={currentQ.id || currentQuestionIndex}
                         question={currentQ}
@@ -862,358 +880,461 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     </div>
                   )}
 
-                  {/* Student Navigation Controls */}
-                  <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center justify-between">
+                  <div className="p-4 bg-white rounded-3xl border border-[#eceaf6] flex items-center justify-between">
                     <button
                       type="button"
                       disabled={currentQuestionIndex === 0}
                       onClick={() => setCurrentQuestionIndex(i => Math.max(0, i - 1))}
-                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2.5 rounded-2xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                      <span>Previous Question</span>
+                      <span>Anterior</span>
                     </button>
 
-                    <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-                      {isAnswered ? '✓ Answered' : '○ Pending'}
+                    <span className="text-xs text-[#8e8a9f] font-medium hidden sm:inline">
+                      {isAnswered ? '✓ Respondida' : '○ Pendiente'}
                     </span>
 
                     {isLast ? (
                       <button
                         type="button"
                         onClick={() => handleFinishActiveExam(activeExam.id)}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                        <span>Submit Test</span>
+                        <span>Entregar prueba</span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => setCurrentQuestionIndex(i => Math.min(activeExam.questions.length - 1, i + 1))}
-                        className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="px-6 py-2.5 rounded-2xl bg-[#5446a8] hover:bg-[#413689] text-white text-xs font-black shadow-md shadow-[#5446a8]/25 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <span>Next Question</span>
+                        <span>Siguiente</span>
                         <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </button>
                     )}
                   </div>
                 </div>
               )
-            })() : currentSection === 'battery' ? (
-              /* ================= VISTA B: LISTADO COMPLETO DE LOS 6 TESTS OFICIALES ================= */
+            })() : currentSection === 'home' ? (
+              /* ================= CASO 2: VISTA HOME ESTILO "NESTLY LEARN" ================= */
               <div className="space-y-6 animate-fadeIn text-left">
-                {/* Test battery summary header */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-                    <div>
-                      <h2 className="font-heading font-extrabold text-xl text-slate-900">
-                        Official Diagnostic Test Battery
+                {/* Grid Superior: Hero Card Izquierda + Widgets de Racha y Progreso a la Derecha */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  
+                  {/* HERO BANNER AMARILLO PASTEL CON ILUSTRACIÓN Y BOTÓN MORADO */}
+                  <div className="lg:col-span-8 bg-[#fff9db] rounded-[36px] p-6 sm:p-8 md:p-10 border border-[#ffec99]/60 relative overflow-hidden flex flex-col justify-between min-h-[300px] shadow-xs">
+                    <div className="max-w-[340px] sm:max-w-[380px] z-10 space-y-3">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 backdrop-blur-xs text-[#5446a8] text-[11px] font-black uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[16px] text-amber-500">star</span>
+                        <span>Misión de Hoy</span>
+                      </div>
+
+                      <h2 className="font-heading font-black text-2xl sm:text-3xl md:text-4xl text-[#2d2c38] leading-tight">
+                        ¿Listo para demostrar tu nivel de inglés?
                       </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Standardized instruments configured by your English teachers (A1 to C1).
+
+                      <p className="text-xs sm:text-sm text-[#585567] font-medium leading-relaxed">
+                        Tus actividades y evaluaciones diagnósticas están preparadas por tus docentes de San José.
                       </p>
+
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (nextPendingExam) handleStartExam(nextPendingExam)
+                            else setCurrentSection('battery')
+                          }}
+                          className="px-6 py-3.5 rounded-2xl bg-[#5446a8] hover:bg-[#413689] text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-[#5446a8]/25 transition-all inline-flex items-center gap-2 cursor-pointer transform hover:-translate-y-0.5"
+                        >
+                          <span>{allTestsCompleted ? 'Revisar mi ruta' : 'Iniciar mi ruta de hoy'}</span>
+                          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/80 text-center">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Time</span>
-                        <span className="text-sm font-extrabold text-slate-800 font-mono">{totalBatteryMinutes} min</span>
-                      </div>
-                      <div className="px-3.5 py-2 rounded-2xl bg-blue-50 border border-blue-100 text-center">
-                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">Total Items</span>
-                        <span className="text-sm font-extrabold text-blue-900 font-mono">{totalBatteryQuestions} q's</span>
-                      </div>
+                    {/* Ilustración 3D circular integrada en el diseño */}
+                    <div className="hidden sm:block absolute -right-6 -bottom-6 w-56 h-56 md:w-64 md:h-64 rounded-full overflow-hidden border-8 border-white/80 shadow-xl bg-gradient-to-tr from-[#e9e3ff] to-[#fff4e6] pointer-events-none">
+                      <img
+                        src={studentHeroImg}
+                        alt="Estudiante aprendiendo"
+                        className="w-full h-full object-cover object-center scale-105"
+                      />
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    You can take each test in any order you prefer. Each instrument features its own individual timer managed by the evaluating teacher.
+                  {/* COLUMNA DERECHA: WIDGET DE RACHA + ANILLO DE PROGRESO */}
+                  <div className="lg:col-span-4 space-y-5">
+                    
+                    {/* Widget Racha de Días */}
+                    <div className="bg-white rounded-[32px] p-5 sm:p-6 border border-[#f1eef8] shadow-xs space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-[#fff4e6] text-[#f76707] flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[24px]">local_fire_department</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-extrabold text-[#8e8a9f] uppercase tracking-wider block">
+                            Racha de Diagnóstico
+                          </span>
+                          <h4 className="text-sm font-black text-[#2d2c38]">
+                            ¡{totalCompletedCount} de {examsList.length} pruebas listas!
+                          </h4>
+                        </div>
+                      </div>
+
+                      {/* Días / Tests Checkmarks en fila */}
+                      <div className="flex items-center justify-between gap-1.5 pt-1">
+                        {examsList.slice(0, 5).map((ex, i) => {
+                          const isDone = Boolean(completedExams[ex.id])
+                          return (
+                            <div
+                              key={ex.id || i}
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all ${
+                                isDone
+                                  ? 'bg-[#d7fbe8] text-[#00714d]'
+                                  : 'bg-[#f4f3fa] text-[#8e8a9f]'
+                              }`}
+                              title={ex.title}
+                            >
+                              {isDone ? (
+                                <span className="material-symbols-outlined text-[16px]">check</span>
+                              ) : (
+                                `T${i + 1}`
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Widget Porcentaje Circular y Estatus */}
+                    <div className="bg-white rounded-[32px] p-6 border border-[#f1eef8] shadow-xs text-center space-y-3">
+                      <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+                        <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
+                          <path
+                            className="text-[#f1eef8]"
+                            strokeWidth="3.5"
+                            stroke="currentColor"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          <path
+                            className="text-[#5446a8] transition-all duration-700 ease-out"
+                            strokeDasharray={`${progressPercent}, 100`}
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            stroke="currentColor"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="font-heading font-black text-xl text-[#2d2c38]">
+                            {progressPercent}%
+                          </span>
+                          <span className="text-[9px] font-bold text-[#8e8a9f] uppercase">
+                            avance
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <h4 className="font-heading font-black text-sm text-[#2d2c38]">
+                          {allTestsCompleted ? '¡Batería Completada!' : '¡Excelente ritmo!'}
+                        </h4>
+                        <p className="text-[11px] text-[#6b677e] leading-snug">
+                          {allTestsCompleted
+                            ? 'Tus profesores ya tienen todas tus evaluaciones.'
+                            : `Te faltan ${examsList.length - totalCompletedCount} actividades para completar tu meta.`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Tarjeta Nota del Docente */}
+                    <div className="bg-white rounded-[32px] p-5 border border-[#f1eef8] shadow-xs flex items-start gap-3 text-left">
+                      <div className="w-9 h-9 rounded-2xl bg-[#f4f1fd] text-[#5446a8] flex items-center justify-center font-black text-xs shrink-0">
+                        SJ
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black text-[#2d2c38]">Mensaje Docente</span>
+                          <span className="material-symbols-outlined text-rose-400 text-[16px]">favorite</span>
+                        </div>
+                        <p className="text-[11px] text-[#6b677e] leading-relaxed italic">
+                          "Haz tu mejor esfuerzo y responde con confianza cada sección."
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* SECCIÓN INFERIOR: "Your learning path" (Ruta de Aprendizaje con Tarjetas Píldora) */}
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-[#8a70d6] uppercase tracking-wider block">
+                        Preparado para hoy
+                      </span>
+                      <h3 className="font-heading font-black text-lg text-[#2d2c38]">
+                        Tu ruta de evaluación (Learning Path)
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentSection('battery')}
+                      className="text-xs font-bold text-[#5446a8] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Ver todas ({examsList.length})</span>
+                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </button>
+                  </div>
+
+                  {/* Lista de Actividades en formato Píldoras horizontales con botón verde/morado */}
+                  <div className="space-y-3">
+                    {examsList.map((exam, idx) => {
+                      const isDone = Boolean(completedExams[exam.id])
+                      const meta = getModuleMeta(idx, exam.toolType)
+                      const answersCount = Object.keys(studentAnswers[exam.id] || {}).length
+
+                      return (
+                        <div
+                          key={exam.id}
+                          className={`bg-white rounded-[26px] p-4 sm:p-5 border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs ${
+                            isDone ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#f1eef8] hover:border-[#8a70d6]/50 hover:shadow-md'
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            {/* Icono temático pastel */}
+                            <div className={`w-12 h-12 rounded-2xl ${meta.bg} ${meta.text} flex items-center justify-center shrink-0`}>
+                              <span className="material-symbols-outlined text-[24px]">{meta.icon}</span>
+                            </div>
+
+                            <div className="space-y-0.5 text-left">
+                              <span className="text-[10px] font-bold text-[#8e8a9f] uppercase tracking-wider block">
+                                {meta.tag} • Nivel {exam.level || 'A1-C1'}
+                              </span>
+                              <h4 className="font-heading font-black text-sm sm:text-base text-[#2d2c38]">
+                                {exam.title}
+                              </h4>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-5">
+                            <div className="flex items-center gap-3 text-xs text-[#8e8a9f] font-medium">
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[16px]">schedule</span>
+                                <span>{exam.timeLimitMinutes || 15} min</span>
+                              </span>
+                              <span>•</span>
+                              <span>{exam.questions?.length || 0} preguntas</span>
+                            </div>
+
+                            {/* Botón de acción play redondeado */}
+                            <button
+                              type="button"
+                              disabled={isDone}
+                              onClick={() => handleStartExam(exam)}
+                              className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
+                                isDone
+                                  ? 'bg-[#d7fbe8] text-[#00714d]'
+                                  : answersCount > 0
+                                  ? 'bg-[#e9e3ff] text-[#5446a8] hover:bg-[#5446a8] hover:text-white'
+                                  : 'bg-[#d7fbe8] text-[#00714d] hover:bg-[#00714d] hover:text-white shadow-xs'
+                              }`}
+                              title={isDone ? 'Completado' : 'Comenzar actividad'}
+                            >
+                              <span className="material-symbols-outlined text-[20px]">
+                                {isDone ? 'check' : 'play_arrow'}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : currentSection === 'battery' ? (
+              /* ================= CASO 3: VISTA BATERÍA COMPLETA ================= */
+              <div className="space-y-6 animate-fadeIn text-left">
+                <div className="bg-white rounded-[32px] p-6 border border-[#f1eef8] shadow-xs space-y-2">
+                  <span className="text-[10px] font-bold text-[#8a70d6] uppercase tracking-wider block">
+                    Batería Diagnóstica Oficial
+                  </span>
+                  <h2 className="font-heading font-black text-xl text-[#2d2c38]">
+                    Pruebas e Instrumentos de Nivelación
+                  </h2>
+                  <p className="text-xs text-[#585567]">
+                    Completa cada módulo a tu propio ritmo dentro del tiempo establecido.
                   </p>
                 </div>
 
-                {/* If grade/section not authorized by teachers */}
                 {!isStudentAuthorizedForExam ? (
-                  <div className="bg-amber-50 rounded-3xl p-8 border border-amber-200 text-center space-y-4 animate-fadeIn">
-                    <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-inner">
-                      <span className="material-symbols-outlined text-4xl">lock_clock</span>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase bg-amber-200 text-amber-900">
-                        Access Restricted by Teacher Schedule
-                      </span>
-                      <h3 className="font-heading font-black text-base text-slate-900 mt-2">
-                        The test battery is not enabled for your Grade or Section at this time
-                      </h3>
-                      <p className="text-xs text-slate-600 max-w-md mx-auto">
-                        Teachers activate testing sessions sequentially by assigned groups (e.g., Grade 7 A/B). Please await directions from your teacher.
-                      </p>
-                    </div>
+                  <div className="bg-[#fff9db] rounded-[32px] p-8 border border-[#ffec99] text-center space-y-3">
+                    <span className="material-symbols-outlined text-4xl text-amber-600">lock_clock</span>
+                    <h3 className="font-black text-base text-amber-950">
+                      Acceso en espera por horario docente
+                    </h3>
+                    <p className="text-xs text-amber-800 max-w-md mx-auto">
+                      Las pruebas se activan por grupos y secciones guiadas por tu profesor de inglés.
+                    </p>
                   </div>
                 ) : (
-                /* Test instruments grid */
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {examsList.map((exam, idx) => {
-                    const isDone = Boolean(completedExams[exam.id])
-                    const answersCount = Object.keys(studentAnswers[exam.id] || {}).length
-
-                    return (
-                      <div
-                        key={exam.id}
-                        className={`bg-white rounded-2xl p-5 border transition-all space-y-3 flex flex-col justify-between ${
-                          isDone
-                            ? 'border-emerald-200 bg-emerald-50/20'
-                            : 'border-slate-200 hover:border-blue-400 hover:shadow-sm'
-                        }`}
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-700">
-                              Test {idx + 1} • {exam.level || 'A1-C1'}
-                            </span>
-                            <span className="text-xs font-black text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
-                              Weight: {exam.weight || 15}%
-                            </span>
-                          </div>
-
-                          <h3 className="font-heading font-extrabold text-sm text-slate-900 leading-snug">
-                            {exam.title}
-                          </h3>
-
-                          <div className="flex items-center gap-3 text-xs text-slate-500 font-medium pt-1">
-                            <span className="flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[15px]">timer</span>
-                              {exam.timeLimitMinutes || 15} min
-                            </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[15px]">help</span>
-                              {exam.questions?.length || 0} questions
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <span className="text-xs text-slate-400 font-medium">
-                            {isDone ? (
-                              <span className="text-emerald-700 font-bold flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                                Completed
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {examsList.map((exam, idx) => {
+                      const isDone = Boolean(completedExams[exam.id])
+                      const meta = getModuleMeta(idx, exam.toolType)
+                      return (
+                        <div
+                          key={exam.id}
+                          className={`bg-white rounded-[28px] p-6 border space-y-4 flex flex-col justify-between transition-all ${
+                            isDone ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#f1eef8] hover:border-[#8a70d6]'
+                          }`}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${meta.bg} ${meta.text}`}>
+                                Test {idx + 1} • {exam.level || 'A1-C1'}
                               </span>
-                            ) : answersCount > 0 ? (
-                              <span className="text-blue-600 font-bold">
-                                {answersCount}/{exam.questions?.length || 0} answered
+                              <span className="text-xs font-black text-[#5446a8] bg-[#e9e3ff] px-2.5 py-0.5 rounded-full">
+                                {exam.weight || 15}% peso
                               </span>
-                            ) : (
-                              'Not started'
-                            )}
-                          </span>
+                            </div>
+
+                            <h3 className="font-heading font-black text-base text-[#2d2c38]">
+                              {exam.title}
+                            </h3>
+
+                            <div className="flex items-center gap-3 text-xs text-[#8e8a9f]">
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[15px]">timer</span>
+                                {exam.timeLimitMinutes || 15} min
+                              </span>
+                              <span>•</span>
+                              <span>{exam.questions?.length || 0} preguntas</span>
+                            </div>
+                          </div>
 
                           <button
                             type="button"
                             disabled={isDone}
                             onClick={() => handleStartExam(exam)}
-                            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                            className={`w-full py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
                               isDone
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                                : 'bg-[#2528b7] hover:brightness-110 text-white shadow-xs cursor-pointer'
+                                ? 'bg-[#d7fbe8] text-[#00714d] cursor-default'
+                                : 'bg-[#5446a8] hover:bg-[#413689] text-white shadow-md cursor-pointer'
                             }`}
                           >
-                            <span>{isDone ? 'Submitted' : 'Start Test'}</span>
-                            <span className="material-symbols-outlined text-[14px]">
-                              {isDone ? 'lock' : 'play_arrow'}
+                            <span>{isDone ? 'Completado' : 'Comenzar prueba'}</span>
+                            <span className="material-symbols-outlined text-[16px]">
+                              {isDone ? 'check' : 'arrow_forward'}
                             </span>
                           </button>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
-            ) : (Boolean(student.placementReleased) && Boolean(student.assignedLevel) && currentSection === 'results') ? (
-              /* ================= VISTA C: OFFICIAL RESULTS (RELEASED BY TEACHERS) ================= */
-              <div className="bg-white rounded-[32px] p-8 md:p-12 border border-gray-200 shadow-xl space-y-6 animate-fadeIn text-center">
-                <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center shadow-inner">
-                  <span className="material-symbols-outlined text-5xl">verified</span>
-                </div>
-                
-                <div className="space-y-2">
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold tracking-wider uppercase">
-                    Placement Finalized
-                  </span>
-                  <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
-                    Official Level & Group Assigned for 2027 Cycle
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
-                    The English faculty has concluded your assessment and determined your official placement group.
-                  </p>
-                </div>
-
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 max-w-sm mx-auto border border-indigo-100 shadow-inner">
-                  <span className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">
-                    Assigned Group / Level (Get Involved)
-                  </span>
-                  <h3 className="font-heading font-black text-4xl md:text-5xl text-[#2528b7] mt-1">
-                    {student.assignedLevel}
-                  </h3>
-                  <span className="text-xs text-indigo-700 font-semibold mt-2 block">
-                    {student.grade || 'Grade 7'} {student.section ? `- Section ${student.section}` : ''}
-                  </span>
-                </div>
-
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-w-sm mx-auto text-left text-xs text-slate-700 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Teacher assigned to level:</span>
-                    <strong className="text-slate-900">{student.assignedTeacher || 'English Teaching Team'}</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Curricular Series:</span>
-                    <span className="font-semibold text-slate-800">Get Involved (Macmillan)</span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-gray-400">
-                  Further classroom logistics and textbook details for the 2027 school year will be announced shortly.
-                </p>
-              </div>
-            ) : currentSection === 'results' ? (
-              /* ================= VISTA C.2: AWAITING TEACHER RESOLUTION ================= */
-              <div className="bg-white rounded-[32px] p-8 md:p-12 border border-gray-200 shadow-xl space-y-6 animate-fadeIn text-center">
-                <div className="w-20 h-20 rounded-full bg-amber-50 text-amber-600 mx-auto flex items-center justify-center relative shadow-inner">
-                  <span className="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
+            ) : currentSection === 'interview' ? (
+              /* ================= CASO 4: VISTA ENTREVISTA ORAL ================= */
+              <div className="bg-white rounded-[36px] p-8 md:p-12 border border-[#f1eef8] shadow-xs space-y-6 animate-fadeIn text-center max-w-2xl mx-auto">
+                <div className="w-20 h-20 rounded-3xl bg-[#e9e3ff] text-[#5446a8] mx-auto flex items-center justify-center shadow-inner">
+                  <span className="material-symbols-outlined text-4xl">record_voice_over</span>
                 </div>
 
                 <div className="space-y-2">
-                  <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold tracking-wider uppercase border border-amber-200/60">
-                    Placement In Progress
+                  <span className="px-3.5 py-1 rounded-full bg-[#f4f1fd] text-[#5446a8] text-xs font-black uppercase tracking-wider">
+                    Entrevista Oral Docente
                   </span>
-                  <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
-                    Assessment Under Faculty Review (2027 Cycle)
+                  <h2 className="font-heading font-black text-2xl text-[#2d2c38]">
+                    Evaluación de Speaking en Vivo
                   </h2>
-                  <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-                    Your diagnostic evaluation is currently being reviewed. Placement levels will be released once teachers finalize all oral and digital scores.
+                  <p className="text-xs sm:text-sm text-[#585567] max-w-md mx-auto">
+                    La entrevista oral se realiza presencialmente con tu profesor de inglés para evaluar fluidez y pronunciación.
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-w-sm mx-auto text-center text-xs text-slate-600">
-                  <span className="font-semibold text-slate-800 block">Assigned Evaluator:</span>
-                  <span className="text-blue-700 font-extrabold text-sm mt-0.5 block">{student.assignedTeacher || 'Silvia Herrera'}</span>
-                  <span className="text-[11px] text-slate-400 mt-1 block">Status: Processing Diagnostic Data</span>
-                </div>
+                {isInterviewActiveForStudent ? (
+                  <div className="p-5 rounded-3xl bg-[#e9e3ff] border-2 border-[#8a70d6] text-center space-y-2 animate-pulse">
+                    <span className="text-xs font-black uppercase text-[#413689] tracking-wider block">
+                      🎙️ ¡Es tu turno de pasar con el docente!
+                    </span>
+                    <p className="text-xs text-[#5446a8] font-medium">
+                      Por favor acércate a la mesa de evaluación para tu entrevista oral.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-5 rounded-3xl bg-[#faf9fe] border border-[#eceaf6] text-center space-y-1">
+                    <span className="text-xs font-bold text-[#2d2c38] block">Estado de turno:</span>
+                    <span className="text-xs text-[#8e8a9f]">En espera de asignación de turno por tu profesor.</span>
+                  </div>
+                )}
 
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={() => setCurrentSection('battery')}
-                    className="px-6 py-2.5 rounded-2xl bg-slate-900 text-white font-extrabold text-xs hover:bg-slate-800 transition-all cursor-pointer inline-flex items-center gap-2"
+                    onClick={() => setCurrentSection('home')}
+                    className="px-6 py-3 rounded-2xl bg-[#5446a8] text-white font-black text-xs hover:bg-[#413689] transition-all cursor-pointer inline-flex items-center gap-2"
                   >
-                    <span>Go to Test Battery</span>
+                    <span>Volver a Inicio</span>
                     <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                   </button>
                 </div>
               </div>
             ) : (
-              /* ================= VISTA D: WELCOME & STUDENT OVERVIEW ================= */
-              <div className="bg-white rounded-[32px] p-8 md:p-12 border border-gray-200 shadow-xl space-y-6 animate-fadeIn text-center">
-                <div className="w-20 h-20 rounded-full bg-blue-50 text-blue-700 mx-auto flex items-center justify-center relative shadow-inner">
-                  <span className="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
-                  <span className="w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white absolute top-1 right-1"></span>
+              /* ================= CASO 5: VISTA RESULTADOS Y NIVEL ASIGNADO ================= */
+              <div className="bg-white rounded-[36px] p-8 md:p-12 border border-[#f1eef8] shadow-xs space-y-6 animate-fadeIn text-center max-w-2xl mx-auto">
+                <div className="w-20 h-20 rounded-3xl bg-[#d7fbe8] text-[#00714d] mx-auto flex items-center justify-center shadow-inner">
+                  <span className="material-symbols-outlined text-4xl">military_tech</span>
                 </div>
 
                 <div className="space-y-2">
-                  <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-900 text-xs font-bold tracking-wider uppercase border border-amber-200/60">
-                    Placement In Progress
+                  <span className="px-3.5 py-1 rounded-full bg-[#e9e3ff] text-[#5446a8] text-xs font-black uppercase tracking-wider">
+                    Estatus de Colocación
                   </span>
-                  <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-gray-900">
-                    Institutional Diagnostic Assessment
+                  <h2 className="font-heading font-black text-2xl text-[#2d2c38]">
+                    {isPlacementFullyConcluded ? 'Nivel Asignado para el Ciclo 2027' : 'Evaluación en Proceso de Revisión'}
                   </h2>
-                  <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-                    Welcome, <strong className="text-gray-900">{student.name}</strong>. Access the <span className="font-bold text-blue-700">"Digital Test Battery"</span> tab on the left menu to complete your timed instruments.
+                  <p className="text-xs sm:text-sm text-[#585567] max-w-md mx-auto">
+                    {isPlacementFullyConcluded
+                      ? 'Tus profesores han completado la revisión diagnóstica.'
+                      : 'Tus resultados están siendo consolidados por el equipo docente de inglés.'}
                   </p>
                 </div>
 
-                {/* Banner: Oral interview turn notification */}
-                {isInterviewActiveForStudent && (
-                  <div className="p-5 rounded-3xl bg-indigo-50 border-2 border-indigo-500 max-w-md mx-auto text-center space-y-2 animate-pulse">
-                    <div className="flex items-center justify-center gap-2 text-indigo-900 font-extrabold text-sm uppercase">
-                      <span className="material-symbols-outlined text-[24px] text-indigo-600">record_voice_over</span>
-                      <span>It's your turn for the Oral Interview!</span>
-                    </div>
-                    <p className="text-xs text-indigo-700 font-medium">
-                      Your teacher has called you for the live speaking assessment. Please proceed to the evaluator's desk.
-                    </p>
+                {isPlacementFullyConcluded && student.assignedLevel && (
+                  <div className="p-6 rounded-3xl bg-gradient-to-br from-[#f4f1fd] to-[#e9e3ff] border border-[#8a70d6]/30 max-w-sm mx-auto space-y-2">
+                    <span className="text-[10px] uppercase font-bold text-[#5446a8] tracking-wider block">
+                      Nivel Oficial Asignado
+                    </span>
+                    <h3 className="font-heading font-black text-4xl text-[#413689]">
+                      {student.assignedLevel}
+                    </h3>
+                    <span className="text-xs font-bold text-[#8a70d6] block">
+                      Serie: Get Involved (Macmillan)
+                    </span>
                   </div>
                 )}
-
-                {/* Student Registration & Info Card */}
-                <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/90 text-left space-y-4 max-w-md mx-auto shadow-xs">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
-                    <span className="material-symbols-outlined text-blue-700 text-[22px]">badge</span>
-                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                      Student Enrollment Details
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3.5">
-                    <div className="p-3.5 bg-white rounded-2xl border border-slate-200/70">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Grade & Section
-                      </span>
-                      <span className="text-sm font-extrabold text-slate-800 mt-1 block">
-                        {student.grade || 'Grade 7'} {student.section ? `• Sec. ${student.section}` : ''}
-                      </span>
-                    </div>
-
-                    <div className="p-3.5 bg-white rounded-2xl border border-slate-200/70">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Placement Status
-                      </span>
-                      <span className="text-xs font-extrabold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/60 inline-flex items-center gap-1 mt-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                        <span>In Progress</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 bg-white rounded-2xl border border-slate-200/70 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
-                        <span className="material-symbols-outlined text-[18px]">school</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                          Assigned Evaluator
-                        </span>
-                        <span className="text-xs font-extrabold text-slate-800">
-                          {student.assignedTeacher || 'Silvia Herrera'}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-extrabold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/60">
-                      Active
-                    </span>
-                  </div>
-                </div>
 
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={() => setCurrentSection('battery')}
-                    className="px-6 py-3 rounded-2xl bg-[#2528b7] hover:brightness-110 text-white font-heading font-extrabold text-xs shadow-md shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 mx-auto cursor-pointer"
+                    onClick={() => setCurrentSection('home')}
+                    className="px-6 py-3 rounded-2xl bg-[#5446a8] text-white font-black text-xs hover:bg-[#413689] transition-all cursor-pointer inline-flex items-center gap-2"
                   >
-                    <span>Go to Digital Test Battery</span>
+                    <span>Volver a Inicio</span>
                     <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                   </button>
                 </div>
               </div>
             )}
-          </div>
-        </main>
 
-        <footer className="py-3 text-center text-[11px] text-gray-400 border-t border-gray-100 bg-white">
-          © 2026 Colegio Salesiano San José · English Placement & Diagnostic System
-        </footer>
+          </main>
+        </div>
       </div>
     </div>
   )
