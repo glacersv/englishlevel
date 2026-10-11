@@ -6,6 +6,8 @@ import QuestionPlayer, { QUESTION_CHECKERS } from './QuestionPlayer'
 import AudioGroupPlayer from './AudioGroupPlayer'
 import { OFFICIAL_DIAGNOSTIC_EXAMS } from '../../data/officialExamsData'
 import studentHeroImg from '../../assets/student_hero.jpg'
+import nextPlusLogo from '../../assets/logo_next_plus.png'
+import iconNextApp from '../../assets/icon_next_app.png'
 
 export default function StudentGamifiedExam({ student: propStudent, onLogout }) {
   const [currentStudent, setCurrentStudent] = useState(propStudent || {})
@@ -633,18 +635,24 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
       {/* ================= BARRA LATERAL (SIDEBAR IZQUIERDO ESTILO NESTLY EN VERDE) ================= */}
       <aside className={`${collapsed ? 'md:w-20' : 'md:w-64'} w-full bg-white border-b md:border-b-0 md:border-r border-[#e8f3ed] p-4 sm:p-5 flex flex-col justify-between shrink-0 transition-all duration-300 z-30 shadow-xs`}>
         <div>
-          {/* Logo Nestly Learn con tono verde natural */}
+          {/* Logo Oficial NEXT PLUS en el menú lateral */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#d7fbe8] flex items-center justify-center text-[#00875a] shadow-xs">
-                <span className="material-symbols-outlined text-[24px]">school</span>
+              <div className="w-11 h-11 rounded-2xl bg-white border border-[#e8f3ed] p-1.5 flex items-center justify-center shadow-xs shrink-0">
+                <img
+                  src={iconNextApp}
+                  alt="Next App Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
               {!collapsed && (
-                <div>
-                  <h2 className="font-heading font-black text-base text-[#1b382b] tracking-tight leading-none">
-                    Nestly Learn
-                  </h2>
-                  <span className="text-[10px] font-bold text-[#00875a] uppercase tracking-wider block mt-0.5">
+                <div className="flex flex-col">
+                  <img
+                    src={nextPlusLogo}
+                    alt="Next Plus English Platform"
+                    className="h-6 w-auto object-contain object-left"
+                  />
+                  <span className="text-[10px] font-bold text-[#00875a] uppercase tracking-wider block mt-1">
                     Colegio San José
                   </span>
                 </div>
@@ -760,6 +768,15 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                 <span>{formatSeconds(examTimeLeft)}</span>
               </div>
             )}
+
+            {/* Logo distintivo Next Plus en Header */}
+            <div className="hidden lg:flex items-center px-3 py-1.5 rounded-2xl bg-white border border-[#e8f3ed] shadow-xs">
+              <img
+                src={nextPlusLogo}
+                alt="Next Plus"
+                className="h-5 w-auto object-contain"
+              />
+            </div>
 
             {/* Badges de Grado y Alumno */}
             <div className="hidden sm:flex flex-col text-right">

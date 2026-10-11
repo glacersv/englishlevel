@@ -27,8 +27,12 @@ export default function Sidebar({
         <div className="h-20 px-4 border-b border-[#eceaf6]/70 flex items-center justify-between">
           {!collapsed ? (
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#8a70d6] to-[#7052c9] flex items-center justify-center text-white shadow-md shadow-[#8a70d6]/25 shrink-0">
-                <span className="material-symbols-outlined text-[22px]">auto_stories</span>
+              <div className="w-10 h-10 rounded-2xl bg-white border border-[#eceaf6] p-1 flex items-center justify-center shadow-xs shrink-0">
+                <img
+                  src={nextPlusLogo}
+                  alt="Next Plus"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div className="flex flex-col truncate">
                 <span className="font-heading font-extrabold text-sm text-[#2d2c38] tracking-tight leading-tight truncate">
@@ -41,8 +45,12 @@ export default function Sidebar({
             </div>
           ) : (
             <div className="mx-auto flex items-center justify-center">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#8a70d6] to-[#7052c9] flex items-center justify-center text-white shadow-md shadow-[#8a70d6]/25">
-                <span className="material-symbols-outlined text-[22px]">auto_stories</span>
+              <div className="w-10 h-10 rounded-2xl bg-white border border-[#eceaf6] p-1 flex items-center justify-center shadow-xs">
+                <img
+                  src={nextPlusLogo}
+                  alt="Next Plus"
+                  className="w-full h-full object-contain"
+                />
               </div>
             </div>
           )}
