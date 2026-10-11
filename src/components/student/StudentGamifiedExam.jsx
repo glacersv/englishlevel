@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { db, isFirebaseConfigured } from '../../lib/firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { getUserProfile, sanitizeDocId, subscribeExams, subscribeExamDispatch, saveResult } from '../../lib/dataService'
+import { getUserProfile, sanitizeDocId, subscribeExams, subscribeExamDispatch, saveResult, registerOrUpdateUser } from '../../lib/dataService'
 import QuestionPlayer, { QUESTION_CHECKERS } from './QuestionPlayer'
 import AudioGroupPlayer from './AudioGroupPlayer'
 import { OFFICIAL_DIAGNOSTIC_EXAMS } from '../../data/officialExamsData'
@@ -9,7 +9,7 @@ import studentHeroImg from '../../assets/student_hero.jpg'
 
 export default function StudentGamifiedExam({ student: propStudent, onLogout }) {
   const [currentStudent, setCurrentStudent] = useState(propStudent || {})
-  const [currentSection, setCurrentSection] = useState('home') // 'home' | 'battery' | 'interview' | 'results'
+  const [currentSection, setCurrentSection] = useState('home') // 'home' | 'battery' | 'evaluations' | 'interview' | 'profile' | 'results'
   const [collapsed, setCollapsed] = useState(false)
 
   // Datos consolidados del alumno en sesión
@@ -23,6 +23,29 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
       return {}
     }
   })
+
+  // Estado de edición de perfil
+  const [profileFormData, setProfileFormData] = useState({
+    name: student.name || '',
+    phone: student.phone || '',
+    bio: student.bio || '',
+    selfReportedLevel: student.selfReportedLevel || 'A2',
+    favoriteTopic: student.favoriteTopic || 'Reading & Stories'
+  })
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState('')
+
+  // Sincronizar form al cambiar datos de estudiante
+  useEffect(() => {
+    setProfileFormData(prev => ({
+      ...prev,
+      name: student.name || prev.name,
+      phone: student.phone || prev.phone,
+      bio: student.bio || prev.bio,
+      selfReportedLevel: student.selfReportedLevel || prev.selfReportedLevel,
+      favoriteTopic: student.favoriteTopic || prev.favoriteTopic
+    }))
+  }, [student?.name, student?.phone, student?.bio, student?.selfReportedLevel, student?.favoriteTopic])
 
   // Estado de la batería de pruebas y reactivos
   const [examsList, setExamsList] = useState(OFFICIAL_DIAGNOSTIC_EXAMS)
@@ -423,6 +446,43 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     }
   }
 
+  // Guardar perfil del estudiante
+  const handleSaveProfile = async (e) => {
+    e.preventDefault()
+    if (!student.email) return
+    setProfileSaving(true)
+    setProfileSuccessMsg('')
+
+    try {
+      const updatedData = {
+        name: profileFormData.name,
+        phone: profileFormData.phone,
+        bio: profileFormData.bio,
+        selfReportedLevel: profileFormData.selfReportedLevel,
+        favoriteTopic: profileFormData.favoriteTopic,
+        updatedAt: new Date().toISOString()
+      }
+
+      await registerOrUpdateUser({
+        email: student.email,
+        ...updatedData
+      })
+
+      setCurrentStudent(prev => ({
+        ...prev,
+        ...updatedData
+      }))
+
+      setProfileSuccessMsg('¡Perfil actualizado con éxito!')
+      setTimeout(() => setProfileSuccessMsg(''), 4000)
+    } catch (err) {
+      console.warn('Error guardando perfil:', err)
+      alert('Error al guardar los cambios de perfil.')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
   const formatSeconds = (secs) => {
     const m = Math.floor(secs / 60)
     const s = secs % 60
@@ -430,7 +490,6 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   }
 
   // Cálculos de progreso
-  const totalBatteryMinutes = examsList.reduce((acc, ex) => acc + (ex.timeLimitMinutes || 15), 0)
   const totalCompletedCount = Object.keys(completedExams).length
   const progressPercent = examsList.length > 0 ? Math.round((totalCompletedCount / examsList.length) * 100) : 0
   const allTestsCompleted = examsList.length > 0 && totalCompletedCount >= examsList.length
@@ -480,858 +539,1161 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   // Primer nombre para saludo
   const studentFirstName = (student.name || 'Student').split(' ')[0]
 
-  // Configuración de items del sidebar moderno
+  // Configuración de items del sidebar en verde original (#00875a / #00714d / #d7fbe8)
   const navItems = [
     { key: 'home', label: 'Home', icon: 'home' },
     { key: 'battery', label: 'My learning', icon: 'play_circle', badge: `${totalCompletedCount}/${examsList.length}` },
+    { key: 'evaluations', label: 'Term Evaluations', icon: 'event_upcoming', badge: 'Soon' },
     { key: 'interview', label: 'Oral Interview', icon: 'record_voice_over', badge: isInterviewActiveForStudent ? 'Turno' : null },
+    { key: 'profile', label: 'My Profile', icon: 'person', badge: null },
     { key: 'results', label: 'Progress & Level', icon: 'donut_large', badge: isPlacementFullyConcluded ? 'Listo' : null }
   ]
 
   // Iconos y colores temáticos suaves para los módulos de la ruta de aprendizaje
-  const getModuleMeta = (index, toolType) => {
+  const getModuleMeta = (index) => {
     const metas = [
       { tag: 'Reading & Grammar', bg: 'bg-[#ffebf0]', text: 'text-[#e64980]', icon: 'menu_book' },
       { tag: 'Listening Lab', bg: 'bg-[#fff4e6]', text: 'text-[#f76707]', icon: 'headphones' },
       { tag: 'Vocabulary & Use', bg: 'bg-[#e7f5ff]', text: 'text-[#1c7ed6]', icon: 'palette' },
-      { tag: 'Sentence Structure', bg: 'bg-[#f3f0ff]', text: 'text-[#7950f2]', icon: 'tune' },
+      { tag: 'Sentence Structure', bg: 'bg-[#e6fcf5]', text: 'text-[#00875a]', icon: 'tune' },
       { tag: 'Speaking Skills', bg: 'bg-[#ebfbee]', text: 'text-[#2b8a3e]', icon: 'mic' },
       { tag: 'Diagnostic Mastery', bg: 'bg-[#fff9db]', text: 'text-[#f59f00]', icon: 'star' }
     ]
     return metas[index % metas.length]
   }
 
+  // Lista simulada de evaluaciones de periodo próximas (Term Evaluations)
+  const upcomingPeriodAssessments = [
+    {
+      id: 'term_1_midterm',
+      title: 'Term 1 Midterm Evaluation (Units 1 - 3)',
+      date: 'Available: Nov 2026',
+      status: 'Coming Soon',
+      skills: 'Grammar, Listening, Reading Comprehension',
+      timeMinutes: 45
+    },
+    {
+      id: 'term_1_final',
+      title: 'Term 1 Final Speaking & Writing Portfolio',
+      date: 'Scheduled: Dec 2026',
+      status: 'Coming Soon',
+      skills: 'Live Teacher Interview & Extended Essay',
+      timeMinutes: 30
+    },
+    {
+      id: 'term_2_checkpoint',
+      title: 'Term 2 Progress Checkpoint (Get Involved Series)',
+      date: 'Scheduled: Feb 2027',
+      status: 'Locked',
+      skills: 'Integrated Skills Diagnostic',
+      timeMinutes: 60
+    }
+  ]
+
   return (
-    <div className="w-full h-screen bg-[#faf9fe] font-sans flex flex-col md:flex-row overflow-hidden select-none">
-      {/* ================= BARRA LATERAL (SIDEBAR IZQUIERDO ESTILO PILL) ================= */}
-      <aside className={`${collapsed ? 'md:w-20' : 'md:w-64'} w-full bg-white border-b md:border-b-0 md:border-r border-[#f1eef8] p-4 sm:p-5 flex flex-col justify-between shrink-0 transition-all duration-300 z-30 shadow-xs`}>
-          <div>
-            {/* Logo Nestly / Next Plus estilo amigable */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#e9e3ff] flex items-center justify-center text-[#5446a8] shadow-xs">
-                  <span className="material-symbols-outlined text-[24px]">school</span>
-                </div>
-                {!collapsed && (
-                  <div>
-                    <h2 className="font-heading font-black text-base text-[#2d2c38] tracking-tight leading-none">
-                      English Level
-                    </h2>
-                    <span className="text-[10px] font-bold text-[#8a70d6] uppercase tracking-wider block mt-0.5">
-                      San José Learn
-                    </span>
-                  </div>
-                )}
+    <div className="w-full h-screen bg-[#f7fbf9] font-sans flex flex-col md:flex-row overflow-hidden select-none">
+      {/* ================= BARRA LATERAL (SIDEBAR IZQUIERDO ESTILO NESTLY EN VERDE) ================= */}
+      <aside className={`${collapsed ? 'md:w-20' : 'md:w-64'} w-full bg-white border-b md:border-b-0 md:border-r border-[#e8f3ed] p-4 sm:p-5 flex flex-col justify-between shrink-0 transition-all duration-300 z-30 shadow-xs`}>
+        <div>
+          {/* Logo Nestly Learn con tono verde natural */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#d7fbe8] flex items-center justify-center text-[#00875a] shadow-xs">
+                <span className="material-symbols-outlined text-[24px]">school</span>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setCollapsed(!collapsed)}
-                className="hidden md:flex p-1.5 rounded-xl text-[#8e8a9f] hover:bg-[#f4f1fd] hover:text-[#5446a8] transition-colors cursor-pointer"
-                title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  {collapsed ? 'menu_open' : 'menu'}
-                </span>
-              </button>
+              {!collapsed && (
+                <div>
+                  <h2 className="font-heading font-black text-base text-[#1b382b] tracking-tight leading-none">
+                    Nestly Learn
+                  </h2>
+                  <span className="text-[10px] font-bold text-[#00875a] uppercase tracking-wider block mt-0.5">
+                    Colegio San José
+                  </span>
+                </div>
+              )}
             </div>
-
-            {/* Menú de navegación redondeado y suave */}
-            <nav className="space-y-2">
-              {navItems.map((item) => {
-                const isActive = currentSection === item.key && !activeExam
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => {
-                      setActiveExam(null)
-                      setCurrentSection(item.key)
-                    }}
-                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold text-xs transition-all duration-200 cursor-pointer ${
-                      isActive
-                        ? 'bg-[#e9e3ff] text-[#413689] shadow-xs ring-1 ring-[#8a70d6]/20'
-                        : 'text-[#6b677e] hover:bg-[#faf9fe] hover:text-[#2d2c38]'
-                    } ${collapsed ? 'justify-center px-0' : 'justify-start'}`}
-                  >
-                    <span className={`material-symbols-outlined text-[22px] ${isActive ? 'text-[#5446a8]' : 'text-[#9c97b0]'}`}>
-                      {item.icon}
-                    </span>
-                    {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
-                    {!collapsed && item.badge && (
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-[#5446a8] text-white' : 'bg-[#f4f1fd] text-[#5446a8]'}`}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-
-          {/* Tarjeta inferior "Keep wondering!" estilo amigable / Salir */}
-          <div className="pt-6 space-y-3">
-            {!collapsed && (
-              <div className="p-4 rounded-3xl bg-[#fff9db] border border-[#ffec99]/60 relative overflow-hidden text-left">
-                <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-600 flex items-center justify-center mb-2">
-                  <span className="material-symbols-outlined text-[20px]">star</span>
-                </div>
-                <h4 className="text-xs font-black text-amber-950 leading-tight">
-                  ¡Sigue adelante!
-                </h4>
-                <p className="text-[11px] text-amber-800/80 mt-1 leading-relaxed font-medium">
-                  {examsList.length - totalCompletedCount === 0
-                    ? '¡Completaste toda tu batería de inglés!'
-                    : `Estás a ${examsList.length - totalCompletedCount} actividades de tu meta.`}
-                </p>
-              </div>
-            )}
 
             <button
               type="button"
-              onClick={onLogout}
-              className={`w-full flex items-center gap-2 p-3 rounded-2xl text-xs font-bold text-[#8e8a9f] hover:text-rose-600 hover:bg-rose-50/60 transition-all cursor-pointer ${
-                collapsed ? 'justify-center' : 'justify-start'
-              }`}
-              title="Cerrar sesión"
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden md:flex p-1.5 rounded-xl text-[#7c9285] hover:bg-[#ebfbee] hover:text-[#00875a] transition-colors cursor-pointer"
+              title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
             >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-              {!collapsed && <span>Cerrar sesión</span>}
+              <span className="material-symbols-outlined text-[20px]">
+                {collapsed ? 'menu_open' : 'menu'}
+              </span>
             </button>
           </div>
-        </aside>
 
-        {/* ================= CUERPO PRINCIPAL DEL DASHBOARD ================= */}
-        <div className="flex-1 flex flex-col bg-[#faf9fe] overflow-y-auto min-h-0">
+          {/* Menú de navegación en verde suave Nestly */}
+          <nav className="space-y-1.5">
+            {navItems.map((item) => {
+              const isActive = currentSection === item.key && !activeExam
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    setActiveExam(null)
+                    setCurrentSection(item.key)
+                  }}
+                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold text-xs transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#d7fbe8] text-[#005a3c] shadow-xs ring-1 ring-[#00875a]/25'
+                      : 'text-[#4d6657] hover:bg-[#f2faf5] hover:text-[#1b382b]'
+                  } ${collapsed ? 'justify-center px-0' : 'justify-start'}`}
+                >
+                  <span className={`material-symbols-outlined text-[22px] ${isActive ? 'text-[#00875a]' : 'text-[#87a091]'}`}>
+                    {item.icon}
+                  </span>
+                  {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
+                  {!collapsed && item.badge && (
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-[#00875a] text-white' : 'bg-[#e8f8f0] text-[#00714d]'}`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </nav>
+        </div>
 
-          {/* Barra Superior Header */}
-          <header className="px-6 sm:px-8 py-5 flex items-center justify-between border-b border-[#f1eef8] bg-white/70 backdrop-blur-md sticky top-0 z-20">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setCollapsed(!collapsed)}
-                className="md:hidden p-2 rounded-xl bg-[#f4f1fd] text-[#5446a8]"
-              >
-                <span className="material-symbols-outlined text-[20px]">menu</span>
-              </button>
-
-              <div className="text-left">
-                <span className="text-[11px] font-bold text-[#8e8a9f] uppercase tracking-wider block">
-                  {todayFormatted}
-                </span>
-                <h1 className="font-heading font-black text-lg sm:text-xl text-[#2d2c38] leading-tight">
-                  ¡Hola de nuevo, {studentFirstName}!
-                </h1>
+        {/* Tarjeta inferior "Keep wondering!" estilo amigable / Salir */}
+        <div className="pt-6 space-y-3">
+          {!collapsed && (
+            <div className="p-4 rounded-3xl bg-[#fff9db] border border-[#ffec99]/60 relative overflow-hidden text-left">
+              <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-600 flex items-center justify-center mb-2">
+                <span className="material-symbols-outlined text-[20px]">star</span>
               </div>
+              <h4 className="text-xs font-black text-amber-950 leading-tight">
+                Keep wondering!
+              </h4>
+              <p className="text-[11px] text-amber-800/80 mt-1 leading-relaxed font-medium">
+                {examsList.length - totalCompletedCount === 0
+                  ? 'You are all set with your diagnostic tasks!'
+                  : `You are ${examsList.length - totalCompletedCount} activities away from a new star.`}
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className={`w-full flex items-center gap-2 p-3 rounded-2xl text-xs font-bold text-[#7c9285] hover:text-rose-600 hover:bg-rose-50/60 transition-all cursor-pointer ${
+              collapsed ? 'justify-center' : 'justify-start'
+            }`}
+            title="Cerrar sesión"
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            {!collapsed && <span>Sign Out</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* ================= CUERPO PRINCIPAL DEL DASHBOARD ================= */}
+      <div className="flex-1 flex flex-col bg-[#f7fbf9] overflow-y-auto min-h-0">
+
+        {/* Barra Superior Header */}
+        <header className="px-6 sm:px-8 py-5 flex items-center justify-between border-b border-[#e8f3ed] bg-white/80 backdrop-blur-md sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setCollapsed(!collapsed)}
+              className="md:hidden p-2 rounded-xl bg-[#ebfbee] text-[#00875a]"
+            >
+              <span className="material-symbols-outlined text-[20px]">menu</span>
+            </button>
+
+            <div className="text-left">
+              <span className="text-[11px] font-bold text-[#7c9285] uppercase tracking-wider block">
+                {todayFormatted}
+              </span>
+              <h1 className="font-heading font-black text-lg sm:text-xl text-[#1b382b] leading-tight">
+                Good afternoon, {studentFirstName}!
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Temporizador si hay examen activo */}
+            {activeExam && (
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-[#00875a] text-white text-xs font-mono font-bold shadow-xs">
+                <span className="material-symbols-outlined text-[16px] text-amber-300 animate-pulse">timer</span>
+                <span>{formatSeconds(examTimeLeft)}</span>
+              </div>
+            )}
+
+            {/* Badges de Grado y Alumno */}
+            <div className="hidden sm:flex flex-col text-right">
+              <span className="text-xs font-extrabold text-[#1b382b]">{student.name}</span>
+              <span className="text-[10px] font-mono text-[#00875a]">
+                {student.grade || '7° Grado'} {student.section ? `• Sec. ${student.section}` : ''}
+              </span>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Temporizador si hay examen activo */}
-              {activeExam && (
-                <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-[#5446a8] text-white text-xs font-mono font-bold shadow-xs">
-                  <span className="material-symbols-outlined text-[16px] text-amber-300 animate-pulse">timer</span>
-                  <span>{formatSeconds(examTimeLeft)}</span>
-                </div>
+            {/* Avatar circular interactivo que lleva al perfil */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveExam(null)
+                setCurrentSection('profile')
+              }}
+              className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#00875a] to-[#4edea3] p-0.5 shadow-xs shrink-0 flex items-center justify-center text-white font-black text-xs cursor-pointer hover:scale-105 transition-transform"
+              title="Ir a Mi Perfil"
+            >
+              {student.photoUrl ? (
+                <img
+                  src={student.photoUrl}
+                  alt={student.name}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                studentFirstName.substring(0, 2).toUpperCase()
               )}
+            </button>
+          </div>
+        </header>
 
-              {/* Badges de Grado y Alumno */}
-              <div className="hidden sm:flex flex-col text-right">
-                <span className="text-xs font-extrabold text-[#2d2c38]">{student.name}</span>
-                <span className="text-[10px] font-mono text-[#8a70d6]">
-                  {student.grade || '7° Grado'} {student.section ? `• Sec. ${student.section}` : ''}
-                </span>
-              </div>
+        {/* Área de Contenido Principal - Full Width & Fluid */}
+        <main className="flex-1 px-4 sm:px-8 md:px-10 lg:px-12 py-6 md:py-8 space-y-8 w-full max-w-[1700px] mx-auto">
 
-              {/* Avatar circular con badge morado */}
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#8a70d6] to-[#b8a5f2] p-0.5 shadow-xs shrink-0 flex items-center justify-center text-white font-black text-xs">
-                {student.photoUrl ? (
-                  <img
-                    src={student.photoUrl}
-                    alt={student.name}
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  studentFirstName.substring(0, 2).toUpperCase()
-                )}
+          {/* Modal de Alerta de Seguridad (Anti-trampa) */}
+          {securityModalVisible && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+              <div className="bg-white rounded-[32px] p-6 sm:p-8 max-w-md w-full shadow-2xl border-2 border-rose-500 text-center space-y-5 animate-scaleUp">
+                <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+                  <span className="material-symbols-outlined text-[36px]">security_update_warning</span>
+                </div>
+                <div className="space-y-2">
+                  <span className="inline-block px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800">
+                    Aviso de Seguridad Académica
+                  </span>
+                  <h3 className="text-lg font-heading font-black text-slate-900 leading-snug">
+                    Incidente Registrado
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                    {securityNotice}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSecurityModalVisible(false)}
+                  className="w-full py-3 rounded-2xl bg-[#00875a] hover:bg-[#00714d] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Entendido, regresar a la prueba
+                </button>
               </div>
             </div>
-          </header>
+          )}
 
-          {/* Área de Contenido Principal - Full Width & Fluid */}
-          <main className="flex-1 px-4 sm:px-8 md:px-10 lg:px-12 py-6 md:py-8 space-y-8 w-full max-w-[1700px] mx-auto">
-
-            {/* Modal de Alerta de Seguridad (Anti-trampa) */}
-            {securityModalVisible && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-                <div className="bg-white rounded-[32px] p-6 sm:p-8 max-w-md w-full shadow-2xl border-2 border-rose-500 text-center space-y-5 animate-scaleUp">
-                  <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
-                    <span className="material-symbols-outlined text-[36px]">security_update_warning</span>
-                  </div>
-                  <div className="space-y-2">
-                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800">
-                      Aviso de Seguridad Académica
-                    </span>
-                    <h3 className="text-lg font-heading font-black text-slate-900 leading-snug">
-                      Incidente Registrado
-                    </h3>
-                    <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                      {securityNotice}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSecurityModalVisible(false)}
-                    className="w-full py-3 rounded-2xl bg-[#5446a8] hover:bg-[#413689] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
-                  >
-                    Entendido, regresar a la prueba
-                  </button>
+          {/* Pantalla de Pausa Docente */}
+          {isPlatformPausedForStudent && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
+              <div className="bg-white rounded-[36px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-amber-400 text-center space-y-6 animate-scaleUp">
+                <div className="w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                  <span className="material-symbols-outlined text-[42px] animate-pulse">pause_circle</span>
+                </div>
+                <div className="space-y-2">
+                  <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-900">
+                    Evaluación en Pausa • Esperando Docente
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
+                    {gradeControl.platformStatus === 'paused'
+                      ? `La plataforma de ${studentGradeKey}° grado está en pausa`
+                      : 'La prueba está temporalmente pausada por tu docente'}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+                    El tiempo ha quedado congelado. Espera las indicaciones de tu profesor para continuar.
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Pantalla de Pausa Docente */}
-            {isPlatformPausedForStudent && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
-                <div className="bg-white rounded-[36px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-amber-400 text-center space-y-6 animate-scaleUp">
-                  <div className="w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
-                    <span className="material-symbols-outlined text-[42px] animate-pulse">pause_circle</span>
-                  </div>
-                  <div className="space-y-2">
-                    <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-900">
-                      Evaluación en Pausa • Esperando Docente
-                    </span>
-                    <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
-                      {gradeControl.platformStatus === 'paused'
-                        ? `La plataforma de ${studentGradeKey}° grado está en pausa`
-                        : 'La prueba está temporalmente pausada por tu docente'}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                      El tiempo ha quedado congelado. Espera las indicaciones de tu profesor para continuar.
-                    </p>
-                  </div>
+          {/* Pantalla de Conclusión de Evaluación */}
+          {isPlatformFinishedForStudent && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
+              <div className="bg-white rounded-[36px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-rose-500 text-center space-y-6 animate-scaleUp">
+                <div className="w-20 h-20 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+                  <span className="material-symbols-outlined text-[42px]">stop_circle</span>
                 </div>
-              </div>
-            )}
-
-            {/* Pantalla de Conclusión de Evaluación */}
-            {isPlatformFinishedForStudent && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
-                <div className="bg-white rounded-[36px] p-8 sm:p-10 max-w-lg w-full shadow-2xl border-2 border-rose-500 text-center space-y-6 animate-scaleUp">
-                  <div className="w-20 h-20 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
-                    <span className="material-symbols-outlined text-[42px]">stop_circle</span>
-                  </div>
-                  <div className="space-y-2">
-                    <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-900">
-                      Sesión de Evaluación Finalizada
-                    </span>
-                    <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
-                      El período oficial de pruebas ha concluido
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                      Tus respuestas enviadas han quedado registradas exitosamente en el sistema.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (activeExam) handleFinishActiveExam(activeExam.id, true)
-                      setCurrentSection('results')
-                    }}
-                    className="px-6 py-3 rounded-2xl bg-[#5446a8] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
-                  >
-                    Ver estado de colocación
-                  </button>
+                <div className="space-y-2">
+                  <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-900">
+                    Sesión de Evaluación Finalizada
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
+                    El período oficial de pruebas ha concluido
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+                    Tus respuestas enviadas han quedado registradas exitosamente en el sistema.
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeExam) handleFinishActiveExam(activeExam.id, true)
+                    setCurrentSection('results')
+                  }}
+                  className="px-6 py-3 rounded-2xl bg-[#00875a] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Ver estado de colocación
+                </button>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* ================= CASO 1: EXAMEN ACTIVO EN EJECUCIÓN ================= */}
-            {activeExam ? (() => {
-              const currentExamAnswers = studentAnswers[activeExam.id] || {}
-              const isListeningExam = activeExam.toolType === 'listening' || activeExam.questions.some(q => q.type === 'listening' && q.audioUrl)
+          {/* ================= CASO 1: EXAMEN ACTIVO EN EJECUCIÓN ================= */}
+          {activeExam ? (() => {
+            const currentExamAnswers = studentAnswers[activeExam.id] || {}
+            const isListeningExam = activeExam.toolType === 'listening' || activeExam.questions.some(q => q.type === 'listening' && q.audioUrl)
 
-              if (isListeningExam) {
-                const audioGroups = []
-                let currentGrp = null
-                activeExam.questions.forEach((q, idx) => {
-                  const qWithIndex = { ...q, displayNumber: idx + 1 }
-                  const key = q.audioUrl || q.audioText || `audio_group_${idx}`
-                  if (!currentGrp || currentGrp.key !== key) {
-                    currentGrp = {
-                      key,
-                      audioUrl: q.audioUrl,
-                      audioText: q.audioText,
-                      level: q.level,
-                      questions: [qWithIndex]
-                    }
-                    audioGroups.push(currentGrp)
-                  } else {
-                    currentGrp.questions.push(qWithIndex)
+            if (isListeningExam) {
+              const audioGroups = []
+              let currentGrp = null
+              activeExam.questions.forEach((q, idx) => {
+                const qWithIndex = { ...q, displayNumber: idx + 1 }
+                const key = q.audioUrl || q.audioText || `audio_group_${idx}`
+                if (!currentGrp || currentGrp.key !== key) {
+                  currentGrp = {
+                    key,
+                    audioUrl: q.audioUrl,
+                    audioText: q.audioText,
+                    level: q.level,
+                    questions: [qWithIndex]
                   }
-                })
+                  audioGroups.push(currentGrp)
+                } else {
+                  currentGrp.questions.push(qWithIndex)
+                }
+              })
 
-                const currentGroupIndex = Math.min(currentQuestionIndex, audioGroups.length - 1)
-                const currentGroup = audioGroups[currentGroupIndex] || audioGroups[0]
-                const isLastGroup = currentGroupIndex === audioGroups.length - 1
-                const totalExamQuestions = activeExam.questions.length
-                const totalAnsweredQuestions = activeExam.questions.filter(q => currentExamAnswers[q.id] != null).length
-
-                return (
-                  <div className="space-y-5 animate-fadeIn text-left select-none">
-                    <div className="p-4 bg-white rounded-3xl border border-[#eceaf6] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center justify-between text-xs font-bold text-[#2d2c38]">
-                          <span>Audio {currentGroupIndex + 1} de {audioGroups.length}</span>
-                          <span className="text-[#5446a8] font-mono">
-                            Respondidas: {totalAnsweredQuestions} / {totalExamQuestions}
-                          </span>
-                        </div>
-                        <div className="w-full h-2.5 bg-[#f4f1fd] rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#8a70d6] to-[#5446a8] transition-all duration-300 rounded-full"
-                            style={{ width: `${(totalAnsweredQuestions / Math.max(1, totalExamQuestions)) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <AudioGroupPlayer
-                      key={currentGroup?.key || currentGroupIndex}
-                      group={currentGroup}
-                      examAnswers={currentExamAnswers}
-                      onAnswerChange={(qId, ans) => handleAnswerChange(activeExam.id, qId, ans)}
-                    />
-
-                    <div className="p-4 bg-white rounded-3xl border border-[#eceaf6] flex items-center justify-between">
-                      <button
-                        type="button"
-                        disabled={currentGroupIndex === 0}
-                        onClick={() => setCurrentQuestionIndex(i => Math.max(0, i - 1))}
-                        className="px-4 py-2.5 rounded-2xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 transition-all flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                        <span>Audio anterior</span>
-                      </button>
-
-                      {isLastGroup ? (
-                        <button
-                          type="button"
-                          onClick={() => handleFinishActiveExam(activeExam.id)}
-                          className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                          <span>Finalizar y entregar prueba</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setCurrentQuestionIndex(i => Math.min(audioGroups.length - 1, i + 1))}
-                          className="px-6 py-2.5 rounded-2xl bg-[#5446a8] hover:bg-[#413689] text-white text-xs font-black shadow-md shadow-[#5446a8]/25 transition-all flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <span>Siguiente audio</span>
-                          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              }
-
-              // Examen normal pregunta a pregunta
-              const currentQ = activeExam.questions[currentQuestionIndex]
-              const isLast = currentQuestionIndex === activeExam.questions.length - 1
-              const isAnswered = currentExamAnswers[currentQ?.id] != null
+              const currentGroupIndex = Math.min(currentQuestionIndex, audioGroups.length - 1)
+              const currentGroup = audioGroups[currentGroupIndex] || audioGroups[0]
+              const isLastGroup = currentGroupIndex === audioGroups.length - 1
+              const totalExamQuestions = activeExam.questions.length
+              const totalAnsweredQuestions = activeExam.questions.filter(q => currentExamAnswers[q.id] != null).length
 
               return (
                 <div className="space-y-5 animate-fadeIn text-left select-none">
-                  <div className="p-4 bg-white rounded-3xl border border-[#eceaf6] shadow-xs flex items-center justify-between gap-4">
+                  <div className="p-4 bg-white rounded-3xl border border-[#e8f3ed] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1 flex-1">
-                      <div className="flex items-center justify-between text-xs font-bold text-[#2d2c38]">
-                        <span>Pregunta {currentQuestionIndex + 1} de {activeExam.questions.length}</span>
-                        <span className="text-[#5446a8] font-mono">
-                          {Math.round(((currentQuestionIndex + 1) / activeExam.questions.length) * 100)}%
+                      <div className="flex items-center justify-between text-xs font-bold text-[#1b382b]">
+                        <span>Audio {currentGroupIndex + 1} de {audioGroups.length}</span>
+                        <span className="text-[#00875a] font-mono">
+                          Respondidas: {totalAnsweredQuestions} / {totalExamQuestions}
                         </span>
                       </div>
-                      <div className="w-full h-2.5 bg-[#f4f1fd] rounded-full overflow-hidden">
+                      <div className="w-full h-2.5 bg-[#e8f8f0] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-[#8a70d6] to-[#5446a8] transition-all duration-300 rounded-full"
-                          style={{ width: `${((currentQuestionIndex + 1) / activeExam.questions.length) * 100}%` }}
+                          className="h-full bg-gradient-to-r from-[#4edea3] to-[#00875a] transition-all duration-300 rounded-full"
+                          style={{ width: `${(totalAnsweredQuestions / Math.max(1, totalExamQuestions)) * 100}%` }}
                         />
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 px-3 py-1.5 rounded-2xl bg-[#e9e3ff] text-[#5446a8] text-[11px] font-black shrink-0">
-                      <span className="material-symbols-outlined text-[16px]">timer</span>
-                      <span>{formatSeconds(examTimeLeft)}</span>
-                    </div>
                   </div>
 
-                  {currentQ && (
-                    <div className="select-none">
-                      <QuestionPlayer
-                        key={currentQ.id || currentQuestionIndex}
-                        question={currentQ}
-                        initialAnswer={currentExamAnswers[currentQ?.id]}
-                        showFeedback={false}
-                        onAnswerChange={(ans) => handleAnswerChange(activeExam.id, currentQ.id, ans)}
-                      />
-                    </div>
-                  )}
+                  <AudioGroupPlayer
+                    key={currentGroup?.key || currentGroupIndex}
+                    group={currentGroup}
+                    examAnswers={currentExamAnswers}
+                    onAnswerChange={(qId, ans) => handleAnswerChange(activeExam.id, qId, ans)}
+                  />
 
-                  <div className="p-4 bg-white rounded-3xl border border-[#eceaf6] flex items-center justify-between">
+                  <div className="p-4 bg-white rounded-3xl border border-[#e8f3ed] flex items-center justify-between">
                     <button
                       type="button"
-                      disabled={currentQuestionIndex === 0}
+                      disabled={currentGroupIndex === 0}
                       onClick={() => setCurrentQuestionIndex(i => Math.max(0, i - 1))}
-                      className="px-4 py-2.5 rounded-2xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2.5 rounded-2xl border border-[#e8f3ed] text-xs font-bold text-[#4d6657] hover:bg-[#f7fbf9] disabled:opacity-30 transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                      <span>Anterior</span>
+                      <span>Audio anterior</span>
                     </button>
 
-                    <span className="text-xs text-[#8e8a9f] font-medium hidden sm:inline">
-                      {isAnswered ? '✓ Respondida' : '○ Pendiente'}
-                    </span>
-
-                    {isLast ? (
+                    {isLastGroup ? (
                       <button
                         type="button"
                         onClick={() => handleFinishActiveExam(activeExam.id)}
-                        className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="px-6 py-2.5 rounded-2xl bg-[#00875a] hover:bg-[#00714d] text-white text-xs font-black shadow-md shadow-[#00875a]/20 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                        <span>Entregar prueba</span>
+                        <span>Finalizar y entregar prueba</span>
                       </button>
                     ) : (
                       <button
                         type="button"
-                        onClick={() => setCurrentQuestionIndex(i => Math.min(activeExam.questions.length - 1, i + 1))}
-                        className="px-6 py-2.5 rounded-2xl bg-[#5446a8] hover:bg-[#413689] text-white text-xs font-black shadow-md shadow-[#5446a8]/25 transition-all flex items-center gap-1.5 cursor-pointer"
+                        onClick={() => setCurrentQuestionIndex(i => Math.min(audioGroups.length - 1, i + 1))}
+                        className="px-6 py-2.5 rounded-2xl bg-[#00875a] hover:bg-[#00714d] text-white text-xs font-black shadow-md shadow-[#00875a]/25 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <span>Siguiente</span>
+                        <span>Siguiente audio</span>
                         <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </button>
                     )}
                   </div>
                 </div>
               )
-            })() : currentSection === 'home' ? (
-              /* ================= CASO 2: VISTA HOME ESTILO "NESTLY LEARN" ================= */
-              <div className="space-y-6 animate-fadeIn text-left">
-                {/* Grid Superior: Hero Card Izquierda + Widgets de Racha y Progreso a la Derecha */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  
-                  {/* HERO BANNER AMARILLO PASTEL CON ILUSTRACIÓN Y BOTÓN MORADO */}
-                  <div className="lg:col-span-8 bg-[#fff9db] rounded-[36px] p-6 sm:p-8 md:p-10 border border-[#ffec99]/60 relative overflow-hidden flex flex-col justify-between min-h-[300px] shadow-xs">
-                    <div className="max-w-[340px] sm:max-w-[380px] z-10 space-y-3">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 backdrop-blur-xs text-[#5446a8] text-[11px] font-black uppercase tracking-wider">
-                        <span className="material-symbols-outlined text-[16px] text-amber-500">star</span>
-                        <span>Misión de Hoy</span>
-                      </div>
+            }
 
-                      <h2 className="font-heading font-black text-2xl sm:text-3xl md:text-4xl text-[#2d2c38] leading-tight">
-                        ¿Listo para demostrar tu nivel de inglés?
-                      </h2>
+            const currentQ = activeExam.questions[currentQuestionIndex]
+            const isLast = currentQuestionIndex === activeExam.questions.length - 1
+            const isAnswered = currentExamAnswers[currentQ?.id] != null
 
-                      <p className="text-xs sm:text-sm text-[#585567] font-medium leading-relaxed">
-                        Tus actividades y evaluaciones diagnósticas están preparadas por tus docentes de San José.
-                      </p>
-
-                      <div className="pt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (nextPendingExam) handleStartExam(nextPendingExam)
-                            else setCurrentSection('battery')
-                          }}
-                          className="px-6 py-3.5 rounded-2xl bg-[#5446a8] hover:bg-[#413689] text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-[#5446a8]/25 transition-all inline-flex items-center gap-2 cursor-pointer transform hover:-translate-y-0.5"
-                        >
-                          <span>{allTestsCompleted ? 'Revisar mi ruta' : 'Iniciar mi ruta de hoy'}</span>
-                          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                        </button>
-                      </div>
+            return (
+              <div className="space-y-5 animate-fadeIn text-left select-none">
+                <div className="p-4 bg-white rounded-3xl border border-[#e8f3ed] shadow-xs flex items-center justify-between gap-4">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center justify-between text-xs font-bold text-[#1b382b]">
+                      <span>Pregunta {currentQuestionIndex + 1} de {activeExam.questions.length}</span>
+                      <span className="text-[#00875a] font-mono">
+                        {Math.round(((currentQuestionIndex + 1) / activeExam.questions.length) * 100)}%
+                      </span>
                     </div>
-
-                    {/* Ilustración 3D circular integrada en el diseño */}
-                    <div className="hidden sm:block absolute -right-6 -bottom-6 w-56 h-56 md:w-64 md:h-64 rounded-full overflow-hidden border-8 border-white/80 shadow-xl bg-gradient-to-tr from-[#e9e3ff] to-[#fff4e6] pointer-events-none">
-                      <img
-                        src={studentHeroImg}
-                        alt="Estudiante aprendiendo"
-                        className="w-full h-full object-cover object-center scale-105"
+                    <div className="w-full h-2.5 bg-[#e8f8f0] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#4edea3] to-[#00875a] transition-all duration-300 rounded-full"
+                        style={{ width: `${((currentQuestionIndex + 1) / activeExam.questions.length) * 100}%` }}
                       />
                     </div>
                   </div>
-
-                  {/* COLUMNA DERECHA: WIDGET DE RACHA + ANILLO DE PROGRESO */}
-                  <div className="lg:col-span-4 space-y-5">
-                    
-                    {/* Widget Racha de Días */}
-                    <div className="bg-white rounded-[32px] p-5 sm:p-6 border border-[#f1eef8] shadow-xs space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-[#fff4e6] text-[#f76707] flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[24px]">local_fire_department</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-extrabold text-[#8e8a9f] uppercase tracking-wider block">
-                            Racha de Diagnóstico
-                          </span>
-                          <h4 className="text-sm font-black text-[#2d2c38]">
-                            ¡{totalCompletedCount} de {examsList.length} pruebas listas!
-                          </h4>
-                        </div>
-                      </div>
-
-                      {/* Días / Tests Checkmarks en fila */}
-                      <div className="flex items-center justify-between gap-1.5 pt-1">
-                        {examsList.slice(0, 5).map((ex, i) => {
-                          const isDone = Boolean(completedExams[ex.id])
-                          return (
-                            <div
-                              key={ex.id || i}
-                              className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all ${
-                                isDone
-                                  ? 'bg-[#d7fbe8] text-[#00714d]'
-                                  : 'bg-[#f4f3fa] text-[#8e8a9f]'
-                              }`}
-                              title={ex.title}
-                            >
-                              {isDone ? (
-                                <span className="material-symbols-outlined text-[16px]">check</span>
-                              ) : (
-                                `T${i + 1}`
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Widget Porcentaje Circular y Estatus */}
-                    <div className="bg-white rounded-[32px] p-6 border border-[#f1eef8] shadow-xs text-center space-y-3">
-                      <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
-                        <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
-                          <path
-                            className="text-[#f1eef8]"
-                            strokeWidth="3.5"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                          <path
-                            className="text-[#5446a8] transition-all duration-700 ease-out"
-                            strokeDasharray={`${progressPercent}, 100`}
-                            strokeWidth="3.5"
-                            strokeLinecap="round"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="font-heading font-black text-xl text-[#2d2c38]">
-                            {progressPercent}%
-                          </span>
-                          <span className="text-[9px] font-bold text-[#8e8a9f] uppercase">
-                            avance
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <h4 className="font-heading font-black text-sm text-[#2d2c38]">
-                          {allTestsCompleted ? '¡Batería Completada!' : '¡Excelente ritmo!'}
-                        </h4>
-                        <p className="text-[11px] text-[#6b677e] leading-snug">
-                          {allTestsCompleted
-                            ? 'Tus profesores ya tienen todas tus evaluaciones.'
-                            : `Te faltan ${examsList.length - totalCompletedCount} actividades para completar tu meta.`}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Tarjeta Nota del Docente */}
-                    <div className="bg-white rounded-[32px] p-5 border border-[#f1eef8] shadow-xs flex items-start gap-3 text-left">
-                      <div className="w-9 h-9 rounded-2xl bg-[#f4f1fd] text-[#5446a8] flex items-center justify-center font-black text-xs shrink-0">
-                        SJ
-                      </div>
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-black text-[#2d2c38]">Mensaje Docente</span>
-                          <span className="material-symbols-outlined text-rose-400 text-[16px]">favorite</span>
-                        </div>
-                        <p className="text-[11px] text-[#6b677e] leading-relaxed italic">
-                          "Haz tu mejor esfuerzo y responde con confianza cada sección."
-                        </p>
-                      </div>
-                    </div>
-
+                  <div className="flex items-center gap-1 px-3 py-1.5 rounded-2xl bg-[#d7fbe8] text-[#00714d] text-[11px] font-black shrink-0">
+                    <span className="material-symbols-outlined text-[16px]">timer</span>
+                    <span>{formatSeconds(examTimeLeft)}</span>
                   </div>
                 </div>
 
-                {/* SECCIÓN INFERIOR: "Your learning path" (Ruta de Aprendizaje con Tarjetas Píldora) */}
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-[#8a70d6] uppercase tracking-wider block">
-                        Preparado para hoy
-                      </span>
-                      <h3 className="font-heading font-black text-lg text-[#2d2c38]">
-                        Tu ruta de evaluación (Learning Path)
-                      </h3>
-                    </div>
+                {currentQ && (
+                  <div className="select-none">
+                    <QuestionPlayer
+                      key={currentQ.id || currentQuestionIndex}
+                      question={currentQ}
+                      initialAnswer={currentExamAnswers[currentQ?.id]}
+                      showFeedback={false}
+                      onAnswerChange={(ans) => handleAnswerChange(activeExam.id, currentQ.id, ans)}
+                    />
+                  </div>
+                )}
 
+                <div className="p-4 bg-white rounded-3xl border border-[#e8f3ed] flex items-center justify-between">
+                  <button
+                    type="button"
+                    disabled={currentQuestionIndex === 0}
+                    onClick={() => setCurrentQuestionIndex(i => Math.max(0, i - 1))}
+                    className="px-4 py-2.5 rounded-2xl border border-[#e8f3ed] text-xs font-bold text-[#4d6657] hover:bg-[#f7fbf9] disabled:opacity-30 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                    <span>Anterior</span>
+                  </button>
+
+                  <span className="text-xs text-[#7c9285] font-medium hidden sm:inline">
+                    {isAnswered ? '✓ Respondida' : '○ Pendiente'}
+                  </span>
+
+                  {isLast ? (
                     <button
                       type="button"
-                      onClick={() => setCurrentSection('battery')}
-                      className="text-xs font-bold text-[#5446a8] hover:underline flex items-center gap-1 cursor-pointer"
+                      onClick={() => handleFinishActiveExam(activeExam.id)}
+                      className="px-6 py-2.5 rounded-2xl bg-[#00875a] hover:bg-[#00714d] text-white text-xs font-black shadow-md shadow-[#00875a]/20 transition-all flex items-center gap-1.5 cursor-pointer"
                     >
-                      <span>Ver todas ({examsList.length})</span>
+                      <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                      <span>Entregar prueba</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentQuestionIndex(i => Math.min(activeExam.questions.length - 1, i + 1))}
+                      className="px-6 py-2.5 rounded-2xl bg-[#00875a] hover:bg-[#00714d] text-white text-xs font-black shadow-md shadow-[#00875a]/25 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Siguiente</span>
                       <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                     </button>
-                  </div>
-
-                  {/* Lista de Actividades en formato Píldoras horizontales con botón verde/morado */}
-                  <div className="space-y-3">
-                    {examsList.map((exam, idx) => {
-                      const isDone = Boolean(completedExams[exam.id])
-                      const meta = getModuleMeta(idx, exam.toolType)
-                      const answersCount = Object.keys(studentAnswers[exam.id] || {}).length
-
-                      return (
-                        <div
-                          key={exam.id}
-                          className={`bg-white rounded-[26px] p-4 sm:p-5 border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs ${
-                            isDone ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#f1eef8] hover:border-[#8a70d6]/50 hover:shadow-md'
-                          }`}
-                        >
-                          <div className="flex items-center gap-4">
-                            {/* Icono temático pastel */}
-                            <div className={`w-12 h-12 rounded-2xl ${meta.bg} ${meta.text} flex items-center justify-center shrink-0`}>
-                              <span className="material-symbols-outlined text-[24px]">{meta.icon}</span>
-                            </div>
-
-                            <div className="space-y-0.5 text-left">
-                              <span className="text-[10px] font-bold text-[#8e8a9f] uppercase tracking-wider block">
-                                {meta.tag} • Nivel {exam.level || 'A1-C1'}
-                              </span>
-                              <h4 className="font-heading font-black text-sm sm:text-base text-[#2d2c38]">
-                                {exam.title}
-                              </h4>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between sm:justify-end gap-5">
-                            <div className="flex items-center gap-3 text-xs text-[#8e8a9f] font-medium">
-                              <span className="flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[16px]">schedule</span>
-                                <span>{exam.timeLimitMinutes || 15} min</span>
-                              </span>
-                              <span>•</span>
-                              <span>{exam.questions?.length || 0} preguntas</span>
-                            </div>
-
-                            {/* Botón de acción play redondeado */}
-                            <button
-                              type="button"
-                              disabled={isDone}
-                              onClick={() => handleStartExam(exam)}
-                              className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                                isDone
-                                  ? 'bg-[#d7fbe8] text-[#00714d]'
-                                  : answersCount > 0
-                                  ? 'bg-[#e9e3ff] text-[#5446a8] hover:bg-[#5446a8] hover:text-white'
-                                  : 'bg-[#d7fbe8] text-[#00714d] hover:bg-[#00714d] hover:text-white shadow-xs'
-                              }`}
-                              title={isDone ? 'Completado' : 'Comenzar actividad'}
-                            >
-                              <span className="material-symbols-outlined text-[20px]">
-                                {isDone ? 'check' : 'play_arrow'}
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+                  )}
                 </div>
               </div>
-            ) : currentSection === 'battery' ? (
-              /* ================= CASO 3: VISTA BATERÍA COMPLETA ================= */
-              <div className="space-y-6 animate-fadeIn text-left">
-                <div className="bg-white rounded-[32px] p-6 border border-[#f1eef8] shadow-xs space-y-2">
-                  <span className="text-[10px] font-bold text-[#8a70d6] uppercase tracking-wider block">
-                    Batería Diagnóstica Oficial
-                  </span>
-                  <h2 className="font-heading font-black text-xl text-[#2d2c38]">
-                    Pruebas e Instrumentos de Nivelación
-                  </h2>
-                  <p className="text-xs text-[#585567]">
-                    Completa cada módulo a tu propio ritmo dentro del tiempo establecido.
-                  </p>
+            )
+          })() : currentSection === 'home' ? (
+            /* ================= CASO 2: VISTA HOME ESTILO "NESTLY LEARN" CON VERDES ORIGINALES ================= */
+            <div className="space-y-6 animate-fadeIn text-left">
+              {/* Grid Superior: Hero Card Izquierda + Widgets de Racha y Progreso a la Derecha */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* HERO BANNER AMARILLO PASTEL CON ILUSTRACIÓN Y BOTÓN VERDE ORIGINAL (#00875a) */}
+                <div className="lg:col-span-8 bg-[#fff9db] rounded-[36px] p-6 sm:p-8 md:p-10 border border-[#ffec99]/60 relative overflow-hidden flex flex-col justify-between min-h-[300px] shadow-xs">
+                  <div className="max-w-[340px] sm:max-w-[380px] z-10 space-y-3">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 backdrop-blur-xs text-[#00714d] text-[11px] font-black uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-[16px] text-amber-500">star</span>
+                      <span>TODAY'S MISSION</span>
+                    </div>
+
+                    <h2 className="font-heading font-black text-2xl sm:text-3xl md:text-4xl text-[#1b382b] leading-tight">
+                      Ready for another bright idea?
+                    </h2>
+
+                    <p className="text-xs sm:text-sm text-[#4d6657] font-medium leading-relaxed">
+                      Three playful activities and standardized instruments are waiting for you.
+                    </p>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (nextPendingExam) handleStartExam(nextPendingExam)
+                          else setCurrentSection('battery')
+                        }}
+                        className="px-6 py-3.5 rounded-2xl bg-[#00875a] hover:bg-[#00714d] text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-[#00875a]/25 transition-all inline-flex items-center gap-2 cursor-pointer transform hover:-translate-y-0.5"
+                      >
+                        <span>{allTestsCompleted ? "Review today's path" : "Start today's path"}</span>
+                        <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Ilustración 3D circular integrada en el diseño */}
+                  <div className="hidden sm:block absolute -right-6 -bottom-6 w-56 h-56 md:w-64 md:h-64 rounded-full overflow-hidden border-8 border-white/80 shadow-xl bg-gradient-to-tr from-[#d7fbe8] to-[#fff4e6] pointer-events-none">
+                    <img
+                      src={studentHeroImg}
+                      alt="Estudiante aprendiendo"
+                      className="w-full h-full object-cover object-center scale-105"
+                    />
+                  </div>
                 </div>
 
-                {!isStudentAuthorizedForExam ? (
-                  <div className="bg-[#fff9db] rounded-[32px] p-8 border border-[#ffec99] text-center space-y-3">
-                    <span className="material-symbols-outlined text-4xl text-amber-600">lock_clock</span>
-                    <h3 className="font-black text-base text-amber-950">
-                      Acceso en espera por horario docente
-                    </h3>
-                    <p className="text-xs text-amber-800 max-w-md mx-auto">
-                      Las pruebas se activan por grupos y secciones guiadas por tu profesor de inglés.
-                    </p>
+                {/* COLUMNA DERECHA: WIDGET DE RACHA + ANILLO DE PROGRESO */}
+                <div className="lg:col-span-4 space-y-5">
+                  
+                  {/* Widget Racha de Días */}
+                  <div className="bg-white rounded-[32px] p-5 sm:p-6 border border-[#e8f3ed] shadow-xs space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-[#fff4e6] text-[#f76707] flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[24px]">local_fire_department</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-extrabold text-[#7c9285] uppercase tracking-wider block">
+                          Learning streak
+                        </span>
+                        <h4 className="text-sm font-black text-[#1b382b]">
+                          {totalCompletedCount} bright days!
+                        </h4>
+                      </div>
+                    </div>
+
+                    {/* Días / Tests Checkmarks en fila */}
+                    <div className="flex items-center justify-between gap-1.5 pt-1">
+                      {examsList.slice(0, 5).map((ex, i) => {
+                        const isDone = Boolean(completedExams[ex.id])
+                        return (
+                          <div
+                            key={ex.id || i}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all ${
+                              isDone
+                                ? 'bg-[#d7fbe8] text-[#00714d]'
+                                : 'bg-[#f4f3fa] text-[#8e8a9f]'
+                            }`}
+                            title={ex.title}
+                          >
+                            {isDone ? (
+                              <span className="material-symbols-outlined text-[16px]">check</span>
+                            ) : (
+                              `T${i + 1}`
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {examsList.map((exam, idx) => {
-                      const isDone = Boolean(completedExams[exam.id])
-                      const meta = getModuleMeta(idx, exam.toolType)
-                      return (
-                        <div
-                          key={exam.id}
-                          className={`bg-white rounded-[28px] p-6 border space-y-4 flex flex-col justify-between transition-all ${
-                            isDone ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#f1eef8] hover:border-[#8a70d6]'
-                          }`}
-                        >
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${meta.bg} ${meta.text}`}>
-                                Test {idx + 1} • {exam.level || 'A1-C1'}
-                              </span>
-                              <span className="text-xs font-black text-[#5446a8] bg-[#e9e3ff] px-2.5 py-0.5 rounded-full">
-                                {exam.weight || 15}% peso
-                              </span>
-                            </div>
 
-                            <h3 className="font-heading font-black text-base text-[#2d2c38]">
+                  {/* Widget Porcentaje Circular y Estatus */}
+                  <div className="bg-white rounded-[32px] p-6 border border-[#e8f3ed] shadow-xs text-center space-y-3">
+                    <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+                      <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
+                        <path
+                          className="text-[#e8f3ed]"
+                          strokeWidth="3.5"
+                          stroke="currentColor"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        <path
+                          className="text-[#00875a] transition-all duration-700 ease-out"
+                          strokeDasharray={`${progressPercent}, 100`}
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          stroke="currentColor"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="font-heading font-black text-xl text-[#1b382b]">
+                          {progressPercent}%
+                        </span>
+                        <span className="text-[9px] font-bold text-[#7c9285] uppercase">
+                          this week
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h4 className="font-heading font-black text-sm text-[#1b382b]">
+                        {allTestsCompleted ? 'A strong diagnostic completion!' : 'A strong week!'}
+                      </h4>
+                      <p className="text-[11px] text-[#4d6657] leading-snug">
+                        {allTestsCompleted
+                          ? 'All diagnostic tests submitted to your English teachers.'
+                          : `Two more activities will complete your weekly goal.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Nota del Docente */}
+                  <div className="bg-white rounded-[32px] p-5 border border-[#e8f3ed] shadow-xs flex items-start gap-3 text-left">
+                    <div className="w-9 h-9 rounded-2xl bg-[#d7fbe8] text-[#00875a] flex items-center justify-center font-black text-xs shrink-0">
+                      M
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black text-[#1b382b]">A note from Teacher</span>
+                        <span className="material-symbols-outlined text-rose-400 text-[16px]">favorite</span>
+                      </div>
+                      <p className="text-[11px] text-[#4d6657] leading-relaxed italic">
+                        "Do your best on every section, and feel confident in your English abilities!"
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* SECCIÓN INFERIOR: "Your learning path" con la Entrevista Oral integrada en primer lugar */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-[#00875a] uppercase tracking-wider block">
+                      MADE FOR TODAY
+                    </span>
+                    <h3 className="font-heading font-black text-lg text-[#1b382b]">
+                      Your learning path
+                    </h3>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentSection('battery')}
+                    className="text-xs font-bold text-[#00875a] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>View all ({examsList.length + 1})</span>
+                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {/* PÍLDORA DESTACADA: ORAL INTERVIEW WITH TEACHER */}
+                  <div
+                    onClick={() => setCurrentSection('interview')}
+                    className={`bg-white rounded-[26px] p-4 sm:p-5 border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs cursor-pointer ${
+                      isInterviewActiveForStudent
+                        ? 'border-[#00875a] ring-2 ring-[#00875a]/30 bg-[#ebfbee]/40'
+                        : 'border-[#e8f3ed] hover:border-[#00875a]/50 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-[#d7fbe8] text-[#00875a] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[24px]">record_voice_over</span>
+                      </div>
+                      <div className="space-y-0.5 text-left">
+                        <span className="text-[10px] font-bold text-[#00714d] uppercase tracking-wider block">
+                          Speaking & Fluency • Live Teacher Assessment
+                        </span>
+                        <h4 className="font-heading font-black text-sm sm:text-base text-[#1b382b] flex items-center gap-2">
+                          <span>Oral Diagnostic Interview</span>
+                          {isInterviewActiveForStudent && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#00875a] text-white animate-pulse">
+                              In Turn
+                            </span>
+                          )}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-5">
+                      <div className="flex items-center gap-3 text-xs text-[#7c9285] font-medium">
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px]">schedule</span>
+                          <span>10 min</span>
+                        </span>
+                        <span>•</span>
+                        <span>Interactive rubric</span>
+                      </div>
+
+                      <div className="w-10 h-10 rounded-2xl bg-[#d7fbe8] text-[#00714d] hover:bg-[#00714d] hover:text-white flex items-center justify-center transition-all shadow-xs">
+                        <span className="material-symbols-outlined text-[20px]">
+                          {isInterviewActiveForStudent ? 'mic' : 'arrow_forward'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PÍLDORAS DE CADA INSTRUMENTO DIGITAL DE LA BATERÍA */}
+                  {examsList.map((exam, idx) => {
+                    const isDone = Boolean(completedExams[exam.id])
+                    const meta = getModuleMeta(idx)
+                    const answersCount = Object.keys(studentAnswers[exam.id] || {}).length
+
+                    return (
+                      <div
+                        key={exam.id}
+                        className={`bg-white rounded-[26px] p-4 sm:p-5 border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs ${
+                          isDone ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#e8f3ed] hover:border-[#00875a]/50 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl ${meta.bg} ${meta.text} flex items-center justify-center shrink-0`}>
+                            <span className="material-symbols-outlined text-[24px]">{meta.icon}</span>
+                          </div>
+
+                          <div className="space-y-0.5 text-left">
+                            <span className="text-[10px] font-bold text-[#7c9285] uppercase tracking-wider block">
+                              {meta.tag} • Level {exam.level || 'A1-C1'}
+                            </span>
+                            <h4 className="font-heading font-black text-sm sm:text-base text-[#1b382b]">
                               {exam.title}
-                            </h3>
+                            </h4>
+                          </div>
+                        </div>
 
-                            <div className="flex items-center gap-3 text-xs text-[#8e8a9f]">
-                              <span className="flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[15px]">timer</span>
-                                {exam.timeLimitMinutes || 15} min
-                              </span>
-                              <span>•</span>
-                              <span>{exam.questions?.length || 0} preguntas</span>
-                            </div>
+                        <div className="flex items-center justify-between sm:justify-end gap-5">
+                          <div className="flex items-center gap-3 text-xs text-[#7c9285] font-medium">
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[16px]">schedule</span>
+                              <span>{exam.timeLimitMinutes || 15} min</span>
+                            </span>
+                            <span>•</span>
+                            <span>{exam.questions?.length || 0} questions</span>
                           </div>
 
                           <button
                             type="button"
                             disabled={isDone}
                             onClick={() => handleStartExam(exam)}
-                            className={`w-full py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
                               isDone
-                                ? 'bg-[#d7fbe8] text-[#00714d] cursor-default'
-                                : 'bg-[#5446a8] hover:bg-[#413689] text-white shadow-md cursor-pointer'
+                                ? 'bg-[#d7fbe8] text-[#00714d]'
+                                : answersCount > 0
+                                ? 'bg-[#e8f8f0] text-[#00875a] hover:bg-[#00875a] hover:text-white'
+                                : 'bg-[#d7fbe8] text-[#00714d] hover:bg-[#00714d] hover:text-white shadow-xs'
                             }`}
+                            title={isDone ? 'Completed' : 'Start activity'}
                           >
-                            <span>{isDone ? 'Completado' : 'Comenzar prueba'}</span>
-                            <span className="material-symbols-outlined text-[16px]">
-                              {isDone ? 'check' : 'arrow_forward'}
+                            <span className="material-symbols-outlined text-[20px]">
+                              {isDone ? 'check' : 'play_arrow'}
                             </span>
                           </button>
                         </div>
-                      )
-                    })}
-                  </div>
-                )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            ) : currentSection === 'interview' ? (
-              /* ================= CASO 4: VISTA ENTREVISTA ORAL ================= */
-              <div className="bg-white rounded-[36px] p-8 md:p-12 border border-[#f1eef8] shadow-xs space-y-6 animate-fadeIn text-center max-w-2xl mx-auto">
-                <div className="w-20 h-20 rounded-3xl bg-[#e9e3ff] text-[#5446a8] mx-auto flex items-center justify-center shadow-inner">
-                  <span className="material-symbols-outlined text-4xl">record_voice_over</span>
+            </div>
+          ) : currentSection === 'evaluations' ? (
+            /* ================= CASO 3: TERM EVALUATIONS (EVALUACIONES DE PERIODO) ================= */
+            <div className="space-y-6 animate-fadeIn text-left">
+              <div className="bg-white rounded-[32px] p-6 border border-[#e8f3ed] shadow-xs space-y-2">
+                <span className="text-[10px] font-bold text-[#00875a] uppercase tracking-wider block">
+                  ACADEMIC CALENDAR & GRADES
+                </span>
+                <h2 className="font-heading font-black text-xl text-[#1b382b]">
+                  Term Evaluations (Period Assessments)
+                </h2>
+                <p className="text-xs text-[#4d6657]">
+                  Upcoming scheduled evaluations for the 2026 - 2027 academic cycle. Instruments will unlock according to your teacher's timeline.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {upcomingPeriodAssessments.map((term, idx) => (
+                  <div
+                    key={term.id}
+                    className="bg-white rounded-[28px] p-6 border border-[#e8f3ed] space-y-4 flex flex-col justify-between shadow-xs hover:border-[#00875a]/50 transition-all"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-[#ebfbee] text-[#00875a]">
+                          Term {idx + 1}
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fff4e6] text-[#f76707]">
+                          {term.status}
+                        </span>
+                      </div>
+
+                      <h3 className="font-heading font-black text-base text-[#1b382b]">
+                        {term.title}
+                      </h3>
+
+                      <p className="text-xs text-[#4d6657] font-medium leading-relaxed">
+                        Skills assessed: <span className="font-semibold text-[#1b382b]">{term.skills}</span>
+                      </p>
+
+                      <div className="flex items-center gap-3 text-xs text-[#7c9285] pt-1">
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[15px]">event</span>
+                          {term.date}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[15px]">timer</span>
+                          {term.timeMinutes} min
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3 rounded-2xl text-xs font-black bg-[#f2faf5] text-[#7c9285] border border-[#e8f3ed] cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">lock</span>
+                      <span>Coming Soon</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : currentSection === 'profile' ? (
+            /* ================= CASO 4: VISTA MY PROFILE (EDITAR PERFIL ESTILO NESTLY) ================= */
+            <div className="space-y-6 animate-fadeIn text-left max-w-4xl mx-auto">
+              {/* Header de perfil */}
+              <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#e8f3ed] shadow-xs flex flex-col sm:flex-row items-center gap-6">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#00875a] to-[#4edea3] p-1 shadow-md shrink-0 flex items-center justify-center text-white text-3xl font-black">
+                  {student.photoUrl ? (
+                    <img
+                      src={student.photoUrl}
+                      alt={student.name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    studentFirstName.substring(0, 2).toUpperCase()
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <span className="px-3.5 py-1 rounded-full bg-[#f4f1fd] text-[#5446a8] text-xs font-black uppercase tracking-wider">
-                    Entrevista Oral Docente
-                  </span>
-                  <h2 className="font-heading font-black text-2xl text-[#2d2c38]">
-                    Evaluación de Speaking en Vivo
-                  </h2>
-                  <p className="text-xs sm:text-sm text-[#585567] max-w-md mx-auto">
-                    La entrevista oral se realiza presencialmente con tu profesor de inglés para evaluar fluidez y pronunciación.
+                <div className="space-y-1 text-center sm:text-left flex-1">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <h2 className="font-heading font-black text-xl sm:text-2xl text-[#1b382b]">
+                      {student.name}
+                    </h2>
+                    <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#d7fbe8] text-[#00714d]">
+                      Active Student
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#7c9285] font-mono">
+                    {student.email || 'student@salesiano.edu.sv'} • Carnet: {student.carnet || 'N/A'}
+                  </p>
+                  <p className="text-xs text-[#00875a] font-semibold">
+                    {student.grade || '7° Grado'} {student.section ? `• Section ${student.section}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              {/* Formulario de edición con estilo moderno Nestly */}
+              <form onSubmit={handleSaveProfile} className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#e8f3ed] shadow-xs space-y-6">
+                <div className="border-b border-[#e8f3ed] pb-4">
+                  <h3 className="font-heading font-black text-base text-[#1b382b]">
+                    Edit Profile & Learning Preferences
+                  </h3>
+                  <p className="text-xs text-[#7c9285] mt-0.5">
+                    Customize your profile information and self-reported background.
                   </p>
                 </div>
 
-                {isInterviewActiveForStudent ? (
-                  <div className="p-5 rounded-3xl bg-[#e9e3ff] border-2 border-[#8a70d6] text-center space-y-2 animate-pulse">
-                    <span className="text-xs font-black uppercase text-[#413689] tracking-wider block">
-                      🎙️ ¡Es tu turno de pasar con el docente!
-                    </span>
-                    <p className="text-xs text-[#5446a8] font-medium">
-                      Por favor acércate a la mesa de evaluación para tu entrevista oral.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-5 rounded-3xl bg-[#faf9fe] border border-[#eceaf6] text-center space-y-1">
-                    <span className="text-xs font-bold text-[#2d2c38] block">Estado de turno:</span>
-                    <span className="text-xs text-[#8e8a9f]">En espera de asignación de turno por tu profesor.</span>
+                {profileSuccessMsg && (
+                  <div className="p-4 rounded-2xl bg-[#d7fbe8] border border-[#00875a]/30 text-[#005a3c] text-xs font-bold flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">verified</span>
+                    <span>{profileSuccessMsg}</span>
                   </div>
                 )}
 
-                <div className="pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#1b382b] block">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={profileFormData.name}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, name: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl border border-[#e8f3ed] text-xs font-medium text-[#1b382b] focus:outline-none focus:ring-2 focus:ring-[#00875a]/30 bg-[#f7fbf9]"
+                      placeholder="Your full name"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#1b382b] block">
+                      Phone / Contact
+                    </label>
+                    <input
+                      type="text"
+                      value={profileFormData.phone}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, phone: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl border border-[#e8f3ed] text-xs font-medium text-[#1b382b] focus:outline-none focus:ring-2 focus:ring-[#00875a]/30 bg-[#f7fbf9]"
+                      placeholder="Optional phone number"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#1b382b] block">
+                      Perceived English Level (Self-assessment)
+                    </label>
+                    <select
+                      value={profileFormData.selfReportedLevel}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, selfReportedLevel: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl border border-[#e8f3ed] text-xs font-medium text-[#1b382b] focus:outline-none focus:ring-2 focus:ring-[#00875a]/30 bg-[#f7fbf9]"
+                    >
+                      <option value="A1">A1 - Beginner (Basic phrases)</option>
+                      <option value="A2">A2 - Elementary (Daily routines)</option>
+                      <option value="B1">B1 - Intermediate (Comfortable conversation)</option>
+                      <option value="B2">B2 - Upper Intermediate (Fluent discussion)</option>
+                      <option value="C1">C1 - Advanced (High proficiency)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#1b382b] block">
+                      Favorite Learning Area
+                    </label>
+                    <select
+                      value={profileFormData.favoriteTopic}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, favoriteTopic: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl border border-[#e8f3ed] text-xs font-medium text-[#1b382b] focus:outline-none focus:ring-2 focus:ring-[#00875a]/30 bg-[#f7fbf9]"
+                    >
+                      <option value="Reading & Stories">Reading & Short Stories</option>
+                      <option value="Listening & Music">Listening Comprehension & Podcasts</option>
+                      <option value="Speaking & Drama">Speaking & Interactive Roleplay</option>
+                      <option value="Grammar & Logic">Grammar & Sentence Building</option>
+                      <option value="Creative Writing">Creative Writing & Essays</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#1b382b] block">
+                    Personal Learning Goal / Bio
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={profileFormData.bio}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, bio: e.target.value })}
+                    className="w-full px-4 py-3 rounded-2xl border border-[#e8f3ed] text-xs font-medium text-[#1b382b] focus:outline-none focus:ring-2 focus:ring-[#00875a]/30 bg-[#f7fbf9]"
+                    placeholder="E.g. I want to become completely fluent in English and learn more vocabulary this cycle!"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => setCurrentSection('home')}
-                    className="px-6 py-3 rounded-2xl bg-[#5446a8] text-white font-black text-xs hover:bg-[#413689] transition-all cursor-pointer inline-flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-2xl border border-[#e8f3ed] text-xs font-bold text-[#4d6657] hover:bg-[#f7fbf9] transition-all cursor-pointer"
                   >
-                    <span>Volver a Inicio</span>
-                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={profileSaving}
+                    className="px-6 py-3 rounded-2xl bg-[#00875a] hover:bg-[#00714d] text-white text-xs font-black shadow-md shadow-[#00875a]/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {profileSaving ? (
+                      <>
+                        <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[16px]">save</span>
+                        <span>Save Changes</span>
+                      </>
+                    )}
                   </button>
                 </div>
+              </form>
+            </div>
+          ) : currentSection === 'battery' ? (
+            /* ================= CASO 5: VISTA BATERÍA COMPLETA ================= */
+            <div className="space-y-6 animate-fadeIn text-left">
+              <div className="bg-white rounded-[32px] p-6 border border-[#e8f3ed] shadow-xs space-y-2">
+                <span className="text-[10px] font-bold text-[#00875a] uppercase tracking-wider block">
+                  Official Diagnostic Instruments
+                </span>
+                <h2 className="font-heading font-black text-xl text-[#1b382b]">
+                  Digital Test Battery & Evaluation Instruments
+                </h2>
+                <p className="text-xs text-[#4d6657]">
+                  Take each module at your own pace within the allowed time limit.
+                </p>
               </div>
-            ) : (
-              /* ================= CASO 5: VISTA RESULTADOS Y NIVEL ASIGNADO ================= */
-              <div className="bg-white rounded-[36px] p-8 md:p-12 border border-[#f1eef8] shadow-xs space-y-6 animate-fadeIn text-center max-w-2xl mx-auto">
-                <div className="w-20 h-20 rounded-3xl bg-[#d7fbe8] text-[#00714d] mx-auto flex items-center justify-center shadow-inner">
-                  <span className="material-symbols-outlined text-4xl">military_tech</span>
-                </div>
 
-                <div className="space-y-2">
-                  <span className="px-3.5 py-1 rounded-full bg-[#e9e3ff] text-[#5446a8] text-xs font-black uppercase tracking-wider">
-                    Estatus de Colocación
-                  </span>
-                  <h2 className="font-heading font-black text-2xl text-[#2d2c38]">
-                    {isPlacementFullyConcluded ? 'Nivel Asignado para el Ciclo 2027' : 'Evaluación en Proceso de Revisión'}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-[#585567] max-w-md mx-auto">
-                    {isPlacementFullyConcluded
-                      ? 'Tus profesores han completado la revisión diagnóstica.'
-                      : 'Tus resultados están siendo consolidados por el equipo docente de inglés.'}
+              {!isStudentAuthorizedForExam ? (
+                <div className="bg-[#fff9db] rounded-[32px] p-8 border border-[#ffec99] text-center space-y-3">
+                  <span className="material-symbols-outlined text-4xl text-amber-600">lock_clock</span>
+                  <h3 className="font-black text-base text-amber-950">
+                    Awaiting Teacher Schedule Activation
+                  </h3>
+                  <p className="text-xs text-amber-800 max-w-md mx-auto">
+                    Diagnostic instruments are activated by groups and sections led by your English teachers.
                   </p>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {examsList.map((exam, idx) => {
+                    const isDone = Boolean(completedExams[exam.id])
+                    const meta = getModuleMeta(idx)
+                    return (
+                      <div
+                        key={exam.id}
+                        className={`bg-white rounded-[28px] p-6 border space-y-4 flex flex-col justify-between transition-all ${
+                          isDone ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#e8f3ed] hover:border-[#00875a]'
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${meta.bg} ${meta.text}`}>
+                              Test {idx + 1} • {exam.level || 'A1-C1'}
+                            </span>
+                            <span className="text-xs font-black text-[#00714d] bg-[#d7fbe8] px-2.5 py-0.5 rounded-full">
+                              {exam.weight || 15}% weight
+                            </span>
+                          </div>
 
-                {isPlacementFullyConcluded && student.assignedLevel && (
-                  <div className="p-6 rounded-3xl bg-gradient-to-br from-[#f4f1fd] to-[#e9e3ff] border border-[#8a70d6]/30 max-w-sm mx-auto space-y-2">
-                    <span className="text-[10px] uppercase font-bold text-[#5446a8] tracking-wider block">
-                      Nivel Oficial Asignado
-                    </span>
-                    <h3 className="font-heading font-black text-4xl text-[#413689]">
-                      {student.assignedLevel}
-                    </h3>
-                    <span className="text-xs font-bold text-[#8a70d6] block">
-                      Serie: Get Involved (Macmillan)
-                    </span>
-                  </div>
-                )}
+                          <h3 className="font-heading font-black text-base text-[#1b382b]">
+                            {exam.title}
+                          </h3>
 
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentSection('home')}
-                    className="px-6 py-3 rounded-2xl bg-[#5446a8] text-white font-black text-xs hover:bg-[#413689] transition-all cursor-pointer inline-flex items-center gap-2"
-                  >
-                    <span>Volver a Inicio</span>
-                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                  </button>
+                          <div className="flex items-center gap-3 text-xs text-[#7c9285]">
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[15px]">timer</span>
+                              {exam.timeLimitMinutes || 15} min
+                            </span>
+                            <span>•</span>
+                            <span>{exam.questions?.length || 0} questions</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={isDone}
+                          onClick={() => handleStartExam(exam)}
+                          className={`w-full py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                            isDone
+                              ? 'bg-[#d7fbe8] text-[#00714d] cursor-default'
+                              : 'bg-[#00875a] hover:bg-[#00714d] text-white shadow-md cursor-pointer'
+                          }`}
+                        >
+                          <span>{isDone ? 'Completed' : 'Start Test'}</span>
+                          <span className="material-symbols-outlined text-[16px]">
+                            {isDone ? 'check' : 'arrow_forward'}
+                          </span>
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
+              )}
+            </div>
+          ) : currentSection === 'interview' ? (
+            /* ================= CASO 6: VISTA ENTREVISTA ORAL ================= */
+            <div className="bg-white rounded-[36px] p-8 md:p-12 border border-[#e8f3ed] shadow-xs space-y-6 animate-fadeIn text-center max-w-2xl mx-auto">
+              <div className="w-20 h-20 rounded-3xl bg-[#d7fbe8] text-[#00875a] mx-auto flex items-center justify-center shadow-inner">
+                <span className="material-symbols-outlined text-4xl">record_voice_over</span>
               </div>
-            )}
 
-          </main>
-        </div>
+              <div className="space-y-2">
+                <span className="px-3.5 py-1 rounded-full bg-[#ebfbee] text-[#00875a] text-xs font-black uppercase tracking-wider">
+                  Oral Interview (Teacher)
+                </span>
+                <h2 className="font-heading font-black text-2xl text-[#1b382b]">
+                  Live Speaking Assessment
+                </h2>
+                <p className="text-xs sm:text-sm text-[#4d6657] max-w-md mx-auto">
+                  The oral interview is conducted directly with your English teacher to evaluate fluency, vocabulary, and pronunciation.
+                </p>
+              </div>
+
+              {isInterviewActiveForStudent ? (
+                <div className="p-5 rounded-3xl bg-[#d7fbe8] border-2 border-[#00875a] text-center space-y-2 animate-pulse">
+                  <span className="text-xs font-black uppercase text-[#005a3c] tracking-wider block">
+                    🎙️ It's your turn for the Oral Interview!
+                  </span>
+                  <p className="text-xs text-[#00714d] font-medium">
+                    Please proceed to the teacher's evaluation desk.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-5 rounded-3xl bg-[#f7fbf9] border border-[#e8f3ed] text-center space-y-1">
+                  <span className="text-xs font-bold text-[#1b382b] block">Current Turn Status:</span>
+                  <span className="text-xs text-[#7c9285]">Awaiting teacher call for your turn.</span>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentSection('home')}
+                  className="px-6 py-3 rounded-2xl bg-[#00875a] text-white font-black text-xs hover:bg-[#00714d] transition-all cursor-pointer inline-flex items-center gap-2"
+                >
+                  <span>Return to Home</span>
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ================= CASO 7: VISTA RESULTADOS Y NIVEL ASIGNADO ================= */
+            <div className="bg-white rounded-[36px] p-8 md:p-12 border border-[#e8f3ed] shadow-xs space-y-6 animate-fadeIn text-center max-w-2xl mx-auto">
+              <div className="w-20 h-20 rounded-3xl bg-[#d7fbe8] text-[#00714d] mx-auto flex items-center justify-center shadow-inner">
+                <span className="material-symbols-outlined text-4xl">military_tech</span>
+              </div>
+
+              <div className="space-y-2">
+                <span className="px-3.5 py-1 rounded-full bg-[#ebfbee] text-[#00875a] text-xs font-black uppercase tracking-wider">
+                  Placement Status
+                </span>
+                <h2 className="font-heading font-black text-2xl text-[#1b382b]">
+                  {isPlacementFullyConcluded ? 'Assigned Level for 2027 Cycle' : 'Assessment Under Teacher Review'}
+                </h2>
+                <p className="text-xs sm:text-sm text-[#4d6657] max-w-md mx-auto">
+                  {isPlacementFullyConcluded
+                    ? 'Your English teachers have finalized your placement review.'
+                    : 'Your diagnostic scores and oral evaluation are being consolidated.'}
+                </p>
+              </div>
+
+              {isPlacementFullyConcluded && student.assignedLevel && (
+                <div className="p-6 rounded-3xl bg-gradient-to-br from-[#ebfbee] to-[#d7fbe8] border border-[#00875a]/30 max-w-sm mx-auto space-y-2">
+                  <span className="text-[10px] uppercase font-bold text-[#00714d] tracking-wider block">
+                    Official Assigned Level
+                  </span>
+                  <h3 className="font-heading font-black text-4xl text-[#005a3c]">
+                    {student.assignedLevel}
+                  </h3>
+                  <span className="text-xs font-bold text-[#00875a] block">
+                    Curricular Series: Get Involved (Macmillan)
+                  </span>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentSection('home')}
+                  className="px-6 py-3 rounded-2xl bg-[#00875a] text-white font-black text-xs hover:bg-[#00714d] transition-all cursor-pointer inline-flex items-center gap-2"
+                >
+                  <span>Return to Home</span>
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
     </div>
   )
 }
