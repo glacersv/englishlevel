@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { getDiagnosticConfig, saveDiagnosticConfig } from '../../lib/dataService'
+import ActionModal from './ActionModal'
 
 export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved }) {
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [modalNotice, setModalNotice] = useState(null)
 
   useEffect(() => {
     loadConfig()
@@ -88,7 +90,14 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (err) {
       console.error('Error guardando configuración:', err)
-      alert('Error guardando en Firestore: ' + err.message)
+      setModalNotice({
+        isOpen: true,
+        type: 'danger',
+        title: 'Error al Guardar Configuración',
+        message: 'No se pudo guardar la configuración en Firestore: ' + err.message,
+        confirmText: 'Entendido',
+        onConfirm: () => setModalNotice(null)
+      })
     } finally {
       setSaving(false)
     }
@@ -113,16 +122,16 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fadeIn">
       {/* Encabezado */}
-      <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 p-6 md:p-8 rounded-3xl text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-brand-purple via-[#7e62cc] to-[#6a4fb8] p-6 md:p-8 rounded-3xl md:rounded-4xl text-white shadow-xl shadow-brand-purple/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-brand-purple-light text-xs font-bold uppercase tracking-wider">
             <span className="material-symbols-outlined text-[18px]">tune</span>
             <span>Configuración Oficial de Diagnóstico y Ubicación 2026</span>
           </div>
-          <h2 className="font-heading font-extrabold text-2xl md:text-3xl text-white mt-1">
+          <h2 className="font-heading font-black text-2xl md:text-3xl text-white mt-1">
             Ponderaciones y Cortes por Grado
           </h2>
-          <p className="text-xs text-indigo-200 mt-1 max-w-xl">
+          <p className="text-xs text-white/80 mt-1 max-w-xl">
             Ajusta los porcentajes de cada componente de evaluación y los umbrales de aciertos para clasificar a los alumnos en <strong>Básico</strong>, <strong>Intermedio</strong> o <strong>Avanzado</strong>.
           </p>
         </div>
@@ -132,7 +141,7 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-white font-extrabold text-xs md:text-sm shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            className="px-6 py-3 rounded-2xl bg-white hover:bg-brand-purple-soft text-brand-purple font-black text-xs md:text-sm shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[20px]">
               {saveSuccess ? 'check_circle' : 'save'}
@@ -146,11 +155,11 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Tarjeta 1: Ponderación Global (Oral vs Plataforma) */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-            <span className="material-symbols-outlined text-indigo-600 text-[24px]">balance</span>
+        <div className="bg-white p-6 rounded-3xl border border-[#eceaf6] shadow-xs space-y-5">
+          <div className="flex items-center gap-2 border-b border-[#f4f1fd] pb-3">
+            <span className="material-symbols-outlined text-brand-purple text-[24px]">balance</span>
             <div>
-              <h3 className="font-heading font-extrabold text-base text-gray-900">
+              <h3 className="font-heading font-black text-base text-brand-dark">
                 1. Ponderación Global (Total 100%)
               </h3>
               <p className="text-[11px] text-gray-500">
@@ -161,13 +170,13 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
 
           <div className="space-y-4">
             {/* Peso Oral */}
-            <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-2">
+            <div className="p-4 rounded-2xl bg-brand-purple-soft/60 border border-brand-purple-light/70 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px] text-indigo-600">record_voice_over</span>
+                <label className="text-xs font-bold text-brand-purple-dark flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px] text-brand-purple">record_voice_over</span>
                   Entrevista Oral con Docente
                 </label>
-                <span className="font-heading font-black text-lg text-indigo-700">{oralW}%</span>
+                <span className="font-heading font-black text-lg text-brand-purple">{oralW}%</span>
               </div>
               <input
                 type="range"
@@ -177,9 +186,9 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
                 disabled={!canEdit}
                 value={oralW}
                 onChange={(e) => handleWeightChange('oral', e.target.value)}
-                className="w-full accent-indigo-600 cursor-pointer"
+                className="w-full accent-brand-purple cursor-pointer"
               />
-              <p className="text-[10px] text-indigo-700/80">
+              <p className="text-[10px] text-brand-purple/80">
                 Preguntas de pronunciación, gramática y fluidez conducidas por el docente.
               </p>
             </div>
@@ -211,7 +220,7 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
             {/* Barra Visual Sumatoria */}
             <div className="pt-2">
               <div className="w-full h-3 rounded-full overflow-hidden flex bg-gray-100">
-                <div style={{ width: `${oralW}%` }} className="bg-indigo-600 h-full transition-all"></div>
+                <div style={{ width: `${oralW}%` }} className="bg-brand-purple h-full transition-all"></div>
                 <div style={{ width: `${platW}%` }} className="bg-teal-500 h-full transition-all"></div>
               </div>
               <div className="flex justify-between text-[10px] font-bold text-gray-500 mt-1">
@@ -223,11 +232,11 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
         </div>
 
         {/* Tarjeta 2: Umbrales de Corte Porcentual */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+        <div className="bg-white p-6 rounded-3xl border border-[#eceaf6] shadow-xs space-y-5">
+          <div className="flex items-center gap-2 border-b border-[#f4f1fd] pb-3">
             <span className="material-symbols-outlined text-amber-600 text-[24px]">grade</span>
             <div>
-              <h3 className="font-heading font-extrabold text-base text-gray-900">
+              <h3 className="font-heading font-black text-base text-brand-dark">
                 2. Umbrales de Aciertos para Clasificación
               </h3>
               <p className="text-[11px] text-gray-500">
@@ -240,7 +249,7 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
             {/* Nivel Básico */}
             <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 flex items-center justify-between">
               <div>
-                <span className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-black uppercase">
+                <span className="px-2.5 py-0.5 rounded-lg bg-amber-200 text-amber-900 text-[10px] font-black uppercase">
                   Básico (Inicial / Refuerzo)
                 </span>
                 <p className="text-xs font-bold text-gray-800 mt-1">
@@ -263,9 +272,9 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
             </div>
 
             {/* Nivel Intermedio */}
-            <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-center justify-between">
+            <div className="p-3.5 rounded-2xl bg-brand-purple-soft/70 border border-brand-purple-light flex items-center justify-between">
               <div>
-                <span className="px-2 py-0.5 rounded-md bg-blue-200 text-blue-900 text-[10px] font-black uppercase">
+                <span className="px-2.5 py-0.5 rounded-lg bg-brand-purple-light text-brand-purple-dark text-[10px] font-black uppercase">
                   Intermedio (Estándar / Regular)
                 </span>
                 <p className="text-xs font-bold text-gray-800 mt-1">
@@ -281,7 +290,7 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
                   disabled={!canEdit}
                   value={interMax}
                   onChange={(e) => handleCutoffChange('intermediateMax', e.target.value)}
-                  className="w-16 px-2 py-1 rounded-xl border border-blue-300 text-xs font-black text-center focus:outline-none bg-white"
+                  className="w-16 px-2 py-1 rounded-xl border border-brand-purple-light text-xs font-black text-center focus:outline-none bg-white"
                 />
                 <span className="text-xs font-bold text-gray-700">%</span>
               </div>
@@ -290,7 +299,7 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
             {/* Nivel Avanzado */}
             <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between">
               <div>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-200 text-emerald-900 text-[10px] font-black uppercase">
+                <span className="px-2.5 py-0.5 rounded-lg bg-emerald-200 text-emerald-900 text-[10px] font-black uppercase">
                   Avanzado (Adelantado / C1)
                 </span>
                 <p className="text-xs font-bold text-gray-800 mt-1">
@@ -307,12 +316,12 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
       </div>
 
       {/* Tarjeta 3: Matriz de Grupos Destino por Grado (Tabla de Referencia) */}
-      <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+      <div className="bg-white p-6 rounded-3xl border border-[#eceaf6] shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-[#f4f1fd] pb-3">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-purple-600 text-[24px]">school</span>
+            <span className="material-symbols-outlined text-brand-purple text-[24px]">school</span>
             <div>
-              <h3 className="font-heading font-extrabold text-base text-gray-900">
+              <h3 className="font-heading font-black text-base text-brand-dark">
                 3. Matriz Oficial de Libros y Grupos por Grado (Marco Institucional Fijo)
               </h3>
               <p className="text-[11px] text-gray-500">
@@ -320,14 +329,14 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
               </p>
             </div>
           </div>
-          <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold border border-slate-200">
+          <span className="px-3 py-1 rounded-full bg-brand-purple-soft text-brand-purple text-[11px] font-black border border-brand-purple-light">
             🔒 Marco Oficial de Asignación
           </span>
         </div>
 
         {/* Recordatorio de Directriz Institucional */}
-        <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-xs text-indigo-900 flex items-center gap-2.5">
-          <span className="material-symbols-outlined text-indigo-700 text-[20px] shrink-0">info</span>
+        <div className="p-3.5 rounded-2xl bg-brand-purple-soft/60 border border-brand-purple-light/80 text-xs text-brand-purple-dark flex items-center gap-2.5">
+          <span className="material-symbols-outlined text-brand-purple text-[20px] shrink-0">info</span>
           <p className="leading-snug">
             <strong>Directriz Institucional:</strong> Esta matriz establece los grupos canónicos del colegio por grado. Las ponderaciones (%) y los cortes son configurables, mientras que la estructura de grupos permanece fija como referencia administrativa y de asignación para los docentes.
           </p>
@@ -336,19 +345,19 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs md:text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-slate-50">
+              <tr className="border-b border-[#eceaf6] text-[11px] font-bold uppercase text-gray-500 bg-[#fbfbfb]">
                 <th className="py-3 px-4">Grado al que Pasa</th>
                 <th className="py-3 px-4">Grupo Básico (0-{basicMax}%)</th>
                 <th className="py-3 px-4">Grupo Intermedio ({basicMax + 1}-{interMax}%)</th>
                 <th className="py-3 px-4">Grupo Avanzado (≥{interMax + 1}%)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-[#eceaf6]">
               {Object.entries(config.gradeDestinations || {}).map(([gradeNum, dest]) => (
-                <tr key={gradeNum} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={gradeNum} className="hover:bg-brand-purple-soft/30 transition-colors">
                   <td className="py-3.5 px-4 font-bold text-gray-900 align-top">
                     <div className="flex items-center gap-2">
-                      <span className="inline-block px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-black text-xs shrink-0">
+                      <span className="inline-block px-2.5 py-1 rounded-xl bg-brand-purple-light text-brand-purple-dark font-black text-xs shrink-0">
                         {gradeNum}°
                       </span>
                       {canEdit ? (
@@ -356,10 +365,10 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
                           type="text"
                           value={dest.label || ''}
                           onChange={(e) => handleDestinationLabelChange(gradeNum, e.target.value)}
-                          className="w-full text-xs font-bold text-gray-800 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg px-2 py-1 outline-none transition-all"
+                          className="w-full text-xs font-bold text-brand-dark bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-[#eceaf6] focus:border-brand-purple rounded-xl px-2.5 py-1 outline-none transition-all"
                         />
                       ) : (
-                        <span className="text-xs font-bold text-gray-800">{dest.label}</span>
+                        <span className="text-xs font-bold text-brand-dark">{dest.label}</span>
                       )}
                     </div>
                   </td>
@@ -373,14 +382,14 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
                           value={dest.basic?.code || ''}
                           onChange={(e) => handleDestinationChange(gradeNum, 'basic', 'code', e.target.value)}
                           placeholder="Ej: L1-A"
-                          className="w-24 px-2 py-1 text-xs font-black uppercase text-amber-900 bg-amber-50 border border-amber-300 rounded-lg outline-none focus:ring-1 focus:ring-amber-500"
+                          className="w-24 px-2 py-1 text-xs font-black uppercase text-amber-900 bg-amber-50 border border-amber-300 rounded-xl outline-none focus:ring-1 focus:ring-amber-500"
                         />
                         <input
                           type="text"
                           value={dest.basic?.label || ''}
                           onChange={(e) => handleDestinationChange(gradeNum, 'basic', 'label', e.target.value)}
                           placeholder="Descripción del libro..."
-                          className="w-full text-[11px] text-gray-600 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-amber-400 rounded px-1.5 py-0.5 outline-none block"
+                          className="w-full text-[11px] text-gray-600 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-[#eceaf6] focus:border-amber-400 rounded-lg px-2 py-0.5 outline-none block"
                         />
                       </>
                     ) : (
@@ -402,19 +411,19 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
                           value={dest.intermediate?.code || ''}
                           onChange={(e) => handleDestinationChange(gradeNum, 'intermediate', 'code', e.target.value)}
                           placeholder="Ej: L1-B"
-                          className="w-24 px-2 py-1 text-xs font-black uppercase text-blue-900 bg-blue-50 border border-blue-300 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-24 px-2 py-1 text-xs font-black uppercase text-brand-purple-dark bg-brand-purple-soft border border-brand-purple-light rounded-xl outline-none focus:ring-1 focus:ring-brand-purple"
                         />
                         <input
                           type="text"
                           value={dest.intermediate?.label || ''}
                           onChange={(e) => handleDestinationChange(gradeNum, 'intermediate', 'label', e.target.value)}
                           placeholder="Descripción del libro..."
-                          className="w-full text-[11px] text-gray-600 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1.5 py-0.5 outline-none block"
+                          className="w-full text-[11px] text-gray-600 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-[#eceaf6] focus:border-brand-purple rounded-lg px-2 py-0.5 outline-none block"
                         />
                       </>
                     ) : (
                       <>
-                        <span className="inline-block px-2.5 py-0.5 rounded-full font-black text-xs bg-blue-50 text-blue-800 border border-blue-200">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full font-black text-xs bg-brand-purple-soft text-brand-purple-dark border border-brand-purple-light">
                           {dest.intermediate?.code}
                         </span>
                         <span className="text-[11px] text-gray-500 block">{dest.intermediate?.label}</span>
@@ -431,14 +440,14 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
                           value={dest.advanced?.code || ''}
                           onChange={(e) => handleDestinationChange(gradeNum, 'advanced', 'code', e.target.value)}
                           placeholder="Ej: L2"
-                          className="w-24 px-2 py-1 text-xs font-black uppercase text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-lg outline-none focus:ring-1 focus:ring-emerald-500"
+                          className="w-24 px-2 py-1 text-xs font-black uppercase text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-xl outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                         <input
                           type="text"
                           value={dest.advanced?.label || ''}
                           onChange={(e) => handleDestinationChange(gradeNum, 'advanced', 'label', e.target.value)}
                           placeholder="Descripción del libro..."
-                          className="w-full text-[11px] text-gray-600 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-emerald-400 rounded px-1.5 py-0.5 outline-none block"
+                          className="w-full text-[11px] text-gray-600 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-[#eceaf6] focus:border-emerald-400 rounded-lg px-2 py-0.5 outline-none block"
                         />
                       </>
                     ) : (
@@ -456,6 +465,20 @@ export default function DiagnosticConfigManager({ canEdit = true, onConfigSaved 
           </table>
         </div>
       </div>
+
+      {/* Modal Universal para Avisos y Confirmaciones */}
+      {modalNotice && (
+        <ActionModal
+          isOpen={modalNotice.isOpen}
+          type={modalNotice.type}
+          title={modalNotice.title}
+          message={modalNotice.message}
+          confirmText={modalNotice.confirmText}
+          cancelText={modalNotice.cancelText}
+          onConfirm={modalNotice.onConfirm}
+          onCancel={modalNotice.onCancel || (() => setModalNotice(null))}
+        />
+      )}
     </div>
   )
 }

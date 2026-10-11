@@ -18,36 +18,32 @@ export default function Sidebar({
 }) {
   return (
     <aside
-      className={`bg-surface-container-lowest border-r border-outline-variant/30 flex flex-col justify-between transition-all duration-300 z-40 shrink-0 ${
+      className={`bg-white border-r border-[#eceaf6] flex flex-col justify-between transition-all duration-300 z-40 shrink-0 shadow-xs ${
         collapsed ? 'w-20' : 'w-64'
       }`}
     >
       {/* Encabezado del Sidebar */}
       <div>
-        <div className="h-20 px-3 border-b border-outline-variant/30 flex items-center justify-between">
+        <div className="h-20 px-4 border-b border-[#eceaf6]/70 flex items-center justify-between">
           {!collapsed ? (
-            <div className="flex items-center gap-2 overflow-hidden">
-              <img
-                src={nextPlusLogo}
-                alt="NEXT+ Logo"
-                className="h-10 w-auto object-contain shrink-0"
-              />
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#8a70d6] to-[#7052c9] flex items-center justify-center text-white shadow-md shadow-[#8a70d6]/25 shrink-0">
+                <span className="material-symbols-outlined text-[22px]">auto_stories</span>
+              </div>
               <div className="flex flex-col truncate">
-                <span className="font-heading font-extrabold text-xs text-on-surface leading-tight truncate">
+                <span className="font-heading font-extrabold text-sm text-[#2d2c38] tracking-tight leading-tight truncate">
                   {title}
                 </span>
-                <span className="text-[10px] text-on-surface-variant font-medium truncate">
+                <span className="text-[11px] text-[#8e8a9f] font-medium truncate">
                   Colegio San José
                 </span>
               </div>
             </div>
           ) : (
             <div className="mx-auto flex items-center justify-center">
-              <img
-                src={nextPlusLogo}
-                alt="NEXT+"
-                className="h-8 w-auto object-contain"
-              />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#8a70d6] to-[#7052c9] flex items-center justify-center text-white shadow-md shadow-[#8a70d6]/25">
+                <span className="material-symbols-outlined text-[22px]">auto_stories</span>
+              </div>
             </div>
           )}
 
@@ -55,16 +51,16 @@ export default function Sidebar({
             type="button"
             onClick={onToggleCollapse}
             title={collapsed ? expandTooltip : collapseTooltip}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all"
+            className="p-1.5 rounded-xl text-[#8e8a9f] hover:bg-[#f4f1fd] hover:text-[#8a70d6] transition-all cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">
+            <span className="material-symbols-outlined text-[19px]">
               {collapsed ? 'last_page' : 'first_page'}
             </span>
           </button>
         </div>
 
         {/* Lista de Navegación */}
-        <nav className="p-3 space-y-1">
+        <nav className="p-3.5 space-y-1.5">
           {menuItems.map((item) => {
             const isActive = activeKey === item.key
             return (
@@ -72,31 +68,35 @@ export default function Sidebar({
                 key={item.key}
                 type="button"
                 onClick={() => onSelect(item.key)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs md:text-sm font-semibold transition-all relative ${
+                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer relative ${
                   isActive
-                    ? 'bg-primary text-white shadow-sm font-bold'
-                    : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                    ? 'bg-[#e9e3ff] text-[#5446a8] shadow-xs ring-1 ring-[#8a70d6]/20'
+                    : 'text-[#585567] hover:bg-[#f8f7fc] hover:text-[#2d2c38]'
                 } ${collapsed ? 'justify-center px-0' : 'justify-start'}`}
                 title={collapsed ? item.label : undefined}
               >
-                <span
-                  className={`material-symbols-outlined text-[20px] ${
-                    isActive ? 'text-white fill' : 'text-on-surface-variant'
-                  }`}
-                >
-                  {item.icon}
-                </span>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  isActive ? 'bg-white text-[#8a70d6] shadow-xs' : 'text-[#8e8a9f]'
+                }`}>
+                  <span
+                    className={`material-symbols-outlined text-[20px] ${
+                      isActive ? 'fill' : ''
+                    }`}
+                  >
+                    {item.icon}
+                  </span>
+                </div>
 
                 {!collapsed && (
-                  <span className="truncate flex-1 text-left">{item.label}</span>
+                  <span className="truncate flex-1 text-left tracking-wide">{item.label}</span>
                 )}
 
                 {!collapsed && item.badge && (
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-tight ${
                       isActive
-                        ? 'bg-white/20 text-white'
-                        : 'bg-primary-fixed text-on-primary-fixed'
+                        ? 'bg-[#8a70d6] text-white shadow-xs'
+                        : 'bg-[#f4f1fd] text-[#8a70d6]'
                     }`}
                   >
                     {item.badge}
@@ -108,9 +108,24 @@ export default function Sidebar({
         </nav>
       </div>
 
-      {/* Pie del Sidebar: Usuario & Logout */}
-      <div className="p-3 border-t border-outline-variant/30 space-y-2">
-        <div className={`flex items-center gap-2 p-2 rounded-xl bg-surface-container-low ${collapsed ? 'justify-center' : ''}`}>
+      {/* Pie del Sidebar: Tarjeta de Acceso y Usuario */}
+      <div className="p-3.5 border-t border-[#eceaf6]/70 space-y-3">
+        {/* Banner estilo Academy */}
+        {!collapsed && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#f4f1fd] to-[#e9e3ff] border border-[#e2e0ed]/80 relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#8a70d6] animate-pulse"></span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#5446a8]">
+                Panel Activo 2026
+              </span>
+            </div>
+            <p className="text-[11px] text-[#585567] font-medium leading-tight">
+              Nivelación diagnóstica en vivo
+            </p>
+          </div>
+        )}
+
+        <div className={`flex items-center gap-2.5 p-2 rounded-2xl bg-[#f8f7fc] border border-[#eceaf6] ${collapsed ? 'justify-center' : ''}`}>
           {user?.photoUrl ? (
             <img
               src={user.photoUrl}
@@ -118,20 +133,20 @@ export default function Sidebar({
                 e.currentTarget.style.display = 'none'
               }}
               alt={user?.name || 'Usuario'}
-              className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-primary/30"
+              className="w-9 h-9 rounded-xl object-cover shrink-0 ring-2 ring-[#8a70d6]/30 shadow-xs"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-xs shrink-0">
-              {user?.name ? user.name.substring(0, 2).toUpperCase() : 'US'}
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#8a70d6] to-[#a48ff0] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+              {user?.name ? user.name.substring(0, 2).toUpperCase() : 'AD'}
             </div>
           )}
           {!collapsed && (
             <div className="flex flex-col truncate flex-1">
-              <span className="text-xs font-bold text-on-surface truncate leading-tight">
-                {user?.name || 'Usuario'}
+              <span className="text-xs font-bold text-[#2d2c38] truncate leading-tight">
+                {user?.name || 'Administrador'}
               </span>
-              <span className="text-[10px] text-on-surface-variant truncate">
-                {user?.email || 'Institucional'}
+              <span className="text-[10px] text-[#8e8a9f] truncate">
+                {user?.email || 'admin@san-jose.edu.sv'}
               </span>
             </div>
           )}
@@ -140,7 +155,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={onLogout}
-          className={`w-full flex items-center gap-2 p-2 rounded-xl text-xs font-semibold text-error hover:bg-error-container/40 transition-all ${
+          className={`w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all cursor-pointer ${
             collapsed ? 'justify-center' : ''
           }`}
           title={logoutLabel}

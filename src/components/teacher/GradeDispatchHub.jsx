@@ -2,15 +2,15 @@ import React, { useState, useMemo } from 'react'
 
 /**
  * Grados oficiales contemplados en el plan:
- * 7° Grado, 8° Grado, 9° Grado, 1° Bachillerato (10°), 2° Bachillerato (11°)
+ * 6° Grado, 7° Grado, 8° Grado, 9° Grado, 1° Bachillerato (10°), 2° Bachillerato (11°)
  */
 const GRADES_DEF = [
-  { id: '6', label: '6° Grado', fullTitle: '6° Grado (Educación Básica)' },
-  { id: '7', label: '7° Grado', fullTitle: '7° Grado (Educación Básica)' },
-  { id: '8', label: '8° Grado', fullTitle: '8° Grado (Educación Básica)' },
-  { id: '9', label: '9° Grado', fullTitle: '9° Grado (Tercer Ciclo)' },
-  { id: '10', label: '1° Bachillerato', fullTitle: '1° Bachillerato (10° Grado)' },
-  { id: '11', label: '2° Bachillerato', fullTitle: '2° Bachillerato (11° Grado)' }
+  { id: '6', label: '6° Grado', fullTitle: '6° Grado (Educación Básica)', badge: 'Básica' },
+  { id: '7', label: '7° Grado', fullTitle: '7° Grado (Educación Básica)', badge: 'Básica' },
+  { id: '8', label: '8° Grado', fullTitle: '8° Grado (Educación Básica)', badge: 'Básica' },
+  { id: '9', label: '9° Grado', fullTitle: '9° Grado (Tercer Ciclo)', badge: 'Tercer Ciclo' },
+  { id: '10', label: '1° Bachillerato', fullTitle: '1° Bachillerato (10° Grado)', badge: 'Media' },
+  { id: '11', label: '2° Bachillerato', fullTitle: '2° Bachillerato (11° Grado)', badge: 'Graduandos' }
 ]
 
 export default function GradeDispatchHub({
@@ -22,26 +22,16 @@ export default function GradeDispatchHub({
   onCallInterviewStudent,
   currentTeacher
 }) {
-  // Acordeón: id de grado expandido (o null)
-  const [expandedGrade, setExpandedGrade] = useState(() => {
-    const tEmail = (currentTeacher?.email || '').toLowerCase()
-    if (tEmail.includes('edgar') || tEmail.includes('pacheco')) return '6'
-    return '7'
+  // Navegación: null = vista principal de reproductores (cards de grados), string (ej: '7') = vista dedicada de nómina
+  const [activeRosterGradeId, setActiveRosterGradeId] = useState(null)
+
+  // Filtros de la nómina: { section, level, teacher, search }
+  const [rosterFilters, setRosterFilters] = useState({
+    section: 'all',
+    level: 'all',
+    teacher: 'all',
+    search: ''
   })
-
-  // Filtros por grado: { [gradeId]: { section, level, teacher, search } }
-  const [filters, setFilters] = useState({})
-
-  // Actualizar filtros específicos de un grado
-  const updateGradeFilter = (gradeId, field, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [gradeId]: {
-        ...(prev[gradeId] || {}),
-        [field]: value
-      }
-    }))
-  }
 
   // Agrupar alumnos por grado
   const studentsByGrade = useMemo(() => {
@@ -56,7 +46,7 @@ export default function GradeDispatchHub({
       else if (gStr.includes('9°') || s.codigoGrado === '09') targetKey = '9'
       else if (gStr.includes('10°') || gStr.includes('1° Bach') || s.codigoGrado === '10') targetKey = '10'
       else if (gStr.includes('11°') || gStr.includes('2° Bach') || s.codigoGrado === '11') targetKey = '11'
-      else if (gStr.includes('12°') || gStr.includes('3° Bach') || s.codigoGrado === '32') targetKey = '11' // agrupar bachillerato técnico
+      else if (gStr.includes('12°') || gStr.includes('3° Bach') || s.codigoGrado === '32') targetKey = '11'
 
       if (targetKey && map[targetKey]) {
         map[targetKey].push(s)
@@ -91,48 +81,459 @@ export default function GradeDispatchHub({
     }
   }
 
-  return (
-    <div className="space-y-6 max-w-6xl mx-auto text-left animate-fadeIn">
-      {/* Cabecera del Hub */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold">
-              <span className="material-symbols-outlined text-[24px]">hub</span>
-            </div>
+  // Si estamos en la vista de nómina de un grado específico
+  if (activeRosterGradeId) {
+    const currentGradeDef = GRADES_DEF.find(g => g.id === activeRosterGradeId) || { id: activeRosterGradeId, label: `${activeRosterGradeId}° Grado`, fullTitle: `${activeRosterGradeId}° Grado` }
+    const currentGradeStudents = studentsByGrade[activeRosterGradeId] || []
+    const currentGradeState = getGradeState(activeRosterGradeId)
+
+    // Filtrar estudiantes de la nómina
+    const filteredRosterStudents = currentGradeStudents.filter(s => {
+      if (rosterFilters.section !== 'all' && s.section !== rosterFilters.section) return false
+      if (rosterFilters.level !== 'all' && (s.currentLevel || s.selfReportedLevel) !== rosterFilters.level) return false
+      if (rosterFilters.teacher !== 'all') {
+        const tKey = rosterFilters.teacher.toLowerCase()
+        const assigned = (s.assignedTeacher || '').toLowerCase()
+        if (!assigned.includes(tKey)) return false
+      }
+      if (rosterFilters.search) {
+        const q = rosterFilters.search.toLowerCase()
+        const nameMatch = (s.name || '').toLowerCase().includes(q)
+        const nieMatch = (s.carnet || s.nie || '').includes(q)
+        if (!nameMatch && !nieMatch) return false
+      }
+      return true
+    })
+
+    const activeInGrade = currentGradeStudents.filter(s => {
+      const stState = getStudentPlatformState(s, currentGradeState.platformStatus)
+      return stState.status === 'active'
+    }).length
+
+    const completedInGrade = currentGradeStudents.filter(s => Boolean(s.assignedLevel) || Object.keys(s.completedExams || {}).length > 0).length
+
+    return (
+      <div className="space-y-6 text-left animate-fadeIn">
+        {/* Barra superior de navegación para volver a reproductores */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white card-academy p-6">
+          <div className="flex items-center gap-3.5">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveRosterGradeId(null)
+                setRosterFilters({ section: 'all', level: 'all', teacher: 'all', search: '' })
+              }}
+              className="w-11 h-11 rounded-2xl bg-[#f8f7fc] hover:bg-[#ede9f7] text-[#5446a8] border border-[#e2e0ed] flex items-center justify-center font-bold transition-all shadow-xs cursor-pointer group"
+              title="Volver a la vista de reproductores de grados"
+            >
+              <span className="material-symbols-outlined text-[22px] group-hover:-translate-x-0.5 transition-transform">
+                arrow_back
+              </span>
+            </button>
             <div>
-              <h2 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-tight">
-                Panel de Despacho y Control por Grados
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed]">
+                  Nómina Dedicada
+                </span>
+                <span className="text-xs text-[#8e8a9f] font-mono">
+                  {currentGradeStudents.length} alumnos registrados
+                </span>
+              </div>
+              <h2 className="text-2xl font-heading font-black text-[#2d2c38]">
+                {currentGradeDef.fullTitle}
               </h2>
-              <span className="text-xs text-slate-500 font-medium">
-                Gestión simultánea de Pruebas de Plataforma y Entrevistas Orales
+            </div>
+          </div>
+
+          {/* Mini reproductor de cabecera para el grado */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="px-3 py-1.5 rounded-2xl bg-[#f8f7fc] border border-[#e2e0ed] flex items-center gap-2 text-xs">
+              <span className="text-[#8e8a9f] font-bold">Plataforma:</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                currentGradeState.platformStatus === 'active' ? 'bg-emerald-100 text-emerald-800' : currentGradeState.platformStatus === 'finished' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'
+              }`}>
+                {currentGradeState.platformStatus === 'active' ? 'En Vivo' : currentGradeState.platformStatus === 'finished' ? 'Cerrado' : 'Pausado'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onSetGradeStatus(activeRosterGradeId, 'platform', 'active')}
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                  currentGradeState.platformStatus === 'active'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-[#f8f7fc] text-[#585567] hover:bg-emerald-50 hover:text-emerald-700 border border-[#e2e0ed]'
+                }`}
+                title="Play Plataforma"
+              >
+                <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSetGradeStatus(activeRosterGradeId, 'platform', 'paused')}
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                  currentGradeState.platformStatus === 'paused'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-[#f8f7fc] text-[#585567] hover:bg-amber-50 hover:text-amber-700 border border-[#e2e0ed]'
+                }`}
+                title="Pausar Plataforma"
+              >
+                <span className="material-symbols-outlined text-[18px]">pause</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`¿Finalizar examen de plataforma para ${currentGradeDef.label}?`)) {
+                    onSetGradeStatus(activeRosterGradeId, 'platform', 'finished')
+                  }
+                }}
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                  currentGradeState.platformStatus === 'finished'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-[#f8f7fc] text-[#585567] hover:bg-rose-50 hover:text-rose-700 border border-[#e2e0ed]'
+                }`}
+                title="Stop Plataforma"
+              >
+                <span className="material-symbols-outlined text-[18px]">stop</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const emails = currentGradeStudents.map(s => s.email).filter(Boolean)
+                if (confirm(`¿Restablecer excepciones individuales de ${currentGradeDef.label}?`)) {
+                  onResetGradeOverrides(activeRosterGradeId, emails)
+                }
+              }}
+              className="px-3 py-2 rounded-2xl bg-[#f8f7fc] hover:bg-rose-50 text-xs font-bold text-[#585567] hover:text-rose-700 border border-[#e2e0ed] flex items-center gap-1 cursor-pointer transition-all"
+              title="Quitar excepciones individuales"
+            >
+              <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+              <span>Reset Excepciones</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Barra de Filtros Rápida */}
+        <div className="card-academy p-5 space-y-3.5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-heading font-black text-sm text-[#2d2c38] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#7052c9] text-[20px]">tune</span>
+                <span>Filtros y Búsqueda en {currentGradeDef.label}</span>
+              </h3>
+              <p className="text-xs text-[#8e8a9f]">
+                {activeInGrade} activos en vivo • {completedInGrade} evaluados • {Math.max(0, currentGradeStudents.length - completedInGrade)} pendientes
+              </p>
+            </div>
+
+            <div className="relative w-full md:w-80">
+              <input
+                type="text"
+                placeholder="Buscar por carnet, nombre..."
+                value={rosterFilters.search}
+                onChange={(e) => setRosterFilters(prev => ({ ...prev, search: e.target.value }))}
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#eceaf6] text-xs focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 bg-[#f8f7fc] text-[#2d2c38]"
+              />
+              <span className="material-symbols-outlined text-[18px] text-[#8e8a9f] absolute left-3 top-1/2 -translate-y-1/2">
+                search
               </span>
             </div>
           </div>
-          <p className="text-xs text-slate-600 max-w-2xl leading-relaxed pt-1">
-            Todos los grados inician en pausa por protocolo de seguridad. Activa, pausa o finaliza los instrumentos de cada grado de manera independiente, o aplica excepciones individuales para alumnos específicos.
+
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#eceaf6]">
+            {/* Sección */}
+            <div className="flex items-center gap-1 bg-[#f8f7fc] p-1 rounded-2xl border border-[#eceaf6]">
+              <span className="text-[10px] font-bold text-[#8e8a9f] uppercase px-2">Secc:</span>
+              {['all', 'A', 'B', 'C', 'D'].map(sec => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => setRosterFilters(prev => ({ ...prev, section: sec }))}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
+                    rosterFilters.section === sec
+                      ? 'bg-[#5446a8] text-white shadow-xs'
+                      : 'text-[#585567] hover:bg-white'
+                  }`}
+                >
+                  {sec === 'all' ? 'Todas' : sec}
+                </button>
+              ))}
+            </div>
+
+            {/* Nivel */}
+            <div className="flex items-center gap-1 bg-[#f8f7fc] p-1 rounded-2xl border border-[#eceaf6]">
+              <span className="text-[10px] font-bold text-[#8e8a9f] uppercase px-2">Nivel:</span>
+              {['all', 'L1-A', 'L1-B', 'L2-A', 'L2-B', 'L3'].map(lvl => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => setRosterFilters(prev => ({ ...prev, level: lvl }))}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
+                    rosterFilters.level === lvl
+                      ? 'bg-[#5446a8] text-white shadow-xs'
+                      : 'text-[#585567] hover:bg-white'
+                  }`}
+                >
+                  {lvl === 'all' ? 'Todos' : lvl}
+                </button>
+              ))}
+            </div>
+
+            {/* Docente */}
+            <div className="flex items-center gap-1 bg-[#f8f7fc] p-1 rounded-2xl border border-[#eceaf6]">
+              <span className="text-[10px] font-bold text-[#8e8a9f] uppercase px-2">Docente:</span>
+              {[
+                { k: 'all', label: 'Todos' },
+                { k: 'ronald', label: 'Ronald' },
+                { k: 'silvia', label: 'Silvia' },
+                { k: 'nelsi', label: 'Nelsi' },
+                { k: 'edgar', label: 'Edgar' }
+              ].map(t => (
+                <button
+                  key={t.k}
+                  type="button"
+                  onClick={() => setRosterFilters(prev => ({ ...prev, teacher: t.k }))}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
+                    rosterFilters.teacher === t.k
+                      ? 'bg-[#5446a8] text-white shadow-xs'
+                      : 'text-[#585567] hover:bg-white'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {(rosterFilters.section !== 'all' || rosterFilters.level !== 'all' || rosterFilters.teacher !== 'all' || rosterFilters.search) && (
+              <button
+                type="button"
+                onClick={() => setRosterFilters({ section: 'all', level: 'all', teacher: 'all', search: '' })}
+                className="px-2.5 py-1 rounded-xl text-xs font-bold text-[#8e8a9f] hover:text-red-600 hover:bg-red-50 transition-all flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[15px]">clear</span>
+                <span>Limpiar</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Cuadrícula de Alumnos de la Nómina (Diseño Ultra Clean estilo SaaS / Access Control) */}
+        <div>
+          <div className="flex items-center justify-between text-xs text-[#8e8a9f] font-bold px-1 mb-4">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#8a70d6]"></span>
+              <span>Mostrando {filteredRosterStudents.length} de {currentGradeStudents.length} alumnos de {currentGradeDef.label}</span>
+            </span>
+          </div>
+
+          {filteredRosterStudents.length === 0 ? (
+            <div className="bg-white rounded-3xl p-14 text-center text-[#8e8a9f] text-xs italic border border-[#eceaf6] shadow-sm">
+              <span className="material-symbols-outlined text-[36px] text-[#8e8a9f]/50 block mb-2">person_search</span>
+              No se encontraron alumnos con los criterios seleccionados.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filteredRosterStudents.map((st) => {
+                const pState = getStudentPlatformState(st, currentGradeState.platformStatus)
+                const isPlatformPlaying = pState.status === 'active'
+                const completed = st.completedExams || {}
+                const completedCount = Object.keys(completed).length
+                const isEvaluatedOral = Boolean(st.assignedLevel)
+
+                // Inicial para avatar suave
+                const initial = (st.name || 'A').trim().charAt(0).toUpperCase()
+
+                return (
+                  <div
+                    key={st.email || st.carnet}
+                    className={`bg-white rounded-3xl p-6 border transition-all duration-200 flex flex-col justify-between gap-4 shadow-sm hover:shadow-md ${
+                      pState.isOverride
+                        ? 'border-[#8a70d6]/50 ring-2 ring-[#e9e3ff]'
+                        : 'border-[#eceaf6] hover:border-[#d8d5e8]'
+                    }`}
+                  >
+                    {/* Header: Título Alumno + Badge Estado */}
+                    <div className="space-y-3.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-heading font-black text-[15px] text-[#1e1c2a] leading-tight" title={st.name}>
+                              {st.name}
+                            </h4>
+                            {pState.isOverride && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed]">
+                                Excepción
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-[#8e8a9f] font-mono">
+                            NIE: {st.carnet || st.nie || 'N/A'} • Secc. {st.section || 'A'}
+                          </p>
+                        </div>
+
+                        {/* Badge de Nivel estilo Access Control */}
+                        {isEvaluatedOral ? (
+                          <span className="px-3 py-1 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                            Nivel {st.assignedLevel}
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#fbf9ff] text-[#8e8a9f] border border-[#eceaf6] shrink-0">
+                            Pendiente
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Contenedor Interior tipo "MEMBERS / DATA ITEM" de la referencia */}
+                      <div className="bg-[#fbfbfd] p-3.5 rounded-2xl border border-[#eceaf6] space-y-3">
+                        {/* Fila 1: Docente & Asignación */}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-[#e9e3ff] text-[#5446a8] font-black text-xs flex items-center justify-center shrink-0">
+                              {initial}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-[10px] uppercase font-bold text-[#8e8a9f] block leading-none">Docente Titular</span>
+                              <span className="text-xs font-bold text-[#2d2c38] truncate block mt-0.5">
+                                {st.assignedTeacher || 'Sin asignar'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Botón Llamar a Entrevista tipo botón minimalista "View only / Full access" */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSetStudentStatus(st.email, 'interview', 'active')
+                              onCallInterviewStudent(st)
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed] text-xs font-bold transition-all shadow-2xs hover:border-[#8a70d6] flex items-center gap-1 cursor-pointer shrink-0"
+                            title="Llamar a entrevista oral y calificar rúbrica"
+                          >
+                            <span className="material-symbols-outlined text-[15px]">record_voice_over</span>
+                            <span>Llamar</span>
+                          </button>
+                        </div>
+
+                        {/* Fila divisoria punteada estilo referencia */}
+                        <div className="border-t border-dashed border-[#eceaf6] pt-2.5 flex items-center justify-between text-[11px]">
+                          <span className="text-[#8e8a9f] font-medium flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px] text-[#8a70d6]">fact_check</span>
+                            <span>Pruebas Digitales:</span>
+                          </span>
+                          <span className="font-bold text-[#2d2c38]">
+                            {completedCount > 0 ? (
+                              <span className="text-emerald-700">{completedCount} test(s) listos</span>
+                            ) : (
+                              <span className="text-[#8e8a9f]">Sin iniciar</span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Barra de Control de Acceso Oscura estilo SSO Enforcement de la referencia */}
+                    <div className="bg-[#1e1c2a] text-white p-3 px-4 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${isPlatformPlaying ? 'bg-emerald-400 animate-ping' : 'bg-gray-500'}`}></span>
+                        <div>
+                          <span className="text-[11px] font-black uppercase tracking-wider block text-white/90">
+                            Prueba Plataforma
+                          </span>
+                          <span className="text-[10px] text-white/60 block leading-tight">
+                            {isPlatformPlaying ? 'Habilitado y en vivo' : 'Pausado para este alumno'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {pState.isOverride && (
+                          <button
+                            type="button"
+                            onClick={() => onResetGradeOverrides(activeRosterGradeId, [st.email])}
+                            className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 text-xs transition-colors cursor-pointer"
+                            title="Restablecer excepción y heredar estado del grado"
+                          >
+                            <span className="material-symbols-outlined text-[15px]">restart_alt</span>
+                          </button>
+                        )}
+
+                        {/* Toggle switch activo/pausa como en la referencia */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextStatus = isPlatformPlaying ? 'paused' : 'active'
+                            onSetStudentStatus(st.email, 'platform', nextStatus)
+                          }}
+                          className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                            isPlatformPlaying ? 'bg-emerald-500' : 'bg-gray-700'
+                          }`}
+                          title={isPlatformPlaying ? 'Pausar acceso al alumno' : 'Dar play al alumno'}
+                        >
+                          <div
+                            className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
+                              isPlatformPlaying ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          ></div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // VISTA PRINCIPAL: TARJETAS TIPO REPRODUCTOR (MÁXIMO 3 CARDS POR FILA)
+  return (
+    <div className="space-y-6 text-left animate-fadeIn">
+      {/* Banner / Cabecera Principal */}
+      <div className="bg-gradient-to-r from-[#e9e3ff] via-[#f4f1fd] to-[#fbfbfb] rounded-4xl p-7 border border-[#e2e0ed] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white text-[#5446a8] border border-[#d8ceff] shadow-2xs">
+              Consola de Despacho 2026
+            </span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>Sincronización en Vivo</span>
+            </div>
+          </div>
+          <h2 className="text-2xl lg:text-3xl font-heading font-black text-[#2d2c38] tracking-tight">
+            Panel de Despacho y Control por Grados
+          </h2>
+          <p className="text-xs text-[#8e8a9f] max-w-2xl font-medium">
+            Controla la emisión en vivo de cada grado con los reproductores independientes. Pulsa <strong>"Ver Nómina"</strong> para abrir la lista completa de alumnos y aplicar excepciones personalizadas.
           </p>
         </div>
 
-        {/* Resumen rápido de sincronización */}
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shrink-0">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-          <span>Transmisión en Vivo Firestore</span>
+        {/* Resumen Global de Alumnos */}
+        <div className="flex items-center gap-3 bg-white p-3 rounded-3xl border border-[#eceaf6] shadow-xs shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-[#f4f1fd] text-[#7052c9] flex items-center justify-center font-bold">
+            <span className="material-symbols-outlined text-[22px]">groups</span>
+          </div>
+          <div className="text-right pr-1">
+            <span className="text-[10px] uppercase font-bold text-[#8e8a9f] block">Total Matrícula</span>
+            <span className="font-heading font-black text-xl text-[#2d2c38] leading-tight">
+              {students.length}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Listado de Acordeones por Grado */}
-      <div className="space-y-4">
+      {/* CUADRÍCULA DE REPRODUCTORES (3 COLUMNAS: 2 FILAS DE 3 CARDS PARA LOS 6 GRADOS) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {GRADES_DEF.map(gDef => {
           const gId = gDef.id
-          const isExpanded = expandedGrade === gId
           const gState = getGradeState(gId)
           const gradeStudents = studentsByGrade[gId] || []
 
-          // Filtros activos para este grado
-          const gFilter = filters[gId] || { section: 'all', level: 'all', teacher: 'all', search: '' }
-
-          // Métricas del grado
           const totalInGrade = gradeStudents.length
           const completedInGrade = gradeStudents.filter(s => Boolean(s.assignedLevel) || Object.keys(s.completedExams || {}).length > 0).length
           const activeInGrade = gradeStudents.filter(s => {
@@ -140,464 +541,217 @@ export default function GradeDispatchHub({
             return stState.status === 'active'
           }).length
 
-          // Filtrar alumnos desplegados
-          const displayedStudents = gradeStudents.filter(s => {
-            // Filtro sección
-            if (gFilter.section !== 'all' && s.section !== gFilter.section) return false
-            // Filtro nivel
-            if (gFilter.level !== 'all' && (s.currentLevel || s.selfReportedLevel) !== gFilter.level) return false
-            // Filtro docente
-            if (gFilter.teacher !== 'all') {
-              const tKey = gFilter.teacher.toLowerCase()
-              const assigned = (s.assignedTeacher || '').toLowerCase()
-              if (!assigned.includes(tKey)) return false
-            }
-            // Búsqueda por texto
-            if (gFilter.search) {
-              const q = gFilter.search.toLowerCase()
-              const nameMatch = (s.name || '').toLowerCase().includes(q)
-              const nieMatch = (s.carnet || s.nie || '').includes(q)
-              if (!nameMatch && !nieMatch) return false
-            }
-            return true
-          })
+          const isPlatformActive = gState.platformStatus === 'active'
+          const isPlatformPaused = gState.platformStatus === 'paused'
+          const isPlatformFinished = gState.platformStatus === 'finished'
+
+          const isInterviewActive = gState.interviewStatus === 'active'
+          const isInterviewPaused = gState.interviewStatus === 'paused'
+          const isInterviewFinished = gState.interviewStatus === 'finished'
+
+          const percentCompleted = totalInGrade > 0 ? Math.round((completedInGrade / totalInGrade) * 100) : 0
 
           return (
             <div
               key={gId}
-              className={`bg-white rounded-3xl border transition-all shadow-xs overflow-hidden ${
-                isExpanded ? 'border-indigo-400 ring-2 ring-indigo-100' : 'border-slate-200 hover:border-slate-300'
+              className={`card-academy p-5 flex flex-col justify-between transition-all duration-200 relative group hover:shadow-lg ${
+                isPlatformActive
+                  ? 'border-emerald-300 ring-2 ring-emerald-100 bg-gradient-to-b from-white via-white to-emerald-50/20'
+                  : 'hover:border-[#8a70d6]/40'
               }`}
             >
-              {/* Cabecera de la Tarjeta del Grado */}
-              <div className="p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50/50">
-                {/* Nombre y Badges de Estado */}
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedGrade(isExpanded ? null : gId)}
-                    className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold transition-transform cursor-pointer shrink-0"
-                    title={isExpanded ? 'Plegar nómina' : 'Desplegar nómina de alumnos'}
-                  >
-                    <span className={`material-symbols-outlined text-[20px] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                      expand_more
-                    </span>
-                  </button>
+              {/* Badge Circular "En Vivo" en la esquina superior derecha */}
+              {isPlatformActive && (
+                <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 shadow-2xs z-10 animate-fadeIn">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">
+                    En Vivo
+                  </span>
+                </div>
+              )}
 
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base sm:text-lg font-heading font-black text-slate-900">
-                        {gDef.fullTitle}
-                      </h3>
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-200/80 text-slate-700">
-                        {totalInGrade} alumnos
-                      </span>
-                    </div>
-
-                    {/* Resumen rápido de avance */}
-                    <div className="flex items-center gap-3 text-xs text-slate-500 font-medium mt-1">
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <strong>{activeInGrade}</strong> activos
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                        <strong>{completedInGrade}</strong> con avance
-                      </span>
-                      <span>•</span>
-                      <span>{Math.max(0, totalInGrade - completedInGrade)} pendientes</span>
-                    </div>
-                  </div>
+              {/* Encabezado del Grado / Reproductor */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2 pr-20">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed]">
+                    {gDef.badge}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-[#8e8a9f]">
+                    {totalInGrade} alumnos
+                  </span>
                 </div>
 
-                {/* BOTONERA DUAL INDEPENDIENTE: PLATAFORMA & ENTREVISTA */}
-                <div className="flex flex-wrap items-center gap-3 sm:gap-4 shrink-0">
-                  {/* CONTROL 1: EXAMEN DE PLATAFORMA */}
-                  <div className="p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-2">
-                    <div className="flex items-center gap-1 px-1">
-                      <span className="material-symbols-outlined text-[18px] text-blue-600">desktop_windows</span>
-                      <span className="text-[11px] font-bold text-slate-700 hidden sm:inline">Plataforma:</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        gState.platformStatus === 'active'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : gState.platformStatus === 'finished'
-                          ? 'bg-rose-100 text-rose-800'
-                          : 'bg-amber-100 text-amber-900'
-                      }`}>
-                        {gState.platformStatus === 'active' ? '🟢 En Vivo' : gState.platformStatus === 'finished' ? '🔴 Cerrado' : '🟡 Pausado'}
-                      </span>
-                    </div>
+                <div>
+                  <h3 className="font-heading font-black text-lg text-[#2d2c38] tracking-tight group-hover:text-[#5446a8] transition-colors" title={gDef.fullTitle}>
+                    {gDef.fullTitle}
+                  </h3>
+                  <p className="text-[11px] text-[#8e8a9f] mt-0.5 font-medium truncate">
+                    {activeInGrade} activos • {completedInGrade} con avance
+                  </p>
+                </div>
 
-                    <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
-                      {/* Play Plataforma */}
-                      <button
-                        type="button"
-                        onClick={() => onSetGradeStatus(gId, 'platform', 'active')}
-                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                          gState.platformStatus === 'active'
-                            ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
-                        }`}
-                        title="Iniciar / Reanudar Examen en Plataforma para este grado"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-                      </button>
-
-                      {/* Pausa Plataforma */}
-                      <button
-                        type="button"
-                        onClick={() => onSetGradeStatus(gId, 'platform', 'paused')}
-                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                          gState.platformStatus === 'paused'
-                            ? 'bg-amber-500 text-white shadow-xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-700'
-                        }`}
-                        title="Pausar y congelar cronómetro en vivo a todos los alumnos de este grado"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">pause</span>
-                      </button>
-
-                      {/* Stop / Finalizar Plataforma */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`¿Finalizar y cerrar definitivamente el examen de plataforma para ${gDef.label}?`)) {
-                            onSetGradeStatus(gId, 'platform', 'finished')
-                          }
-                        }}
-                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                          gState.platformStatus === 'finished'
-                            ? 'bg-rose-600 text-white shadow-xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700'
-                        }`}
-                        title="Finalizar y cerrar examen de plataforma para este grado"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">stop</span>
-                      </button>
-                    </div>
+                {/* Barra de progreso de avance */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] font-bold">
+                    <span className="text-[#8e8a9f]">Avance</span>
+                    <span className="text-[#5446a8]">{percentCompleted}%</span>
                   </div>
-
-                  {/* CONTROL 2: ENTREVISTA ORAL */}
-                  <div className="p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-2">
-                    <div className="flex items-center gap-1 px-1">
-                      <span className="material-symbols-outlined text-[18px] text-indigo-600">record_voice_over</span>
-                      <span className="text-[11px] font-bold text-slate-700 hidden sm:inline">Oral:</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        gState.interviewStatus === 'active'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : gState.interviewStatus === 'finished'
-                          ? 'bg-rose-100 text-rose-800'
-                          : 'bg-amber-100 text-amber-900'
-                      }`}>
-                        {gState.interviewStatus === 'active' ? '🟢 Activa' : gState.interviewStatus === 'finished' ? '🔴 Cerrada' : '🟡 Pausa'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
-                      {/* Play Entrevista */}
-                      <button
-                        type="button"
-                        onClick={() => onSetGradeStatus(gId, 'interview', 'active')}
-                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                          gState.interviewStatus === 'active'
-                            ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
-                        }`}
-                        title="Habilitar bloque de entrevistas orales para este grado"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-                      </button>
-
-                      {/* Pausa Entrevista */}
-                      <button
-                        type="button"
-                        onClick={() => onSetGradeStatus(gId, 'interview', 'paused')}
-                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                          gState.interviewStatus === 'paused'
-                            ? 'bg-amber-500 text-white shadow-xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-700'
-                        }`}
-                        title="Pausar entrevistas orales de este grado"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">pause</span>
-                      </button>
-
-                      {/* Stop / Finalizar Entrevista */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`¿Finalizar el ciclo de entrevistas orales para ${gDef.label}?`)) {
-                            onSetGradeStatus(gId, 'interview', 'finished')
-                          }
-                        }}
-                        className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                          gState.interviewStatus === 'finished'
-                            ? 'bg-rose-600 text-white shadow-xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700'
-                        }`}
-                        title="Cerrar entrevistas orales de este grado"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">stop</span>
-                      </button>
-                    </div>
+                  <div className="w-full h-1.5 rounded-full bg-[#f4f1fd] overflow-hidden border border-[#eceaf6]">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#8a70d6] to-[#7052c9] rounded-full transition-all duration-500"
+                      style={{ width: `${percentCompleted}%` }}
+                    ></div>
                   </div>
-
-                  {/* Botón rápido para desplegar */}
-                  <button
-                    type="button"
-                    onClick={() => setExpandedGrade(isExpanded ? null : gId)}
-                    className="px-3.5 py-2.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>{isExpanded ? 'Ocultar Nómina' : 'Ver Nómina'}</span>
-                    <span className="material-symbols-outlined text-[16px]">
-                      {isExpanded ? 'expand_less' : 'expand_more'}
-                    </span>
-                  </button>
                 </div>
               </div>
 
-              {/* CONTENIDO DESPLEGABLE DEL ACORDEÓN: FILTROS + NÓMINA INDIVIDUAL */}
-              {isExpanded && (
-                <div className="p-5 sm:p-6 border-t border-slate-200 space-y-5 animate-fadeIn">
-                  {/* BARRA DE FILTROS INSTANTÁNEOS DEL GRADO */}
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[18px] text-indigo-600">filter_alt</span>
-                        <span>Filtros instantáneos para {gDef.label}:</span>
-                      </span>
-
-                      {/* Limpiar overrides del grado */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const emails = gradeStudents.map(s => s.email).filter(Boolean)
-                          if (confirm(`¿Deseas restablecer todas las excepciones individuales de ${gDef.label} al estado general del grado?`)) {
-                            onResetGradeOverrides(gId, emails)
-                          }
-                        }}
-                        className="text-[11px] font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"
-                        title="Quitar excepciones individuales de alumnos de este grado"
-                      >
-                        <span className="material-symbols-outlined text-[14px]">restart_alt</span>
-                        <span>Restablecer Excepciones Individuales</span>
-                      </button>
+              {/* CONSOLA TIPO REPRODUCTOR (DECK DUAL) */}
+              <div className="my-4 p-3.5 rounded-2xl bg-[#f8f7fc] border border-[#eceaf6] space-y-3">
+                {/* Canal 1: Plataforma Digital */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-blue-600">desktop_windows</span>
+                      <span className="text-xs font-black text-[#2d2c38]">Plataforma</span>
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {/* Píldoras de Sección */}
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          Sección
-                        </label>
-                        <div className="flex flex-wrap gap-1">
-                          {['all', 'A', 'B', 'C', 'D'].map(sec => (
-                            <button
-                              key={sec}
-                              type="button"
-                              onClick={() => updateGradeFilter(gId, 'section', sec)}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                gFilter.section === sec
-                                  ? 'bg-indigo-600 text-white shadow-xs'
-                                  : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
-                              }`}
-                            >
-                              {sec === 'all' ? 'Todas' : `Secc. ${sec}`}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Píldoras de Nivel Institucional */}
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          Nivel de Inglés
-                        </label>
-                        <div className="flex flex-wrap gap-1">
-                          {['all', 'L1-A', 'L1-B', 'L2-A', 'L2-B', 'L3'].map(lvl => (
-                            <button
-                              key={lvl}
-                              type="button"
-                              onClick={() => updateGradeFilter(gId, 'level', lvl)}
-                              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                gFilter.level === lvl
-                                  ? 'bg-indigo-600 text-white shadow-xs'
-                                  : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
-                              }`}
-                            >
-                              {lvl === 'all' ? 'Todos' : lvl}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Docente Asignado */}
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          Docente Evaluador
-                        </label>
-                        <select
-                          value={gFilter.teacher}
-                          onChange={(e) => updateGradeFilter(gId, 'teacher', e.target.value)}
-                          className="w-full px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-800"
-                        >
-                          <option value="all">Todos los Docentes</option>
-                          <option value="ronald">Teacher Ronald</option>
-                          <option value="silvia">Teacher Silvia</option>
-                          <option value="nelsi">Teacher Nelsi</option>
-                          <option value="edgar">Teacher Edgar</option>
-                        </select>
-                      </div>
-
-                      {/* Buscador por Texto */}
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          Buscar Alumno
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Nombre, Apellido o NIE..."
-                            value={gFilter.search}
-                            onChange={(e) => updateGradeFilter(gId, 'search', e.target.value)}
-                            className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border border-slate-300 bg-white font-medium text-slate-800 placeholder:text-slate-400"
-                          />
-                          <span className="material-symbols-outlined absolute left-2 top-1.5 text-slate-400 text-[16px]">
-                            search
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                      isPlatformActive ? 'bg-emerald-100 text-emerald-800' : isPlatformFinished ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {isPlatformActive ? '● En Vivo' : isPlatformFinished ? '● Cerrada' : '● Pausada'}
+                    </span>
                   </div>
 
-                  {/* NÓMINA DE ALUMNOS DEL GRADO CON CONTROLES INDIVIDUALES */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-slate-500 font-bold px-1">
-                      <span>Mostrando {displayedStudents.length} de {gradeStudents.length} alumnos de {gDef.label}</span>
-                    </div>
+                  {/* Controles tipo Reproductor Multimedia (Play, Pause, Stop) */}
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-[#eceaf6] shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => onSetGradeStatus(gId, 'platform', 'active')}
+                      className={`py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        isPlatformActive
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-[#585567] hover:bg-emerald-50 hover:text-emerald-700'
+                      }`}
+                      title="Iniciar o reanudar examen en plataforma"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">play_arrow</span>
+                      <span className="text-[11px]">Play</span>
+                    </button>
 
-                    {displayedStudents.length === 0 ? (
-                      <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-500">
-                        No se encontraron alumnos en este grado con los filtros seleccionados.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[520px] overflow-y-auto pr-1">
-                        {displayedStudents.map((st) => {
-                          const pState = getStudentPlatformState(st, gState.platformStatus)
-                          const isPlatformPlaying = pState.status === 'active'
+                    <button
+                      type="button"
+                      onClick={() => onSetGradeStatus(gId, 'platform', 'paused')}
+                      className={`py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        isPlatformPaused
+                          ? 'bg-amber-500 text-white shadow-xs'
+                          : 'text-[#585567] hover:bg-amber-50 hover:text-amber-700'
+                      }`}
+                      title="Pausar y congelar cronómetro en vivo"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">pause</span>
+                      <span className="text-[11px]">Pausa</span>
+                    </button>
 
-                          const completed = st.completedExams || {}
-                          const completedCount = Object.keys(completed).length
-                          const isEvaluatedOral = Boolean(st.assignedLevel)
-
-                          return (
-                            <div
-                              key={st.email || st.carnet}
-                              className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
-                                pState.isOverride
-                                  ? 'bg-blue-50/40 border-blue-300 ring-1 ring-blue-200'
-                                  : 'bg-white border-slate-200 hover:border-slate-300'
-                              }`}
-                            >
-                              {/* Info Alumno */}
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="space-y-0.5">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-heading font-black text-xs text-slate-900 leading-snug">
-                                      {st.name}
-                                    </span>
-                                    {pState.isOverride && (
-                                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                                        Excepción
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
-                                    <span className="font-mono text-slate-600">NIE: {st.carnet || st.nie || 'N/A'}</span>
-                                    <span>•</span>
-                                    <span>Secc. {st.section || 'A'}</span>
-                                    <span>•</span>
-                                    <span className="text-indigo-600 font-bold">{st.currentLevel || st.selfReportedLevel || 'L1'}</span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-400">
-                                    Docente: {st.assignedTeacher || 'Equipo Docente'}
-                                  </div>
-                                </div>
-
-                                {/* Estado Rápido */}
-                                <div className="text-right shrink-0 space-y-1">
-                                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                    isEvaluatedOral
-                                      ? 'bg-emerald-100 text-emerald-800'
-                                      : 'bg-slate-100 text-slate-600'
-                                  }`}>
-                                    {isEvaluatedOral ? `Oral: ${st.assignedLevel}` : 'Oral Pendiente'}
-                                  </span>
-                                  <div className="text-[10px] font-mono text-slate-500">
-                                    {completedCount > 0 ? `${completedCount} tests hechos` : '0 tests'}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* CONTROLES INDIVIDUALES POR ALUMNO */}
-                              <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                                {/* Control 1: Plataforma Individual (Play / Pausa) */}
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const nextStatus = isPlatformPlaying ? 'paused' : 'active'
-                                      onSetStudentStatus(st.email, 'platform', nextStatus)
-                                    }}
-                                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                                      isPlatformPlaying
-                                        ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
-                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                                    }`}
-                                    title={isPlatformPlaying ? 'Pausar a este alumno' : 'Habilitar Play individual a este alumno'}
-                                  >
-                                    <span className="material-symbols-outlined text-[15px]">
-                                      {isPlatformPlaying ? 'pause' : 'play_arrow'}
-                                    </span>
-                                    <span>{isPlatformPlaying ? 'Pausar Alumno' : 'Play Individual'}</span>
-                                  </button>
-
-                                  {pState.isOverride && (
-                                    <button
-                                      type="button"
-                                      onClick={() => onResetGradeOverrides(gId, [st.email])}
-                                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 text-[11px]"
-                                      title="Quitar excepción y volver al estado general del grado"
-                                    >
-                                      <span className="material-symbols-outlined text-[15px]">close</span>
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* Control 2: Entrevista Individual Inmediata */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    // Activar override de entrevista para el alumno y abrir la consola oral con rúbrica
-                                    onSetStudentStatus(st.email, 'interview', 'active')
-                                    onCallInterviewStudent(st)
-                                  }}
-                                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-sm transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                                  title="Pasar al alumno inmediatamente a la entrevista oral con su rúbrica"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">record_voice_over</span>
-                                  <span>Llamar a Entrevista</span>
-                                </button>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`¿Finalizar definitivamente el examen de plataforma para ${gDef.label}?`)) {
+                          onSetGradeStatus(gId, 'platform', 'finished')
+                        }
+                      }}
+                      className={`py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        isPlatformFinished
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'text-[#585567] hover:bg-rose-50 hover:text-rose-700'
+                      }`}
+                      title="Finalizar y cerrar examen de plataforma"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">stop</span>
+                      <span className="text-[11px]">Cerrar</span>
+                    </button>
                   </div>
                 </div>
-              )}
+
+                {/* Canal 2: Entrevista Oral */}
+                <div className="space-y-1.5 pt-2 border-t border-[#eceaf6]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-[#7052c9]">record_voice_over</span>
+                      <span className="text-xs font-black text-[#2d2c38]">Oral</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                      isInterviewActive ? 'bg-emerald-100 text-emerald-800' : isInterviewFinished ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {isInterviewActive ? '● Activa' : isInterviewFinished ? '● Cerrada' : '● Pausa'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-[#eceaf6] shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => onSetGradeStatus(gId, 'interview', 'active')}
+                      className={`py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        isInterviewActive
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-[#585567] hover:bg-emerald-50 hover:text-emerald-700'
+                      }`}
+                      title="Habilitar bloque de entrevistas orales"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">play_arrow</span>
+                      <span className="text-[11px]">Play</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onSetGradeStatus(gId, 'interview', 'paused')}
+                      className={`py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        isInterviewPaused
+                          ? 'bg-amber-500 text-white shadow-xs'
+                          : 'text-[#585567] hover:bg-amber-50 hover:text-amber-700'
+                      }`}
+                      title="Pausar entrevistas orales"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">pause</span>
+                      <span className="text-[11px]">Pausa</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`¿Finalizar el ciclo de entrevistas orales para ${gDef.label}?`)) {
+                          onSetGradeStatus(gId, 'interview', 'finished')
+                        }
+                      }}
+                      className={`py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        isInterviewFinished
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'text-[#585567] hover:bg-rose-50 hover:text-rose-700'
+                      }`}
+                      title="Cerrar entrevistas orales de este grado"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">stop</span>
+                      <span className="text-[11px]">Cerrar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón Principal: Ir a la Nómina Dedicada (cambia a la vista completa de alumnos) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveRosterGradeId(gId)
+                  setRosterFilters({ section: 'all', level: 'all', teacher: 'all', search: '' })
+                }}
+                className="w-full py-2.5 rounded-xl bg-white hover:bg-[#f4f1fd] text-[#5446a8] hover:text-[#7052c9] border border-[#e2e0ed] font-black text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer group/btn"
+              >
+                <span>Ver Nómina ({totalInGrade})</span>
+                <span className="material-symbols-outlined text-[17px] group-hover/btn:translate-x-1 transition-transform">
+                  arrow_forward
+                </span>
+              </button>
             </div>
           )
         })}
@@ -605,3 +759,4 @@ export default function GradeDispatchHub({
     </div>
   )
 }
+

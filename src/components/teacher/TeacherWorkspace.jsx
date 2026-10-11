@@ -460,11 +460,16 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
       />
 
       <div className="flex-1 flex flex-col h-full overflow-y-auto">
-        <header className="h-16 px-6 bg-surface-container-lowest border-b border-outline-variant/30 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <h1 className="font-heading font-extrabold text-lg text-on-surface">
-              {menuItems.find(m => m.key === currentSection)?.label}
-            </h1>
+        <header className="h-20 px-8 bg-white border-b border-[#eceaf6] flex items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="font-heading font-black text-2xl text-[#2d2c38] tracking-tight">
+                {menuItems.find(m => m.key === currentSection)?.label}
+              </h1>
+              <span className="text-xs text-[#8e8a9f] font-semibold">
+                Consola Docente & Diagnóstico 2026
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -472,10 +477,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
               <button
                 type="button"
                 onClick={() => setActiveInterviewStudent(null)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all shadow-xs cursor-pointer"
                 title="Salir de la evaluación actual y volver a la lista de alumnos / niveles"
               >
-                <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                <span className="material-symbols-outlined text-[17px]">restart_alt</span>
                 <span>Restaurar / Ver Niveles</span>
               </button>
             )}
@@ -483,34 +488,34 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
             {onSwitchToAdminView && (
               <button
                 onClick={onSwitchToAdminView}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-all border border-indigo-200 cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#e9e3ff] hover:bg-[#ded5ff] text-xs font-black text-[#5446a8] transition-all cursor-pointer shadow-xs"
                 title="Volver a la consola de Coordinación / Administración"
               >
-                <span className="material-symbols-outlined text-[16px] text-[#2528b7]">admin_panel_settings</span>
+                <span className="material-symbols-outlined text-[17px] text-[#8a70d6]">admin_panel_settings</span>
                 <span className="hidden sm:inline">Panel Admin/Coord</span>
               </button>
             )}
 
             <button
               onClick={onSwitchToStudentView}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-bold text-on-surface transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#f8f7fc] hover:bg-[#ede9f7] text-xs font-black text-[#2d2c38] border border-[#e2e0ed] transition-all cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[16px] text-secondary">visibility</span>
+              <span className="material-symbols-outlined text-[17px] text-[#8a70d6]">visibility</span>
               Vista de Alumno
             </button>
 
             <button
               onClick={onLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-all border border-red-200 cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-black transition-all border border-rose-200 cursor-pointer"
               title="Cerrar sesión"
             >
               <span className="material-symbols-outlined text-[16px]">logout</span>
-              <span className="hidden sm:inline">Cerrar Sesión</span>
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
         </header>
 
-        <main className="p-4 md:p-6 lg:p-8 space-y-6 max-w-[96rem] w-full mx-auto">
+        <main className="p-6 md:p-8 space-y-7 max-w-[96rem] w-full mx-auto">
           
           {/* ================= SI HAY UN ALUMNO EN EVALUACIÓN ORAL ================= */}
           {activeInterviewStudent ? (
@@ -527,71 +532,76 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
             <>
               {/* SECCIÓN 1: ENTREVISTA ORAL CON TOGGLES Y PAGINACIÓN */}
               {currentSection === 'interview' && (
-                <div className="space-y-6">
-                  {/* Tarjeta de bienvenida del docente */}
-                  <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
+                <div className="space-y-7">
+                  {/* Tarjeta de bienvenida del docente - Estilo Banner Admin 3D */}
+                  <div className="bg-gradient-to-r from-[#e9e3ff] via-[#f4f1fd] to-[#fbfbfb] rounded-4xl p-7 border border-[#e2e0ed] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+                    <div className="flex items-center gap-5 relative z-10">
                       <img
                         src={currentTeacher?.photoUrl || teacherAvatar}
                         onError={(e) => { e.currentTarget.src = teacherAvatar }}
                         alt={currentTeacher?.name || user?.name}
-                        className="w-14 h-14 rounded-full object-cover ring-2 ring-primary/30 bg-slate-100"
+                        className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#8a70d6]/40 bg-white shadow-sm"
                       />
-                      <div>
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white text-[#8a70d6] text-xs font-black shadow-xs">
+                          <span>✨</span>
+                          <span>Consola de Evaluación Oral (A1 - C1)</span>
+                        </div>
                         <div className="flex items-center gap-2">
-                          <h2 className="font-heading font-extrabold text-xl text-on-surface">
+                          <h2 className="text-2xl font-black text-[#2d2c38] tracking-tight">
                             {currentTeacher?.name || user?.name}
                           </h2>
                           <button
                             type="button"
                             onClick={() => setCurrentSection('profile')}
-                            className="text-xs text-primary hover:underline font-bold flex items-center gap-0.5"
+                            className="text-xs text-[#8a70d6] hover:underline font-bold flex items-center gap-0.5 ml-1"
                             title="Editar mis datos personales y foto"
                           >
-                            <span className="material-symbols-outlined text-[14px]">edit</span>
-                            <span>Editar Perfil</span>
+                            <span className="material-symbols-outlined text-[15px]">edit</span>
+                            <span>Editar</span>
                           </button>
                         </div>
-                        <p className="text-xs text-on-surface-variant font-mono">
-                          {user?.email} · {currentTeacher?.specialty || 'Consola de Entrevista Diagnóstica Oral (A1 - C1)'}
+                        <p className="text-xs text-[#585567] font-medium">
+                          {user?.email} · {currentTeacher?.specialty || 'Evaluador Oficial Diagnóstico 2026'}
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 relative z-10">
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setCurrentSection('builder')}
-                          className="px-3.5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer"
+                          className="px-4 py-2.5 rounded-2xl bg-[#8a70d6] hover:bg-[#7a60c7] text-white text-xs font-black transition-all shadow-md shadow-[#8a70d6]/20 flex items-center gap-2 cursor-pointer"
                           title="Ver y probar la batería oficial de tests estandarizados (Listening, Scramble 20, Reading, Cloze)"
                         >
-                          <span className="material-symbols-outlined text-[17px]">auto_stories</span>
-                          <span>Batería de Tests MCER (4)</span>
+                          <span className="material-symbols-outlined text-[18px]">auto_stories</span>
+                          <span>Batería MCER (4)</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setCurrentSection('diagnostic_config')}
-                          className="px-3.5 py-2 rounded-2xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-bold transition-all border border-outline-variant/40 flex items-center gap-1.5 cursor-pointer"
+                          className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#f8f7fc] text-[#2d2c38] text-xs font-black transition-all border border-[#e2e0ed] flex items-center gap-2 cursor-pointer shadow-xs"
                           title="Ver y configurar ponderaciones de entrevista (40%) y plataforma (60%)"
                         >
-                          <span className="material-symbols-outlined text-[17px] text-[#2528b7]">tune</span>
+                          <span className="material-symbols-outlined text-[18px] text-[#8a70d6]">tune</span>
                           <span className="hidden md:inline">Ponderaciones 2026</span>
                         </button>
                       </div>
 
-                      <div className="text-right pl-2 border-l border-gray-200">
-                        <span className="text-[10px] uppercase font-bold text-gray-400 block">Estudiantes</span>
-                        <span className="font-heading font-extrabold text-2xl text-[#2528b7]">{students.length}</span>
+                      <div className="text-right pl-3 sm:border-l border-[#e2e0ed] hidden sm:block">
+                        <span className="text-[10px] uppercase font-black text-[#8e8a9f] block">Estudiantes</span>
+                        <span className="font-heading font-black text-2xl text-[#8a70d6]">{students.length}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* BARRA DE BOTONES OVALADOS PARA GRADOS, SECCIONES Y ESTADO */}
-                  <div className="bg-surface-container-lowest rounded-3xl p-5 border border-outline-variant/30 shadow-sm space-y-3">
+                  {/* BARRA DE BOTONES OVALADOS PARA GRADOS, SECCIONES Y ESTADO - CARD ACADEMY */}
+                  <div className="card-academy p-6 space-y-4">
                     {/* Fila 1: Botones Ovalados de Grado */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                      <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
                         Grado:
                       </span>
                       <button
@@ -600,13 +610,13 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           setGradePill('all')
                           setCurrentPage(1)
                         }}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                        className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
                           gradePill === 'all'
-                            ? 'bg-[#2528b7] text-white shadow-sm'
-                            : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                            ? 'bg-[#8a70d6] text-white shadow-md shadow-[#8a70d6]/30 ring-2 ring-[#e9e3ff]'
+                            : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] hover:text-[#2d2c38] border border-[#e2e0ed]'
                         }`}
                       >
-                        Todos
+                        Todos los Grados
                       </button>
                       {(academic.grades && academic.grades.length > 0 ? academic.grades : [
                         { id: '6', label: '6°' },
@@ -618,6 +628,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         { id: '12', label: '12°' }
                       ]).map(g => {
                         const shortLabel = g.id ? `${parseInt(g.id, 10)}°` : g.label
+                        const isSelected = gradePill === g.id
                         return (
                           <button
                             key={g.id}
@@ -626,10 +637,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setGradePill(g.id)
                               setCurrentPage(1)
                             }}
-                            className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
-                              gradePill === g.id
-                                ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
-                                : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                            className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
+                              isSelected
+                                ? 'bg-[#8a70d6] text-white shadow-md shadow-[#8a70d6]/30 ring-2 ring-[#e9e3ff]'
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] hover:text-[#2d2c38] border border-[#e2e0ed]'
                             }`}
                           >
                             {shortLabel}
@@ -639,9 +650,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* Fila 2: Filtro por Docente Titular y Nivel Institucional Asignado */}
-                    <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-gray-100">
-                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">school</span>
+                    <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[#eceaf6]">
+                      <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[15px]">school</span>
                         Docente:
                       </span>
                       {[
@@ -650,35 +661,38 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         { id: 'silvia', label: 'Silvia Herrera', short: 'Teacher Silvia' },
                         { id: 'nelsi', label: 'Nelsi Ramos', short: 'Teacher Nelsi' },
                         { id: 'edgar', label: 'Edgar Pacheco', short: 'Teacher Edgar' }
-                      ].map(t => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => {
-                            setTeacherFilter(t.id)
-                            setCurrentPage(1)
-                          }}
-                          className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
-                            teacherFilter === t.id
-                              ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
-                              : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          <span>{t.short || t.label}</span>
-                          {t.id !== 'all' && (
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                              teacherFilter === t.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
-                            }`}>
-                              {students.filter(s => (s.assignedTeacher || '').toLowerCase().includes(t.id)).length}
-                            </span>
-                          )}
-                        </button>
-                      ))}
+                      ].map(t => {
+                        const isSelected = teacherFilter === t.id
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              setTeacherFilter(t.id)
+                              setCurrentPage(1)
+                            }}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                              isSelected
+                                ? 'bg-[#5446a8] text-white shadow-xs'
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                            }`}
+                          >
+                            <span>{t.short || t.label}</span>
+                            {t.id !== 'all' && (
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                                isSelected ? 'bg-white/20 text-white' : 'bg-[#e2e0ed] text-[#585567]'
+                              }`}>
+                                {students.filter(s => (s.assignedTeacher || '').toLowerCase().includes(t.id)).length}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
 
                       <span className="text-gray-300 mx-1 hidden md:inline">|</span>
 
                       {/* Filtro por Nivel Institucional CSSJ */}
-                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                      <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
                         Nivel:
                       </span>
                       <button
@@ -687,8 +701,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           setLevelPill('all')
                           setCurrentPage(1)
                         }}
-                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                          levelPill === 'all' ? 'bg-gray-900 text-white' : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                          levelPill === 'all'
+                            ? 'bg-[#2d2c38] text-white shadow-xs'
+                            : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                         }`}
                       >
                         Todos
@@ -701,10 +717,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             setLevelPill(lvl)
                             setCurrentPage(1)
                           }}
-                          className={`px-2.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
                             levelPill === lvl
-                              ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-200'
-                              : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                           }`}
                         >
                           {lvl}
@@ -713,9 +729,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* Fila 3: Botones Ovalados de Sección, Estado y Búsqueda */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-gray-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#eceaf6]">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                        <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
                           Sección:
                         </span>
                         <button
@@ -724,10 +740,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             setSectionPill('all')
                             setCurrentPage(1)
                           }}
-                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                             sectionPill === 'all'
-                              ? 'bg-indigo-900 text-white shadow-sm'
-                              : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                              ? 'bg-[#5446a8] text-white shadow-xs'
+                              : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                           }`}
                         >
                           Todas
@@ -740,10 +756,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setSectionPill(sec)
                               setCurrentPage(1)
                             }}
-                            className={`w-8 h-8 rounded-full text-xs font-black transition-all cursor-pointer flex items-center justify-center ${
+                            className={`w-8 h-8 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
                               sectionPill === sec
-                                ? 'bg-indigo-900 text-white shadow-sm ring-2 ring-indigo-200'
-                                : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                                ? 'bg-[#5446a8] text-white shadow-xs'
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                             }`}
                             title={`Sección ${sec}`}
                           >
@@ -754,7 +770,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
 
                         {/* Especialidad de Bachillerato: General / Técnico */}
-                        <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                        <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
                           Bachillerato:
                         </span>
                         {[
@@ -769,14 +785,14 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setModalityPill(mod.id)
                               setCurrentPage(1)
                             }}
-                            className={`px-2.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
                               modalityPill === mod.id
                                 ? mod.id === 'Técnico'
-                                  ? 'bg-purple-700 text-white shadow-sm ring-2 ring-purple-200'
+                                  ? 'bg-[#8a70d6] text-white shadow-xs'
                                   : mod.id === 'General'
-                                  ? 'bg-blue-700 text-white shadow-sm ring-2 ring-blue-200'
-                                  : 'bg-gray-900 text-white shadow-sm'
-                                : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                                  ? 'bg-[#5446a8] text-white shadow-xs'
+                                  : 'bg-[#2d2c38] text-white shadow-xs'
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                             }`}
                           >
                             {mod.label}
@@ -786,15 +802,15 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
 
                         {/* Estado de Evaluación */}
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => {
                               setStatusToggle('all')
                               setCurrentPage(1)
                             }}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                              statusToggle === 'all' ? 'bg-gray-900 text-white' : 'text-gray-600 bg-gray-100'
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                              statusToggle === 'all' ? 'bg-[#2d2c38] text-white' : 'text-[#8e8a9f] hover:text-[#2d2c38] bg-[#f8f7fc]'
                             }`}
                           >
                             Todos
@@ -805,11 +821,11 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setStatusToggle('pending')
                               setCurrentPage(1)
                             }}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                              statusToggle === 'pending' ? 'bg-amber-500 text-white shadow-sm' : 'text-gray-600 bg-gray-100'
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                              statusToggle === 'pending' ? 'bg-amber-500 text-white shadow-xs' : 'text-[#585567] hover:text-amber-700 bg-[#f8f7fc] border border-[#e2e0ed]'
                             }`}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                             <span>Por Evaluar ({students.filter(s => !s.assignedLevel).length})</span>
                           </button>
                           <button
@@ -818,11 +834,11 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setStatusToggle('completed')
                               setCurrentPage(1)
                             }}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                              statusToggle === 'completed' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-600 bg-gray-100'
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                              statusToggle === 'completed' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#585567] hover:text-emerald-700 bg-[#f8f7fc] border border-[#e2e0ed]'
                             }`}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
                             <span>Completados ({students.filter(s => Boolean(s.assignedLevel)).length})</span>
                           </button>
                           <button
@@ -831,12 +847,12 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setStatusToggle('incidents')
                               setCurrentPage(1)
                             }}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                              statusToggle === 'incidents' ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-300' : 'text-rose-700 bg-rose-50 hover:bg-rose-100'
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                              statusToggle === 'incidents' ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-200' : 'text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200'
                             }`}
                             title="Ver alumnos con salidas de pestaña o alertas de fraude registradas"
                           >
-                            <span className="material-symbols-outlined text-[14px]">warning</span>
+                            <span className="material-symbols-outlined text-[15px]">warning</span>
                             <span>Con Alertas ({students.filter(s => {
                               const c = s.completedExams || {}
                               return Object.values(c).reduce((acc, x) => acc + (x.warningsCount || (x.incidents?.length || 0)), 0) > 0
@@ -846,8 +862,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       </div>
 
                       {/* Buscador Rápido y Reset General */}
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative flex-1 sm:w-56">
+                      <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:w-60">
                           <input
                             type="text"
                             value={searchTerm}
@@ -855,10 +871,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setSearchTerm(e.target.value)
                               setCurrentPage(1)
                             }}
-                            placeholder="Nombre o carnet..."
-                            className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30"
+                            placeholder="Buscar carnet o nombre..."
+                            className="w-full pl-9 pr-4 py-2 rounded-2xl bg-[#f8f7fc] border border-[#e2e0ed] text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 text-[#2d2c38]"
                           />
-                          <span className="material-symbols-outlined text-[16px] text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2">
+                          <span className="material-symbols-outlined text-[18px] text-[#8e8a9f] absolute left-3 top-1/2 -translate-y-1/2">
                             search
                           </span>
                         </div>
@@ -867,48 +883,53 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         <button
                           type="button"
                           onClick={handleResetAll}
-                          className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                          className="px-3.5 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                           title="Resetear los niveles oficiales de todos los alumnos (modo pruebas)"
                         >
-                          <span className="material-symbols-outlined text-[15px]">restart_alt</span>
-                          <span className="hidden md:inline">Resetear Evaluaciones</span>
+                          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                          <span className="hidden md:inline">Reset</span>
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Tabla de Alumnos Paginada */}
-                  <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
-                      <h3 className="font-heading font-bold text-sm text-gray-900">
-                        Alumnos en Lista ({filteredStudents.length})
-                      </h3>
-                      <span className="text-[11px] text-gray-500">
-                        Pulsa <strong>"Llamar / Evaluar"</strong> para abrir las 3 preguntas orales del nivel.
+                  {/* Tabla de Alumnos Paginada - card-academy */}
+                  <div className="card-academy overflow-hidden">
+                    <div className="p-4 px-6 border-b border-[#eceaf6] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-white via-[#fbfbfb] to-[#f4f1fd]/50">
+                      <div>
+                        <h3 className="font-heading font-black text-sm text-[#2d2c38]">
+                          Alumnos en Lista ({filteredStudents.length})
+                        </h3>
+                        <span className="text-[11px] text-[#8e8a9f] font-medium">
+                          Pulsa <strong>"Llamar / Evaluar"</strong> para abrir las 3 preguntas orales del nivel.
+                        </span>
+                      </div>
+                      <span className="text-xs font-black text-[#5446a8] bg-[#e9e3ff] px-3 py-1 rounded-full shadow-xs">
+                        Página {currentPage} de {totalPages}
                       </span>
                     </div>
 
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs md:text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-white">
-                            <th className="py-3 px-3">Carnet</th>
-                            <th className="py-3 px-3">Estudiante</th>
-                            <th className="py-3 px-3 text-center">Grado</th>
-                            <th className="py-3 px-3 text-center">Secc.</th>
-                            <th className="py-3 px-3 text-center">Especialidad</th>
-                            <th className="py-3 px-3">Docente</th>
-                            <th className="py-3 px-3 text-center">Nivel Actual</th>
-                            <th className="py-3 px-3 text-center">Nivel Obtenido</th>
-                            <th className="py-3 px-3 text-center">Bitácora Tests</th>
-                            <th className="py-3 px-3 text-center">Acceso</th>
-                            <th className="py-3 px-3 text-right">Acción</th>
+                          <tr className="border-b border-[#eceaf6] text-[11px] font-black uppercase text-[#8e8a9f] bg-[#fbfbfb]">
+                            <th className="py-4 px-4 font-black">Carnet</th>
+                            <th className="py-4 px-4 font-black">Estudiante</th>
+                            <th className="py-4 px-4 text-center font-black">Grado</th>
+                            <th className="py-4 px-4 text-center font-black">Secc.</th>
+                            <th className="py-4 px-4 text-center font-black">Especialidad</th>
+                            <th className="py-4 px-4 font-black">Docente</th>
+                            <th className="py-4 px-4 text-center font-black">Nivel Actual</th>
+                            <th className="py-4 px-4 text-center font-black">Nivel Obtenido</th>
+                            <th className="py-4 px-4 text-center font-black">Bitácora Tests</th>
+                            <th className="py-4 px-4 text-center font-black">Acceso</th>
+                            <th className="py-4 px-4 text-right font-black">Acción</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-[#eceaf6]/60">
                           {paginatedStudents.length === 0 ? (
                             <tr>
-                              <td colSpan="10" className="py-12 text-center text-gray-400 text-xs italic">
+                              <td colSpan="11" className="py-14 text-center text-[#8e8a9f] text-xs italic">
                                 No se encontraron alumnos con los criterios seleccionados.
                               </td>
                             </tr>
@@ -919,9 +940,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               const displayGrade = s.codigoGrado ? `${parseInt(s.codigoGrado, 10)}°` : (s.grade || '').match(/\d+/)?.[0] ? `${(s.grade || '').match(/\d+/)[0]}°` : s.grade
 
                               return (
-                                <tr key={s.carnet || s.email} className="hover:bg-indigo-50/30 transition-colors">
-                                  <td className="py-3.5 px-3 font-mono font-bold text-gray-700">{s.carnet || 'N/A'}</td>
-                                  <td className="py-3.5 px-3 font-semibold text-gray-900">
+                                <tr key={s.carnet || s.email} className="table-academy-row">
+                                  <td className="py-3.5 px-4 font-mono font-bold text-[#585567]">{s.carnet || 'N/A'}</td>
+                                  <td className="py-3.5 px-4 font-bold text-[#2d2c38]">
                                     <div className="flex items-center gap-1.5">
                                       <span>{s.name}</span>
                                       {s.selfReportedLevel && (
@@ -930,25 +951,25 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-[11px] text-gray-400 font-mono font-normal truncate max-w-xs">{s.email}</div>
+                                    <div className="text-[11px] text-[#8e8a9f] font-mono font-normal truncate max-w-xs">{s.email}</div>
                                   </td>
 
                                   {/* Columna: Grado (6°, 7°, 8°, 9°, 10°, 11°) */}
-                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                                    <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 font-black text-xs text-slate-800 border border-slate-200 shadow-2xs">
+                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <span className="inline-block px-2.5 py-1 rounded-xl bg-[#f8f7fc] font-black text-xs text-[#2d2c38] border border-[#e2e0ed] shadow-2xs">
                                       {displayGrade}
                                     </span>
                                   </td>
 
                                   {/* Columna: Sección (A, B, C...) */}
-                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 font-black text-xs text-indigo-700 border border-indigo-200 shadow-2xs">
+                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-[#e9e3ff] font-black text-xs text-[#5446a8] border border-[#d8ceff] shadow-2xs">
                                       {s.section || 'A'}
                                     </span>
                                   </td>
 
                                   {/* Columna: Especialidad (General / Técnico / N/A) */}
-                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
                                     {s.especialidad ? (
                                       <span className={`inline-block px-2.5 py-0.5 rounded-full font-black text-[11px] uppercase tracking-wider border shadow-2xs ${
                                         s.especialidad === 'Técnico'
@@ -958,24 +979,24 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         {s.especialidad}
                                       </span>
                                     ) : (
-                                      <span className="text-gray-400 text-xs font-semibold">-</span>
+                                      <span className="text-[#8e8a9f] text-xs font-semibold">-</span>
                                     )}
                                   </td>
 
                                   {/* Columna: Docente */}
-                                  <td className="py-3.5 px-3 whitespace-nowrap">
+                                  <td className="py-3.5 px-4 whitespace-nowrap">
                                     {s.assignedTeacher ? (
-                                      <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#585567] bg-[#f8f7fc] px-2.5 py-1 rounded-xl border border-[#e2e0ed]">
                                         <span>👨‍🏫</span>
                                         <span>{s.assignedTeacher}</span>
                                       </span>
                                     ) : (
-                                      <span className="text-gray-400 text-xs italic">Sin asignar</span>
+                                      <span className="text-[#8e8a9f] text-xs italic">Sin asignar</span>
                                     )}
                                   </td>
 
                                   {/* Columna: Nivel Actual (Inicial) */}
-                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
                                     {((s.grade || '').includes('6°') || s.codigoGrado === '06' || s.codigoGrado === '6') ? (
                                       <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="Sexto grado no tiene nivel previo; el nivel se le asignará al iniciar 7° grado según esta evaluación.">
                                         Asignación 7°
@@ -985,35 +1006,35 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         {s.currentLevel}
                                       </span>
                                     ) : (
-                                      <span className="text-gray-400 text-xs">-</span>
+                                      <span className="text-[#8e8a9f] text-xs">-</span>
                                     )}
                                   </td>
 
                                   {/* Columna: Nivel Obtenido (Oficial) */}
-                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
                                     {hasLevel ? (
                                       <div className="inline-flex items-center gap-1">
-                                        <span className="px-2.5 py-0.5 rounded-full font-black text-xs bg-indigo-600 text-white shadow-sm">
+                                        <span className="px-3 py-1 rounded-full font-black text-xs bg-[#8a70d6] text-white shadow-xs">
                                           {s.assignedLevel}
                                         </span>
                                         <button
                                           type="button"
                                           onClick={() => handleResetStudent(s)}
-                                          className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                          className="p-1 rounded-lg text-[#8e8a9f] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                           title={`Resetear nivel de ${s.name} a Sin Evaluar`}
                                         >
                                           <span className="material-symbols-outlined text-[15px]">restart_alt</span>
                                         </button>
                                       </div>
                                     ) : (
-                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-50 text-amber-700 border border-amber-200">
                                         Sin Evaluar
                                       </span>
                                     )}
                                   </td>
 
                                   {/* Columna: Bitácora Tests y Advertencias de Seguridad */}
-                                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
                                     {(() => {
                                       const completed = s.completedExams || {}
                                       const examsDoneCount = Object.keys(completed).length
@@ -1024,7 +1045,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
                                       if (examsDoneCount === 0) {
                                         return (
-                                          <span className="text-[11px] text-gray-400 font-medium">
+                                          <span className="text-[11px] text-[#8e8a9f] font-medium">
                                             Pendiente
                                           </span>
                                         )
@@ -1032,7 +1053,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
                                       return (
                                         <div className="inline-flex flex-col items-center gap-1">
-                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
                                             {examsDoneCount} test(s)
                                           </span>
                                           {totalWarnings > 0 ? (
@@ -1076,7 +1097,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
                                         (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
                                         (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi'))) ||
-                                         ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar')))
+                                        ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar')))
 
                                       return (
                                         <button
@@ -1092,7 +1113,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                               ? 'cursor-not-allowed opacity-40 bg-gray-50 border-gray-200'
                                               : isActive
                                                 ? 'cursor-pointer bg-emerald-50/80 border-emerald-200 hover:bg-emerald-100/70 shadow-2xs'
-                                                : 'cursor-pointer bg-slate-100 border-slate-200 hover:bg-slate-200/70 shadow-2xs'
+                                                : 'cursor-pointer bg-[#f8f7fc] border-[#e2e0ed] hover:bg-[#f4f1fd] shadow-2xs'
                                           }`}
                                           title={!isMyStudent ? `Alumno asignado a ${s.assignedTeacher || 'otro docente'}` : (isActive ? 'Clic para pausar / desactivar acceso' : 'Clic para activar alumno')}
                                         >
@@ -1101,8 +1122,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                           }`}>
                                             <div className="bg-white w-3.5 h-3.5 rounded-full shadow-sm"></div>
                                           </div>
-                                          <span className={`text-[11px] font-extrabold pointer-events-none tracking-wide ${
-                                            isActive ? 'text-emerald-800' : 'text-gray-500'
+                                          <span className={`text-[11px] font-black pointer-events-none tracking-wide ${
+                                            isActive ? 'text-emerald-800' : 'text-[#8e8a9f]'
                                           }`}>
                                             {isActive ? 'Activo' : 'Pausado'}
                                           </span>
@@ -1123,7 +1144,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
                                         (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
                                         (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi'))) ||
-                                         ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar'))) ||
+                                        ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar'))) ||
                                         (userName && studentTeacher && userName.includes(studentTeacher))
 
                                       return (
@@ -1131,7 +1152,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                           <button
                                             type="button"
                                             onClick={() => onSwitchToStudentView?.(s)}
-                                            className="p-2 rounded-xl text-gray-500 hover:text-[#2528b7] hover:bg-indigo-50 transition-colors cursor-pointer"
+                                            className="p-2 rounded-xl text-[#8e8a9f] hover:text-[#8a70d6] hover:bg-[#f4f1fd] transition-colors cursor-pointer"
                                             title={`Ver portal como ${s.name}`}
                                           >
                                             <span className="material-symbols-outlined text-[18px]">visibility</span>
@@ -1149,7 +1170,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                               <button
                                                 type="button"
                                                 onClick={() => setSelectedVerdictStudent(s)}
-                                                className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center gap-1 cursor-pointer transition-all"
+                                                className="px-3 py-1.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
                                                 title="Revisar notas consolidadas (plataforma + oral) y emitir veredicto final"
                                               >
                                                 <span className="material-symbols-outlined text-[15px]">gavel</span>
@@ -1158,7 +1179,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                               <button
                                                 type="button"
                                                 onClick={() => handleStartInterview(s)}
-                                                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#2528b7] to-[#4f46e5] hover:brightness-110 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer"
+                                                className="px-4 py-1.5 rounded-2xl bg-gradient-to-r from-[#8a70d6] to-[#7052c9] hover:from-[#7a60c7] hover:to-[#5e41b5] text-white font-black text-xs shadow-md shadow-[#8a70d6]/20 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
                                               >
                                                 <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
                                                 <span>{hasLevel ? 'Reevaluar' : 'Llamar'}</span>
@@ -1169,14 +1190,14 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                               <button
                                                 type="button"
                                                 onClick={() => setSelectedVerdictStudent(s)}
-                                                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer transition-all"
+                                                className="px-3 py-1.5 rounded-2xl bg-[#f8f7fc] hover:bg-[#ede9f7] text-[#585567] font-black text-xs border border-[#e2e0ed] flex items-center gap-1 cursor-pointer transition-all"
                                                 title="Consultar notas consolidadas y veredicto"
                                               >
                                                 <span className="material-symbols-outlined text-[15px]">gavel</span>
                                                 <span>Veredicto</span>
                                               </button>
                                               <span
-                                                className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs flex items-center gap-1 cursor-not-allowed select-none"
+                                                className="px-3 py-1.5 rounded-2xl bg-[#f8f7fc] text-[#8e8a9f] font-black text-xs flex items-center gap-1 cursor-not-allowed select-none border border-[#e2e0ed]"
                                                 title={`Solo puede ser evaluado por ${s.assignedTeacher || 'su docente titular'}`}
                                               >
                                                 <span className="material-symbols-outlined text-[15px]">lock</span>
@@ -1197,17 +1218,17 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* PAGINACIÓN */}
-                    <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-                      <span className="text-xs text-gray-500">
-                        Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong> ({filteredStudents.length} total)
+                    <div className="p-4 px-6 border-t border-[#eceaf6] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+                      <span className="text-xs font-semibold text-[#8e8a9f]">
+                        Página <strong className="text-[#2d2c38] font-black">{currentPage}</strong> de <strong className="text-[#2d2c38] font-black">{totalPages}</strong> ({filteredStudents.length} total)
                       </span>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           disabled={currentPage <= 1}
                           onClick={() => setCurrentPage(1)}
-                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
                         >
                           «
                         </button>
@@ -1215,7 +1236,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           type="button"
                           disabled={currentPage <= 1}
                           onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
                         >
                           Anterior
                         </button>
@@ -1233,10 +1254,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                 key={pageNum}
                                 type="button"
                                 onClick={() => setCurrentPage(pageNum)}
-                                className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+                                className={`w-8 h-8 rounded-xl text-xs font-black flex items-center justify-center transition-all cursor-pointer ${
                                   currentPage === pageNum
-                                    ? 'bg-[#2528b7] text-white shadow-sm'
-                                    : 'text-gray-600 hover:bg-gray-100'
+                                    ? 'bg-[#8a70d6] text-white shadow-xs'
+                                    : 'text-[#585567] hover:bg-[#f4f1fd]'
                                 }`}
                               >
                                 {pageNum}
@@ -1249,7 +1270,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           type="button"
                           disabled={currentPage >= totalPages}
                           onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
                         >
                           Siguiente
                         </button>
@@ -1257,7 +1278,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           type="button"
                           disabled={currentPage >= totalPages}
                           onClick={() => setCurrentPage(totalPages)}
-                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
                         >
                           »
                         </button>
@@ -1322,10 +1343,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   </div>
 
                   {/* BARRA DE FILTROS EN TIEMPO REAL: GRADO, MAESTRO, SECCIÓN, ESTADO */}
-                  <div className="bg-surface-container-lowest rounded-3xl p-5 border border-outline-variant/30 shadow-sm space-y-3">
+                  <div className="card-academy p-6 space-y-4">
                     {/* Fila 1: Botones Ovalados de Grado */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                      <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
                         Grado:
                       </span>
                       <button
@@ -1334,10 +1355,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           setGradePill('all')
                           setCurrentPage(1)
                         }}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                        className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
                           gradePill === 'all'
-                            ? 'bg-[#2528b7] text-white shadow-sm'
-                            : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                            ? 'bg-[#8a70d6] text-white shadow-md shadow-[#8a70d6]/30 ring-2 ring-[#e9e3ff]'
+                            : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] hover:text-[#2d2c38] border border-[#e2e0ed]'
                         }`}
                       >
                         Todos los Grados
@@ -1352,6 +1373,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         { id: '12', label: '12°' }
                       ]).map(g => {
                         const shortLabel = g.id ? `${parseInt(g.id, 10)}°` : g.label
+                        const isSelected = gradePill === g.id
                         return (
                           <button
                             key={g.id}
@@ -1360,10 +1382,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setGradePill(g.id)
                               setCurrentPage(1)
                             }}
-                            className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
-                              gradePill === g.id
-                                ? 'bg-[#2528b7] text-white shadow-sm ring-2 ring-indigo-200'
-                                : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
+                            className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
+                              isSelected
+                                ? 'bg-[#8a70d6] text-white shadow-md shadow-[#8a70d6]/30 ring-2 ring-[#e9e3ff]'
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] hover:text-[#2d2c38] border border-[#e2e0ed]'
                             }`}
                           >
                             {shortLabel}
@@ -1373,9 +1395,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* Fila 2: Filtro por Docente Titular */}
-                    <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-100">
-                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">school</span>
+                    <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[#eceaf6]">
+                      <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[15px]">school</span>
                         Maestro:
                       </span>
                       {[
@@ -1384,37 +1406,40 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                         { id: 'silvia', label: 'Silvia Herrera', short: 'Teacher Silvia' },
                         { id: 'nelsi', label: 'Nelsi Ramos', short: 'Teacher Nelsi' },
                         { id: 'edgar', label: 'Edgar Pacheco', short: 'Teacher Edgar' }
-                      ].map(t => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => {
-                            setTeacherFilter(t.id)
-                            setCurrentPage(1)
-                          }}
-                          className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
-                            teacherFilter === t.id
-                              ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-200'
-                              : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          <span>{t.short || t.label}</span>
-                          {t.id !== 'all' && (
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                              teacherFilter === t.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
-                            }`}>
-                              {students.filter(s => (s.assignedTeacher || '').toLowerCase().includes(t.id)).length}
-                            </span>
-                          )}
-                        </button>
-                      ))}
+                      ].map(t => {
+                        const isSelected = teacherFilter === t.id
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              setTeacherFilter(t.id)
+                              setCurrentPage(1)
+                            }}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                              isSelected
+                                ? 'bg-[#5446a8] text-white shadow-xs'
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                            }`}
+                          >
+                            <span>{t.short || t.label}</span>
+                            {t.id !== 'all' && (
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                                isSelected ? 'bg-white/20 text-white' : 'bg-[#e2e0ed] text-[#585567]'
+                              }`}>
+                                {students.filter(s => (s.assignedTeacher || '').toLowerCase().includes(t.id)).length}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
                     </div>
 
                     {/* Fila 3: Filtro por Sección, Estado de Veredicto y Buscador */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-gray-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#eceaf6]">
                       <div className="flex items-center gap-2 flex-wrap">
                         {/* Secciones */}
-                        <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                        <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
                           Sección:
                         </span>
                         <button
@@ -1423,10 +1448,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             setSectionPill('all')
                             setCurrentPage(1)
                           }}
-                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                             sectionPill === 'all'
-                              ? 'bg-indigo-900 text-white shadow-sm'
-                              : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                              ? 'bg-[#5446a8] text-white shadow-xs'
+                              : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                           }`}
                         >
                           Todas
@@ -1439,20 +1464,20 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setSectionPill(sec)
                               setCurrentPage(1)
                             }}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                            className={`w-8 h-8 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
                               sectionPill === sec
-                                ? 'bg-indigo-900 text-white shadow-sm ring-2 ring-indigo-200'
-                                : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                                ? 'bg-[#5446a8] text-white shadow-xs'
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                             }`}
                           >
-                            Sección {sec}
+                            {sec}
                           </button>
                         ))}
 
                         <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
 
                         {/* Filtro por Estado de Veredicto */}
-                        <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mr-1">
+                        <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
                           Estado:
                         </span>
                         {[
@@ -1467,10 +1492,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setStatusToggle(st.id)
                               setCurrentPage(1)
                             }}
-                            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                               statusToggle === st.id
-                                ? `${st.color || 'bg-gray-800'} text-white shadow-xs`
-                                : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                                ? `${st.color || 'bg-[#2d2c38]'} text-white shadow-xs`
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                             }`}
                           >
                             {st.label}
@@ -1488,26 +1513,26 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             setCurrentPage(1)
                           }}
                           placeholder="Buscar carnet o nombre..."
-                          className="w-full sm:w-64 pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                          className="w-full sm:w-64 pl-9 pr-4 py-2 rounded-2xl bg-[#f8f7fc] border border-[#e2e0ed] text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 text-[#2d2c38]"
                         />
-                        <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8a9f] text-[18px]">
                           search
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Tabla Principal de la Mesa de Veredicto */}
-                  <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
-                    <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50">
+                  {/* Tabla Principal de la Mesa de Veredicto - card-academy */}
+                  <div className="card-academy overflow-hidden">
+                    <div className="p-4 px-6 border-b border-[#eceaf6] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-white via-[#fbfbfb] to-[#f4f1fd]/50">
                       <div>
-                        <h3 className="font-heading font-extrabold text-base text-gray-900 flex items-center gap-2">
+                        <h3 className="font-heading font-black text-sm text-[#2d2c38] flex items-center gap-2">
                           <span>Nómina para Veredicto Definitivo</span>
-                          <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black">
+                          <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#e9e3ff] text-[#5446a8] font-black">
                             {filteredStudents.length} alumnos filtrados
                           </span>
                         </h3>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-xs text-[#8e8a9f] mt-0.5">
                           Calculando con ponderaciones dinámicas: <strong>{diagnosticConfig?.weights?.platform ?? 60}% Plataforma</strong> + <strong>{diagnosticConfig?.weights?.oral ?? 40}% Oral</strong>.
                         </p>
                       </div>
@@ -1515,34 +1540,34 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       <button
                         type="button"
                         onClick={() => setCurrentSection('diagnostic_config')}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all border border-slate-300 cursor-pointer self-start sm:self-auto"
+                        className="px-3.5 py-2 rounded-2xl bg-[#f8f7fc] hover:bg-[#ede9f7] text-[#2d2c38] font-black text-xs flex items-center gap-1.5 transition-all border border-[#e2e0ed] cursor-pointer self-start sm:self-auto"
                         title="Modificar ponderaciones y cortes institucionales"
                       >
-                        <span className="material-symbols-outlined text-[16px] text-teal-700">tune</span>
+                        <span className="material-symbols-outlined text-[17px] text-[#8a70d6]">tune</span>
                         <span>Configurar Ponderaciones</span>
                       </button>
                     </div>
 
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full text-left border-collapse text-xs md:text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 bg-gray-100/70 text-[11px] font-black text-gray-600 uppercase tracking-wider">
-                            <th className="py-3 px-4">Alumno / Carnet</th>
-                            <th className="py-3 px-3">Grado / Sec.</th>
-                            <th className="py-3 px-3 text-center">Nivel Previo (Antes)</th>
-                            <th className="py-3 px-3 text-center">Plataforma ({diagnosticConfig?.weights?.platform ?? 60}%)</th>
-                            <th className="py-3 px-3 text-center">Oral ({diagnosticConfig?.weights?.oral ?? 40}%)</th>
-                            <th className="py-3 px-3 text-center">Nota Global</th>
-                            <th className="py-3 px-3 text-center">Nivel Oficial (Asignado)</th>
-                            <th className="py-3 px-3 text-center">Evolución</th>
-                            <th className="py-3 px-3">Maestro Asignado</th>
-                            <th className="py-3 px-4 text-right">Acción</th>
+                          <tr className="border-b border-[#eceaf6] text-[11px] font-black uppercase text-[#8e8a9f] bg-[#fbfbfb]">
+                            <th className="py-4 px-4 font-black">Alumno / Carnet</th>
+                            <th className="py-4 px-3 font-black">Grado / Sec.</th>
+                            <th className="py-4 px-3 text-center font-black">Nivel Previo</th>
+                            <th className="py-4 px-3 text-center font-black">Plataforma ({diagnosticConfig?.weights?.platform ?? 60}%)</th>
+                            <th className="py-4 px-3 text-center font-black">Oral ({diagnosticConfig?.weights?.oral ?? 40}%)</th>
+                            <th className="py-4 px-3 text-center font-black">Nota Global</th>
+                            <th className="py-4 px-3 text-center font-black">Nivel Oficial</th>
+                            <th className="py-4 px-3 text-center font-black">Evolución</th>
+                            <th className="py-4 px-3 font-black">Maestro</th>
+                            <th className="py-4 px-4 text-right font-black">Acción</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 text-xs">
+                        <tbody className="divide-y divide-[#eceaf6]/60">
                           {paginatedStudents.length === 0 ? (
                             <tr>
-                              <td colSpan="10" className="text-center py-12 text-gray-400 font-medium">
+                              <td colSpan="10" className="text-center py-14 text-[#8e8a9f] text-xs italic">
                                 No se encontraron alumnos con los filtros seleccionados.
                               </td>
                             </tr>
@@ -1593,16 +1618,16 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               const newLevel = s.assignedLevel || null
 
                               return (
-                                <tr key={s.id || s.carnet} className="hover:bg-slate-50/80 transition-colors">
+                                <tr key={s.id || s.carnet} className="table-academy-row">
                                   {/* Alumno */}
                                   <td className="py-3 px-4">
-                                    <div className="font-extrabold text-gray-900">{s.name}</div>
-                                    <div className="text-[11px] text-gray-500 font-mono">{s.carnet} • {s.email}</div>
+                                    <div className="font-extrabold text-[#2d2c38]">{s.name}</div>
+                                    <div className="text-[11px] text-[#8e8a9f] font-mono">{s.carnet} • {s.email}</div>
                                   </td>
 
                                   {/* Grado y Sección */}
                                   <td className="py-3 px-3 whitespace-nowrap">
-                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-gray-100 text-gray-700">
+                                    <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed]">
                                       {s.grade || s.codigoGrado || '-'} {s.section || ''}
                                     </span>
                                   </td>
@@ -1610,37 +1635,37 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                   {/* Nivel Previo (Antes) */}
                                   <td className="py-3 px-3 text-center whitespace-nowrap">
                                     {isSixth ? (
-                                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f8f7fc] text-[#585567] border border-[#eceaf6]">
                                         Asignación 7°
                                       </span>
                                     ) : s.currentLevel && s.currentLevel !== 'Sin Nivel' ? (
-                                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-700 border border-slate-300">
+                                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-[#f8f7fc] text-[#2d2c38] border border-[#e2e0ed]">
                                         {s.currentLevel}
                                       </span>
                                     ) : (
-                                      <span className="text-gray-400 text-xs">-</span>
+                                      <span className="text-[#8e8a9f] text-xs">-</span>
                                     )}
                                   </td>
 
                                   {/* Plataforma con % dinámico */}
                                   <td className="py-3 px-3 text-center">
                                     {examEntries.length > 0 ? (
-                                      <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-blue-50 text-blue-700 border border-blue-200">
                                         {platformPercent}%
                                       </span>
                                     ) : (
-                                      <span className="text-[11px] text-gray-400 italic">Pendiente</span>
+                                      <span className="text-[11px] text-[#8e8a9f] italic">Pendiente</span>
                                     )}
                                   </td>
 
                                   {/* Oral con % dinámico */}
                                   <td className="py-3 px-3 text-center">
                                     {oralEval || s.oralInterviewScore != null || s.oralScorePercent != null ? (
-                                      <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
+                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#f4f1fd] text-[#7052c9] border border-[#e2e0ed]">
                                         {oralPercent}%
                                       </span>
                                     ) : (
-                                      <span className="text-[11px] text-gray-400 italic">Sin evaluar</span>
+                                      <span className="text-[11px] text-[#8e8a9f] italic">Sin evaluar</span>
                                     )}
                                   </td>
 
@@ -1648,10 +1673,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                   <td className="py-3 px-3 text-center">
                                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-black ${
                                       globalWeightedScore >= (diagnosticConfig?.cutoffs?.intermediateMax || 75)
-                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                                         : globalWeightedScore >= (diagnosticConfig?.cutoffs?.basicMax || 45)
-                                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                        : 'bg-rose-50 text-rose-800 border border-rose-200'
                                     }`}>
                                       {globalWeightedScore}%
                                     </span>
@@ -1660,7 +1685,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                   {/* Nivel Asignado Oficial (Veredicto) */}
                                   <td className="py-3 px-3 text-center whitespace-nowrap">
                                     {hasOfficial ? (
-                                      <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-emerald-600 text-white shadow-2xs">
+                                      <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-emerald-600 text-white shadow-xs">
                                         {s.assignedLevel}
                                       </span>
                                     ) : (
@@ -1688,25 +1713,25 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                           <span>Mantuvo</span>
                                         </span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200" title={`Ajuste pedagógico de ${prevLevel} a ${newLevel}`}>
-                                          <span className="material-symbols-outlined text-[13px] text-slate-500">sync_alt</span>
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#585567] bg-[#f8f7fc] px-2 py-0.5 rounded-md border border-[#e2e0ed]" title={`Ajuste pedagógico de ${prevLevel} a ${newLevel}`}>
+                                          <span className="material-symbols-outlined text-[13px] text-[#8e8a9f]">sync_alt</span>
                                           <span>Ajustado</span>
                                         </span>
                                       )
                                     ) : (
-                                      <span className="text-gray-300 text-xs">-</span>
+                                      <span className="text-[#8e8a9f] text-xs">-</span>
                                     )}
                                   </td>
 
                                   {/* Maestro Asignado */}
-                                  <td className="py-3 px-3 whitespace-nowrap text-gray-700 text-xs">
+                                  <td className="py-3 px-3 whitespace-nowrap text-[#585567] text-xs">
                                     {s.assignedTeacher ? (
-                                      <span className="inline-flex items-center gap-1 font-semibold">
+                                      <span className="inline-flex items-center gap-1 font-semibold text-[#2d2c38]">
                                         <span>👨‍🏫</span>
                                         <span>{s.assignedTeacher}</span>
                                       </span>
                                     ) : (
-                                      <span className="text-gray-400 italic">Sin asignar</span>
+                                      <span className="text-[#8e8a9f] italic">Sin asignar</span>
                                     )}
                                   </td>
 
@@ -1717,8 +1742,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                       onClick={() => setSelectedVerdictStudent(s)}
                                       className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 ml-auto cursor-pointer shadow-xs transition-all ${
                                         hasOfficial
-                                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300'
-                                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                                          ? 'bg-[#f8f7fc] hover:bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed]'
+                                          : 'bg-gradient-to-r from-[#8a70d6] to-[#7052c9] hover:from-[#7a60c7] hover:to-[#5e41b5] text-white shadow-[#8a70d6]/20'
                                       }`}
                                     >
                                       <span className="material-symbols-outlined text-[16px]">gavel</span>
@@ -1734,16 +1759,16 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* PAGINACIÓN VEREDICTO */}
-                    <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-                      <span className="text-xs text-gray-500">
-                        Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong> ({filteredStudents.length} total)
+                    <div className="p-4 border-t border-[#eceaf6] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+                      <span className="text-xs text-[#8e8a9f]">
+                        Página <strong className="text-[#2d2c38]">{currentPage}</strong> de <strong className="text-[#2d2c38]">{totalPages}</strong> ({filteredStudents.length} total)
                       </span>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           disabled={currentPage <= 1}
                           onClick={() => setCurrentPage(1)}
-                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 cursor-pointer"
                         >
                           «
                         </button>
@@ -1751,18 +1776,18 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           type="button"
                           disabled={currentPage <= 1}
                           onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 cursor-pointer"
                         >
                           Anterior
                         </button>
-                        <span className="px-3 py-1.5 text-xs font-extrabold text-[#2528b7]">
+                        <span className="px-3 py-1.5 text-xs font-extrabold text-[#7052c9] bg-[#f4f1fd] rounded-xl border border-[#e2e0ed]">
                           {currentPage} / {totalPages}
                         </span>
                         <button
                           type="button"
                           disabled={currentPage >= totalPages}
                           onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 cursor-pointer"
                         >
                           Siguiente
                         </button>
@@ -1770,7 +1795,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           type="button"
                           disabled={currentPage >= totalPages}
                           onClick={() => setCurrentPage(totalPages)}
-                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 cursor-pointer"
                         >
                           »
                         </button>
@@ -1798,24 +1823,24 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   {/* KPI DASHBOARD CARDS */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
                     {/* Tarjeta Total Evaluados */}
-                    <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs flex flex-col justify-between">
+                    <div className="card-academy p-4 flex flex-col justify-between">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Evaluados</span>
-                        <div className="w-8 h-8 rounded-xl bg-indigo-50 text-[#2528b7] flex items-center justify-center">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#8e8a9f]">Evaluados</span>
+                        <div className="w-8 h-8 rounded-xl bg-[#f4f1fd] text-[#7052c9] flex items-center justify-center">
                           <span className="material-symbols-outlined text-[18px]">verified</span>
                         </div>
                       </div>
                       <div className="mt-2">
-                        <span className="font-heading font-black text-2xl text-gray-900">{evaluations.length}</span>
-                        <span className="text-[11px] text-gray-400 block mt-0.5">de {students.length} alumnos</span>
+                        <span className="font-heading font-black text-2xl text-[#2d2c38]">{evaluations.length}</span>
+                        <span className="text-[11px] text-[#8e8a9f] block mt-0.5">de {students.length} alumnos</span>
                       </div>
                     </div>
 
                     {/* Tarjeta Nivel A1 */}
-                    <div className="bg-white rounded-2xl p-4 border border-emerald-100 shadow-xs flex flex-col justify-between">
+                    <div className="card-academy p-4 flex flex-col justify-between border-emerald-100 bg-gradient-to-br from-white to-emerald-50/30">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Nivel A1</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs"></span>
                       </div>
                       <div className="mt-2">
                         <span className="font-heading font-black text-2xl text-emerald-800">{levelCounts['A1'] || 0}</span>
@@ -1826,10 +1851,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* Tarjeta Nivel A2 */}
-                    <div className="bg-white rounded-2xl p-4 border border-cyan-100 shadow-xs flex flex-col justify-between">
+                    <div className="card-academy p-4 flex flex-col justify-between border-cyan-100 bg-gradient-to-br from-white to-cyan-50/30">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-700">Nivel A2</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-xs"></span>
                       </div>
                       <div className="mt-2">
                         <span className="font-heading font-black text-2xl text-cyan-800">{levelCounts['A2'] || 0}</span>
@@ -1840,10 +1865,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* Tarjeta Nivel B1 */}
-                    <div className="bg-white rounded-2xl p-4 border border-blue-100 shadow-xs flex flex-col justify-between">
+                    <div className="card-academy p-4 flex flex-col justify-between border-blue-100 bg-gradient-to-br from-white to-blue-50/30">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Nivel B1</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-xs"></span>
                       </div>
                       <div className="mt-2">
                         <span className="font-heading font-black text-2xl text-blue-800">{levelCounts['B1'] || 0}</span>
@@ -1854,21 +1879,21 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* Tarjeta Nivel B2 / C1 */}
-                    <div className="bg-white rounded-2xl p-4 border border-purple-100 shadow-xs flex flex-col justify-between">
+                    <div className="card-academy p-4 flex flex-col justify-between border-purple-100 bg-gradient-to-br from-white to-purple-50/30">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Nivel B2 / C1</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#8a70d6] shadow-xs"></span>
                       </div>
                       <div className="mt-2">
                         <span className="font-heading font-black text-2xl text-purple-800">
                           {(levelCounts['B2'] || 0) + (levelCounts['C1'] || 0)}
                         </span>
-                        <span className="text-[11px] text-purple-600 font-medium block mt-0.5">Avanzados</span>
+                        <span className="text-[11px] text-[#7052c9] font-medium block mt-0.5">Avanzados</span>
                       </div>
                     </div>
 
                     {/* Tarjeta Tiempo Promedio */}
-                    <div className="bg-white rounded-2xl p-4 border border-amber-100 shadow-xs flex flex-col justify-between">
+                    <div className="card-academy p-4 flex flex-col justify-between border-amber-100 bg-gradient-to-br from-white to-amber-50/30">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Duración Prom.</span>
                         <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
@@ -1885,14 +1910,14 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   </div>
 
                   {/* BARRA DE FILTROS Y BÚSQUEDA */}
-                  <div className="bg-white rounded-3xl p-5 border border-outline-variant/30 shadow-xs space-y-3.5">
+                  <div className="card-academy p-5 space-y-3.5">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                       <div>
-                        <h2 className="font-heading font-black text-base text-gray-900 flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[#2528b7] text-[22px]">bar_chart</span>
+                        <h2 className="font-heading font-black text-base text-[#2d2c38] flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[#7052c9] text-[22px]">bar_chart</span>
                           <span>Panel de Resultados y Niveles Oficiales</span>
                         </h2>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-[#8e8a9f]">
                           Filtra por nivel asignado, grado o docente evaluador y haz clic en <strong>"Ver Detalles"</strong> para auditar cada criterio de la rúbrica.
                         </p>
                       </div>
@@ -1907,19 +1932,19 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             setResultsPage(1)
                           }}
                           placeholder="Buscar por nombre, carnet..."
-                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2528b7]/30 bg-gray-50/50"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#eceaf6] text-xs focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 bg-[#f8f7fc] text-[#2d2c38]"
                         />
-                        <span className="material-symbols-outlined text-[18px] text-gray-400 absolute left-3 top-1/2 -translate-y-1/2">
+                        <span className="material-symbols-outlined text-[18px] text-[#8e8a9f] absolute left-3 top-1/2 -translate-y-1/2">
                           search
                         </span>
                       </div>
                     </div>
 
                     {/* SELECTORES DE FILTRO RÁPIDO */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
+                    <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#eceaf6]">
                       {/* Filtro por Nivel Oficial */}
-                      <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-gray-200/70">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase px-2">Nivel:</span>
+                      <div className="flex items-center gap-1.5 bg-[#f8f7fc] p-1 rounded-2xl border border-[#eceaf6]">
+                        <span className="text-[10px] font-bold text-[#8e8a9f] uppercase px-2">Nivel:</span>
                         {['all', 'A1', 'A2', 'B1', 'B2', 'C1'].map((lvl) => (
                           <button
                             key={lvl}
@@ -1928,10 +1953,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setResultsLevelFilter(lvl)
                               setResultsPage(1)
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
                               resultsLevelFilter === lvl
-                                ? 'bg-[#2528b7] text-white shadow-xs'
-                                : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                                ? 'bg-[#5446a8] text-white shadow-xs'
+                                : 'text-[#585567] hover:bg-white hover:text-[#2d2c38]'
                             }`}
                           >
                             {lvl === 'all' ? 'Todos' : lvl}
@@ -1940,8 +1965,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       </div>
 
                       {/* Filtro por Grado */}
-                      <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-gray-200/70">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase px-2">Grado:</span>
+                      <div className="flex items-center gap-1.5 bg-[#f8f7fc] p-1 rounded-2xl border border-[#eceaf6]">
+                        <span className="text-[10px] font-bold text-[#8e8a9f] uppercase px-2">Grado:</span>
                         {['all', '6', '7', '8', '9', '10', '11'].map((gr) => (
                           <button
                             key={gr}
@@ -1950,10 +1975,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setResultsGradeFilter(gr)
                               setResultsPage(1)
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
                               resultsGradeFilter === gr
-                                ? 'bg-indigo-900 text-white shadow-xs'
-                                : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                                ? 'bg-[#5446a8] text-white shadow-xs'
+                                : 'text-[#585567] hover:bg-white hover:text-[#2d2c38]'
                             }`}
                           >
                             {gr === 'all' ? 'Todos' : `${gr}°`}
@@ -1962,8 +1987,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       </div>
 
                       {/* Filtro por Docente Evaluador */}
-                      <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-gray-200/70">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase px-2">Docente:</span>
+                      <div className="flex items-center gap-1.5 bg-[#f8f7fc] p-1 rounded-2xl border border-[#eceaf6]">
+                        <span className="text-[10px] font-bold text-[#8e8a9f] uppercase px-2">Docente:</span>
                         {[
                           { key: 'all', label: 'Todos' },
                           { key: 'ronald', label: 'Ronald' },
@@ -1978,10 +2003,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               setResultsTeacherFilter(t.key)
                               setResultsPage(1)
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
                               resultsTeacherFilter === t.key
-                                ? 'bg-slate-800 text-white shadow-xs'
-                                : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                                ? 'bg-[#5446a8] text-white shadow-xs'
+                                : 'text-[#585567] hover:bg-white hover:text-[#2d2c38]'
                             }`}
                           >
                             {t.label}
@@ -2000,7 +2025,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             setResultsSearch('')
                             setResultsPage(1)
                           }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-bold text-gray-500 hover:text-red-600 hover:bg-red-50 flex items-center gap-1 transition-all"
+                          className="px-2.5 py-1 rounded-xl text-xs font-bold text-[#8e8a9f] hover:text-red-600 hover:bg-red-50 flex items-center gap-1 transition-all"
                         >
                           <span className="material-symbols-outlined text-[15px]">clear</span>
                           Limpiar
@@ -2010,17 +2035,17 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   </div>
 
                   {/* TABLA DE EVALUACIONES CON BOTÓN DE DETALLES */}
-                  <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="card-academy overflow-hidden">
+                    <div className="p-4 border-b border-[#eceaf6] flex items-center justify-between bg-[#fbfbfb]">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-heading font-bold text-sm text-gray-900">
+                        <h3 className="font-heading font-black text-sm text-[#2d2c38]">
                           Actas de Evaluación ({filteredEvaluations.length})
                         </h3>
-                        <span className="text-[11px] text-gray-500">
+                        <span className="text-[11px] text-[#8e8a9f]">
                           {filteredEvaluations.length === evaluations.length ? 'Total registradas' : `Filtradas de ${evaluations.length}`}
                         </span>
                       </div>
-                      <span className="text-[11px] text-gray-500 hidden sm:inline">
+                      <span className="text-[11px] text-[#8e8a9f] hidden sm:inline">
                         Haz clic en <strong>"Ver Detalles"</strong> para consultar el desglose pregunta por pregunta.
                       </span>
                     </div>
@@ -2028,7 +2053,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs md:text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-white">
+                          <tr className="border-b border-[#eceaf6] text-[11px] font-black uppercase text-[#8e8a9f] bg-[#fbfbfb]">
                             <th className="py-3 px-3">Carnet</th>
                             <th className="py-3 px-3">Estudiante</th>
                             <th className="py-3 px-3 text-center">Grado</th>
@@ -2039,10 +2064,10 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <th className="py-3 px-3 text-right">Acciones</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-[#eceaf6]/60">
                           {paginatedEvaluations.length === 0 ? (
                             <tr>
-                              <td colSpan="8" className="py-12 text-center text-gray-400 text-xs italic">
+                              <td colSpan="8" className="py-12 text-center text-[#8e8a9f] text-xs italic">
                                 No se encontraron actas con los filtros aplicados.
                               </td>
                             </tr>
@@ -2055,19 +2080,19 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                 B2: 'bg-purple-50 text-purple-800 border-purple-300',
                                 C1: 'bg-pink-50 text-pink-800 border-pink-300',
                               }
-                              const colorClass = badgeColors[ev.finalLevel] || 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                              const colorClass = badgeColors[ev.finalLevel] || 'bg-[#f4f1fd] text-[#5446a8] border-[#e2e0ed]'
 
                               return (
-                                <tr key={ev.id || i} className="hover:bg-indigo-50/30 transition-colors">
-                                  <td className="py-3.5 px-3 font-mono font-bold text-gray-700">
+                                <tr key={ev.id || i} className="table-academy-row">
+                                  <td className="py-3.5 px-3 font-mono font-bold text-[#585567]">
                                     {ev.studentCarnet || 'N/A'}
                                   </td>
                                   <td className="py-3.5 px-3">
-                                    <div className="font-semibold text-gray-900">{ev.studentName}</div>
-                                    <div className="text-[11px] text-gray-400 font-mono truncate max-w-xs">{ev.studentEmail}</div>
+                                    <div className="font-extrabold text-[#2d2c38]">{ev.studentName}</div>
+                                    <div className="text-[11px] text-[#8e8a9f] font-mono truncate max-w-xs">{ev.studentEmail}</div>
                                   </td>
                                   <td className="py-3.5 px-3 text-center">
-                                    <span className="inline-block px-2.5 py-0.5 rounded-lg bg-slate-100 font-black text-xs text-slate-800 border border-slate-200">
+                                    <span className="inline-block px-2.5 py-0.5 rounded-lg bg-[#f4f1fd] font-bold text-xs text-[#5446a8] border border-[#e2e0ed]">
                                       {ev.grade} - Secc. {ev.section}
                                     </span>
                                   </td>
@@ -2077,15 +2102,15 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                     </span>
                                   </td>
                                   <td className="py-3.5 px-3">
-                                    <div className="font-medium text-gray-800 flex items-center gap-1">
+                                    <div className="font-medium text-[#2d2c38] flex items-center gap-1">
                                       <span className="text-xs">👨‍🏫</span>
                                       <span>{ev.teacherName || ev.teacherEmail}</span>
                                     </div>
                                   </td>
-                                  <td className="py-3.5 px-3 text-center font-mono text-xs text-gray-600">
+                                  <td className="py-3.5 px-3 text-center font-mono text-xs text-[#585567]">
                                     {ev.durationFormatted || `${ev.totalDurationSeconds}s`}
                                   </td>
-                                  <td className="py-3.5 px-3 text-[11px] text-gray-500 whitespace-nowrap">
+                                  <td className="py-3.5 px-3 text-[11px] text-[#8e8a9f] whitespace-nowrap">
                                     {ev.completedAt ? new Date(ev.completedAt).toLocaleString('es-SV') : 'Hoy'}
                                   </td>
                                   <td className="py-3.5 px-3 text-right whitespace-nowrap">
@@ -2103,7 +2128,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                           }
                                           setSelectedVerdictStudent(matchedStudent)
                                         }}
-                                        className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                        className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 transition-all flex items-center gap-1 cursor-pointer shadow-xs"
                                         title="Revisar notas consolidadas y emitir veredicto final"
                                       >
                                         <span className="material-symbols-outlined text-[15px]">gavel</span>
@@ -2114,7 +2139,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                       <button
                                         type="button"
                                         onClick={() => setSelectedEvaluationDetail(ev)}
-                                        className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-[#2528b7] font-bold text-xs border border-indigo-200/80 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                        className="px-3 py-1.5 rounded-xl bg-[#f4f1fd] hover:bg-[#e9e3ff] text-[#5446a8] font-bold text-xs border border-[#e2e0ed] transition-all flex items-center gap-1 cursor-pointer shadow-xs"
                                         title="Ver preguntas y desglose de rúbrica"
                                       >
                                         <span className="material-symbols-outlined text-[16px]">visibility</span>
@@ -2141,9 +2166,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* PAGINACIÓN DE RESULTADOS */}
-                    <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-                      <span className="text-xs text-gray-500">
-                        Página <strong>{resultsPage}</strong> de <strong>{resultsTotalPages}</strong> ({filteredEvaluations.length} evaluados mostrados)
+                    <div className="p-4 border-t border-[#eceaf6] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+                      <span className="text-xs text-[#8e8a9f]">
+                        Página <strong className="text-[#2d2c38]">{resultsPage}</strong> de <strong className="text-[#2d2c38]">{resultsTotalPages}</strong> ({filteredEvaluations.length} evaluados mostrados)
                       </span>
 
                       <div className="flex items-center gap-1">
@@ -2151,7 +2176,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           type="button"
                           disabled={resultsPage <= 1}
                           onClick={() => setResultsPage(1)}
-                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 cursor-pointer"
                         >
                           «
                         </button>
@@ -2159,15 +2184,18 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           type="button"
                           disabled={resultsPage <= 1}
                           onClick={() => setResultsPage(p => Math.max(1, p - 1))}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 cursor-pointer"
                         >
                           Anterior
                         </button>
+                        <span className="px-3 py-1.5 text-xs font-extrabold text-[#7052c9] bg-[#f4f1fd] rounded-xl border border-[#e2e0ed]">
+                          {resultsPage} / {resultsTotalPages}
+                        </span>
                         <button
                           type="button"
                           disabled={resultsPage >= resultsTotalPages}
                           onClick={() => setResultsPage(p => Math.min(resultsTotalPages, p + 1))}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 cursor-pointer"
                         >
                           Siguiente
                         </button>
@@ -2175,7 +2203,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           type="button"
                           disabled={resultsPage >= resultsTotalPages}
                           onClick={() => setResultsPage(resultsTotalPages)}
-                          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl border border-[#eceaf6] text-xs font-bold text-[#585567] hover:bg-[#f8f7fc] disabled:opacity-30 cursor-pointer"
                         >
                           »
                         </button>
@@ -2186,22 +2214,22 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   {/* ================= MODAL DE DETALLES DEL ALUMNO / RÚBRICA ================= */}
                   {selectedEvaluationDetail && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-                      <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200 animate-scaleUp">
+                      <div className="bg-white rounded-4xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-[#eceaf6] animate-scaleUp">
                         {/* Cabecera del modal */}
-                        <div className="bg-gradient-to-r from-[#161a33] to-[#2528b7] p-6 text-white flex items-center justify-between">
+                        <div className="bg-gradient-to-r from-[#2d2454] via-[#5446a8] to-[#7052c9] p-6 text-white flex items-center justify-between">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-900 font-extrabold text-[10px] tracking-wider uppercase">
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-[#1a1926] font-black text-[10px] tracking-wider uppercase">
                                 Acta de Evaluación Oral Oficial
                               </span>
-                              <span className="text-xs text-slate-300">
+                              <span className="text-xs text-[#e9e3ff]">
                                 {selectedEvaluationDetail.completedAt ? new Date(selectedEvaluationDetail.completedAt).toLocaleString('es-SV') : 'Hoy'}
                               </span>
                             </div>
-                            <h3 className="font-heading font-extrabold text-2xl text-white mt-1">
+                            <h3 className="font-heading font-black text-2xl text-white mt-1">
                               {selectedEvaluationDetail.studentName}
                             </h3>
-                            <div className="text-xs text-indigo-200 font-mono flex items-center gap-3 mt-1 flex-wrap">
+                            <div className="text-xs text-[#e9e3ff] font-mono flex items-center gap-3 mt-1 flex-wrap">
                               <span>Carnet: <strong>{selectedEvaluationDetail.studentCarnet || 'N/A'}</strong></span>
                               <span>·</span>
                               <span>{selectedEvaluationDetail.grade} - Secc. {selectedEvaluationDetail.section}</span>
@@ -2380,21 +2408,21 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
               {currentSection === 'security_audit' && (
                 <div className="space-y-6">
                   {/* Encabezado y resumen métrico */}
-                  <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0 shadow-inner">
+                  <div className="bg-gradient-to-r from-[#ffeef2] via-[#fff5f7] to-[#fbfbfb] rounded-4xl p-7 border border-[#ffd5df] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-3xl bg-white border border-[#ffd5df] text-rose-600 flex items-center justify-center shrink-0 shadow-xs">
                         <span className="material-symbols-outlined text-[32px]">shield</span>
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h2 className="font-heading font-extrabold text-xl text-on-surface">
+                          <h2 className="font-heading font-black text-xl text-[#2d2c38]">
                             Supervisión de Seguridad y Antifraude
                           </h2>
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
                             Tiempo Real
                           </span>
                         </div>
-                        <p className="text-xs text-on-surface-variant mt-0.5">
+                        <p className="text-xs text-[#8e8a9f] mt-1 font-medium">
                           Monitoreo de salidas de pestaña, cambios de ventana, atajos bloqueados y desconexiones durante las pruebas digitales.
                         </p>
                       </div>
@@ -2404,7 +2432,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       <button
                         type="button"
                         onClick={loadData}
-                        className="px-4 py-2 rounded-2xl bg-surface-container hover:bg-surface-container-high text-xs font-bold text-on-surface transition-all flex items-center gap-1.5 cursor-pointer border border-outline-variant/40"
+                        className="px-4 py-2 rounded-2xl bg-white hover:bg-[#f8f7fc] text-xs font-bold text-[#5446a8] transition-all flex items-center gap-1.5 cursor-pointer border border-[#eceaf6] shadow-xs"
                       >
                         <span className="material-symbols-outlined text-[16px]">sync</span>
                         <span>Actualizar Datos</span>
@@ -2413,7 +2441,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       <button
                         type="button"
                         onClick={() => setCurrentSection('interview')}
-                        className="px-4 py-2 rounded-2xl bg-[#2528b7] text-white hover:brightness-110 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20"
+                        className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#8a70d6] to-[#7052c9] hover:from-[#7a60c7] hover:to-[#5e41b5] text-white text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#8a70d6]/20"
                       >
                         <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
                         <span>Ir a Entrevistas</span>
@@ -2445,7 +2473,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
 
                     return (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-white rounded-2xl p-4 border border-rose-200 shadow-xs flex items-center justify-between">
+                        <div className="card-academy p-5 border-rose-200/80 bg-gradient-to-br from-white to-rose-50/20 flex items-center justify-between">
                           <div>
                             <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">
                               Alumnos con Incidencias
@@ -2453,14 +2481,14 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <span className="font-heading font-black text-2xl text-rose-900 mt-1 block">
                               {flaggedStudents.length}
                             </span>
-                            <span className="text-[11px] text-gray-500">De {students.length} alumnos totales</span>
+                            <span className="text-[11px] text-[#8e8a9f]">De {students.length} alumnos totales</span>
                           </div>
-                          <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
                             <span className="material-symbols-outlined text-[26px]">person_alert</span>
                           </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs flex items-center justify-between">
+                        <div className="card-academy p-5 border-amber-200/80 bg-gradient-to-br from-white to-amber-50/20 flex items-center justify-between">
                           <div>
                             <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">
                               Total de Salidas Registradas
@@ -2468,14 +2496,14 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <span className="font-heading font-black text-2xl text-amber-900 mt-1 block">
                               {totalIncidentsCount}
                             </span>
-                            <span className="text-[11px] text-gray-500">En todas las evaluaciones digitales</span>
+                            <span className="text-[11px] text-[#8e8a9f]">En todas las evaluaciones digitales</span>
                           </div>
-                          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
                             <span className="material-symbols-outlined text-[26px]">tab_unselected</span>
                           </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl p-4 border border-emerald-200 shadow-xs flex items-center justify-between">
+                        <div className="card-academy p-5 border-emerald-200/80 bg-gradient-to-br from-white to-emerald-50/20 flex items-center justify-between">
                           <div>
                             <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
                               Alumnos Sin Ninguna Alerta
@@ -2483,9 +2511,9 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <span className="font-heading font-black text-2xl text-emerald-900 mt-1 block">
                               {Math.max(0, students.length - flaggedStudents.length)}
                             </span>
-                            <span className="text-[11px] text-gray-500">Comportamiento transparente</span>
+                            <span className="text-[11px] text-[#8e8a9f]">Comportamiento transparente</span>
                           </div>
-                          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                             <span className="material-symbols-outlined text-[26px]">verified_user</span>
                           </div>
                         </div>
@@ -2494,13 +2522,13 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   })()}
 
                   {/* Tabla de Alumnos con Alertas de Fraude */}
-                  <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="card-academy overflow-hidden">
+                    <div className="p-4 border-b border-[#eceaf6] flex items-center justify-between bg-[#fbfbfb]">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-heading font-bold text-sm text-gray-900">
+                        <h3 className="font-heading font-black text-sm text-[#2d2c38]">
                           Bitácora de Estudiantes con Alertas
                         </h3>
-                        <span className="text-[11px] text-gray-500">
+                        <span className="text-[11px] text-[#8e8a9f]">
                           (Haz clic en <strong>"Ver Registro"</strong> para auditar fechas, horas y tipo de acción)
                         </span>
                       </div>
@@ -2509,7 +2537,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs md:text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 bg-white">
+                          <tr className="border-b border-[#eceaf6] text-[11px] font-black uppercase text-[#8e8a9f] bg-[#fbfbfb]">
                             <th className="py-3 px-3">Carnet</th>
                             <th className="py-3 px-3">Estudiante</th>
                             <th className="py-3 px-3 text-center">Grado</th>
@@ -2521,7 +2549,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <th className="py-3 px-3 text-right">Auditoría</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-[#eceaf6]/60">
                           {(() => {
                             const flagged = students.filter(s => {
                               const c = s.completedExams || {}
@@ -2531,11 +2559,11 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             if (flagged.length === 0) {
                               return (
                                 <tr>
-                                  <td colSpan="9" className="py-12 text-center text-gray-400 text-xs italic">
+                                  <td colSpan="9" className="py-12 text-center text-[#8e8a9f] text-xs italic">
                                     <div className="flex flex-col items-center gap-2">
                                       <span className="material-symbols-outlined text-[36px] text-emerald-500">check_circle</span>
-                                      <span className="font-bold text-gray-700">No hay incidencias de seguridad registradas</span>
-                                      <span className="text-gray-400">Todos los estudiantes han completado sus exámenes sin registrar salidas no autorizadas.</span>
+                                      <span className="font-bold text-[#2d2c38]">No hay incidencias de seguridad registradas</span>
+                                      <span className="text-[#8e8a9f]">Todos los estudiantes han completado sus exámenes sin registrar salidas no autorizadas.</span>
                                     </div>
                                   </td>
                                 </tr>
@@ -2550,36 +2578,36 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               )
 
                               return (
-                                <tr key={s.id || s.email} className="hover:bg-rose-50/20 transition-colors">
-                                  <td className="py-3.5 px-3 font-mono font-bold text-gray-700">
+                                <tr key={s.id || s.email} className="table-academy-row hover:bg-rose-50/30">
+                                  <td className="py-3.5 px-3 font-mono font-bold text-[#585567]">
                                     {s.carnet || 'N/A'}
                                   </td>
                                   <td className="py-3.5 px-3">
-                                    <div className="font-semibold text-gray-900">{s.name}</div>
-                                    <div className="text-[11px] text-gray-400 font-mono truncate max-w-xs">{s.email}</div>
+                                    <div className="font-extrabold text-[#2d2c38]">{s.name}</div>
+                                    <div className="text-[11px] text-[#8e8a9f] font-mono truncate max-w-xs">{s.email}</div>
                                   </td>
                                   <td className="py-3.5 px-3 text-center">
-                                    <span className="inline-block px-2 py-0.5 rounded-lg bg-slate-100 font-bold text-slate-700">
+                                    <span className="inline-block px-2 py-0.5 rounded-lg bg-[#f4f1fd] font-bold text-[#5446a8] border border-[#e2e0ed]">
                                       {s.grade || s.codigoGrado || '-'}
                                     </span>
                                   </td>
-                                  <td className="py-3.5 px-3 text-center font-bold text-gray-600">
+                                  <td className="py-3.5 px-3 text-center font-bold text-[#585567]">
                                     {s.section || '-'}
                                   </td>
-                                  <td className="py-3.5 px-3 text-gray-700 font-medium">
+                                  <td className="py-3.5 px-3 text-[#2d2c38] font-medium">
                                     {s.assignedTeacher || 'Sin asignar'}
                                   </td>
                                   <td className="py-3.5 px-3 text-center">
                                     {s.assignedLevel ? (
-                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed]">
                                         {s.assignedLevel}
                                       </span>
                                     ) : (
-                                      <span className="text-[11px] text-gray-400">Sin nivel</span>
+                                      <span className="text-[11px] text-[#8e8a9f]">Sin nivel</span>
                                     )}
                                   </td>
                                   <td className="py-3.5 px-3 text-center">
-                                    <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1 shadow-2xs">
                                       <span className="material-symbols-outlined text-[15px] text-rose-600">warning</span>
                                       <span>{totalWarnings} advertencia(s)</span>
                                     </span>
@@ -2605,7 +2633,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                       <button
                                         type="button"
                                         onClick={() => setSelectedStudentSecurityDetail(s)}
-                                        className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#8a70d6] to-[#7052c9] hover:from-[#7a60c7] hover:to-[#5e41b5] text-white text-xs font-black transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
                                       >
                                         <span className="material-symbols-outlined text-[15px]">visibility</span>
                                         <span>Ver Registro</span>
