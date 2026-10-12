@@ -20,10 +20,15 @@ export default function GradeDispatchHub({
   onSetStudentStatus,
   onResetGradeOverrides,
   onCallInterviewStudent,
+  onUnlockStudentExam,
+  onViewStudentSecurity,
   currentTeacher
 }) {
   // Navegación: null = vista principal de reproductores (cards de grados), string (ej: '7') = vista dedicada de nómina
   const [activeRosterGradeId, setActiveRosterGradeId] = useState(null)
+
+  // Modal de Detalle de Exámenes del Estudiante en la Nómina
+  const [selectedStudentDetailModal, setSelectedStudentDetailModal] = useState(null)
 
   // Filtros de la nómina: { section, level, teacher, search }
   const [rosterFilters, setRosterFilters] = useState({
@@ -79,6 +84,162 @@ export default function GradeDispatchHub({
       status: gradePlatformStatus,
       isOverride: false
     }
+  }
+
+  // Renderizador del Modal de Detalle de Evaluaciones (utilizado tanto en Nómina como en Vista Principal)
+  const renderStudentDetailModal = () => {
+    if (!selectedStudentDetailModal) return null
+    const modalStudent = students.find(s => (s.email || '').toLowerCase() === (selectedStudentDetailModal.email || '').toLowerCase()) || selectedStudentDetailModal
+    const completedExams = modalStudent.completedExams || {}
+    const examEntries = Object.entries(completedExams)
+
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+        <div className="bg-white rounded-3xl max-w-xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-[#eceaf6] animate-scaleUp">
+          {/* Cabecera del modal */}
+          <div className="bg-gradient-to-r from-[#2d2454] via-[#5446a8] to-[#7052c9] p-5 text-white flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-[#1a1926] font-black text-[10px] tracking-wider uppercase">
+                  Detalle de Evaluaciones
+                </span>
+                <span className="text-xs text-[#e9e3ff] font-mono">
+                  {modalStudent.carnet || modalStudent.grade || ''}
+                </span>
+              </div>
+              <h3 className="font-heading font-black text-xl text-white mt-1">
+                {modalStudent.name}
+              </h3>
+              <span className="text-[11px] text-[#e9e3ff] block font-mono">
+                {modalStudent.email}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedStudentDetailModal(null)}
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+
+          {/* Cuerpo del modal con lista de actividades */}
+          <div className="p-5 overflow-y-auto space-y-4 flex-1 bg-slate-50">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-[#585567] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[17px] text-[#5446a8]">fact_check</span>
+                <span>Actividades Realizadas ({examEntries.length})</span>
+              </span>
+
+              {examEntries.length > 0 && onUnlockStudentExam && (
+                <button
+                  type="button"
+                  onClick={() => onUnlockStudentExam(modalStudent, null)}
+                  className="px-2.5 py-1 rounded-xl text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-1 cursor-pointer"
+                  title="Resetear todas las actividades de este alumno para que las realice de nuevo"
+                >
+                  <span className="material-symbols-outlined text-[13px]">restart_alt</span>
+                  <span>Resetear Todas</span>
+                </button>
+              )}
+            </div>
+
+            {examEntries.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[#8e8a9f] italic bg-white rounded-2xl border border-dashed border-[#eceaf6]">
+                Este alumno no tiene actividades digitales completadas actualmente.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {examEntries.map(([eid, edata]) => {
+                  const isListening = eid.toLowerCase().includes('listening') || (edata.examTitle || '').toLowerCase().includes('listening') || (edata.examTitle || '').toLowerCase().includes('audio')
+                  const warnings = edata.warningsCount || (edata.incidents?.length || 0)
+
+                  return (
+                    <div
+                      key={eid}
+                      className={`p-3.5 bg-white rounded-2xl border shadow-2xs space-y-2 transition-all ${
+                        isListening ? 'border-indigo-200 bg-gradient-to-br from-indigo-50/20 to-white' : 'border-[#eceaf6]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`material-symbols-outlined text-[20px] shrink-0 ${isListening ? 'text-indigo-600' : 'text-[#8a70d6]'}`}>
+                            {isListening ? 'headphones' : 'assignment'}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-xs text-[#2d2c38] truncate block">
+                                {edata.examTitle || eid.replace('exam_official_', '').replace(/_/g, ' ')}
+                              </span>
+                              {isListening && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                  Listening
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-[#8e8a9f]">
+                              {edata.completedAt ? new Date(edata.completedAt).toLocaleString('es-SV') : 'Completado'}
+                              {edata.byTimeout ? ' • Límite tiempo' : ''}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {edata.score !== undefined && (
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono border ${
+                              edata.score >= 60 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}>
+                              {edata.score}%
+                            </span>
+                          )}
+                          {warnings > 0 && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              {warnings} alerta(s)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-dashed border-[#eceaf6] flex items-center justify-between text-[11px]">
+                        <span className="text-[10px] text-gray-400">
+                          {edata.correctCount != null ? `Aciertos: ${edata.correctCount}/${edata.totalQuestions || 0}` : 'Enviado'}
+                        </span>
+                        {onUnlockStudentExam && (
+                          <button
+                            type="button"
+                            onClick={() => onUnlockStudentExam(modalStudent, eid)}
+                            className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title={`Resetear esta actividad (${edata.examTitle || eid}) para que el alumno pueda realizarla de nuevo`}
+                          >
+                            <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                            <span>Resetear esta actividad</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Pie del modal */}
+          <div className="p-4 bg-white border-t border-[#eceaf6] flex items-center justify-between">
+            <div className="text-xs text-[#8e8a9f]">
+              Total: <strong className="text-[#2d2c38]">{examEntries.length}</strong> prueba(s)
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedStudentDetailModal(null)}
+              className="px-5 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all cursor-pointer"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Si estamos en la vista de nómina de un grado específico
@@ -370,7 +531,7 @@ export default function GradeDispatchHub({
                             )}
                           </div>
                           <p className="text-[11px] text-[#8e8a9f] font-mono">
-                            NIE: {st.carnet || st.nie || 'N/A'} • Secc. {st.section || 'A'}
+                            NIE: {st.carnet || st.nie || 'N/A'} • {st.grade || ''} {st.section || 'A'}
                           </p>
                         </div>
 
@@ -417,19 +578,32 @@ export default function GradeDispatchHub({
                           </button>
                         </div>
 
-                        {/* Fila divisoria punteada estilo referencia */}
-                        <div className="border-t border-dashed border-[#eceaf6] pt-2.5 flex items-center justify-between text-[11px]">
-                          <span className="text-[#8e8a9f] font-medium flex items-center gap-1">
+                        {/* Fila divisoria punteada con estado de pruebas y botón de reset / auditoría */}
+                        <div className="border-t border-dashed border-[#eceaf6] pt-2.5 flex items-center justify-between text-[11px] gap-2">
+                          <span className="text-[#8e8a9f] font-medium flex items-center gap-1 shrink-0">
                             <span className="material-symbols-outlined text-[14px] text-[#8a70d6]">fact_check</span>
                             <span>Pruebas Digitales:</span>
                           </span>
-                          <span className="font-bold text-[#2d2c38]">
-                            {completedCount > 0 ? (
-                              <span className="text-emerald-700">{completedCount} test(s) listos</span>
-                            ) : (
-                              <span className="text-[#8e8a9f]">Sin iniciar</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="font-bold text-[#2d2c38]">
+                              {completedCount > 0 ? (
+                                <span className="text-emerald-700">{completedCount} test(s)</span>
+                              ) : (
+                                <span className="text-[#8e8a9f]">Sin iniciar</span>
+                              )}
+                            </span>
+                            {completedCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedStudentDetailModal(st)}
+                                className="px-2.5 py-1 rounded-xl text-[10px] font-bold text-[#5446a8] bg-[#f4f1fd] hover:bg-[#e9e3ff] border border-[#e2e0ed] transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                title="Ver detalle de exámenes realizados y resetear actividades individuales o todas"
+                              >
+                                <span className="material-symbols-outlined text-[13px]">visibility</span>
+                                <span>Detalle</span>
+                              </button>
                             )}
-                          </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -486,6 +660,9 @@ export default function GradeDispatchHub({
             </div>
           )}
         </div>
+
+        {/* Modal de Detalle de Evaluaciones en la Nómina */}
+        {renderStudentDetailModal()}
       </div>
     )
   }
@@ -756,6 +933,9 @@ export default function GradeDispatchHub({
           )
         })}
       </div>
+
+      {/* Modal de Detalle de Evaluaciones (permite resetear una a una o todas) */}
+      {renderStudentDetailModal()}
     </div>
   )
 }

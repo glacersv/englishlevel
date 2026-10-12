@@ -23,8 +23,31 @@
 }
 
 @media print {
-  body {
+  body:not(.printing-report) {
     display: none !important;
+  }
+  body.printing-report {
+    background: white !important;
+    color: #111827 !important;
+  }
+  body.printing-report #root {
+    background: white !important;
+  }
+  body.printing-report .no-print,
+  body.printing-report aside,
+  body.printing-report header,
+  body.printing-report nav {
+    display: none !important;
+  }
+  .print-only {
+    display: none;
+  }
+  body.printing-report .print-only {
+    display: block !important;
+  }
+  @page {
+    size: letter portrait;
+    margin: 15mm 15mm 15mm 15mm;
   }
 }
 

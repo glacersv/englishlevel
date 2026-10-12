@@ -5,6 +5,8 @@ export default function AnalyticsDashboard({
   evaluations = [],
   academic = { grades: [], sections: [] },
   onResetStudent = null,
+  onUnlockExam = null,
+  onClearFraud = null,
   isTeacherView = false,
   teacherName = ''
 }) {
@@ -495,7 +497,7 @@ export default function AnalyticsDashboard({
                   <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5 flex-wrap">
                     <span>Carnet: <strong className="font-mono text-brand-dark">{selectedDetailStudent.carnet || 'S/C'}</strong></span>
                     <span>•</span>
-                    <span>{selectedDetailStudent.grade || '7° Grado'} Secc. {selectedDetailStudent.section || 'A'}</span>
+                    <span>{selectedDetailStudent.grade || '7°'} {selectedDetailStudent.section || 'A'}</span>
                     <span>•</span>
                     <span className="text-gray-400 font-mono text-[11px]">{selectedDetailStudent.email}</span>
                   </div>
@@ -588,42 +590,84 @@ export default function AnalyticsDashboard({
                     2. Batería de Tests Digitales ({selectedDetailStudent.examsDone} exámenes)
                   </span>
                 </div>
-                {selectedDetailStudent.avgScore != null && (
-                  <span className="px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 font-black text-[11px]">
-                    Promedio: {selectedDetailStudent.avgScore}%
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {selectedDetailStudent.avgScore != null && (
+                    <span className="px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 font-black text-[11px]">
+                      Promedio: {selectedDetailStudent.avgScore}%
+                    </span>
+                  )}
+                  {onUnlockExam && selectedDetailStudent.completedExams && Object.keys(selectedDetailStudent.completedExams).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onUnlockExam(selectedDetailStudent, null)}
+                      className="px-2.5 py-1 rounded-xl text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-1 cursor-pointer"
+                      title="Reiniciar todos los exámenes digitales del estudiante para que los realice de nuevo"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">restart_alt</span>
+                      <span>Resetear Todas</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {selectedDetailStudent.completedExams && Object.keys(selectedDetailStudent.completedExams).length > 0 ? (
                 <div className="space-y-2">
-                  {Object.entries(selectedDetailStudent.completedExams).map(([eid, exData]) => (
-                    <div key={eid} className="p-3 bg-white rounded-xl border border-sky-100 flex items-center justify-between text-xs gap-2">
-                      <div className="min-w-0">
-                        <span className="font-bold text-gray-800 block truncate">
-                          {exData.examTitle || eid.replace('exam_official_', '').replace(/_/g, ' ')}
-                        </span>
-                        <span className="text-[10px] text-gray-400">
-                          {exData.completedAt ? new Date(exData.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Completado'}
-                          {exData.byTimeout ? ' • Por límite de tiempo' : ' • Enviado a tiempo'}
-                        </span>
-                      </div>
+                  {Object.entries(selectedDetailStudent.completedExams).map(([eid, exData]) => {
+                    const isListening = eid.toLowerCase().includes('listening') || (exData.examTitle || '').toLowerCase().includes('listening') || (exData.examTitle || '').toLowerCase().includes('audio')
+                    return (
+                      <div key={eid} className={`p-3 bg-white rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2 transition-all ${
+                        isListening ? 'border-indigo-200 bg-gradient-to-r from-indigo-50/30 to-white' : 'border-sky-100'
+                      }`}>
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span className={`material-symbols-outlined text-[18px] shrink-0 ${isListening ? 'text-indigo-600' : 'text-sky-600'}`}>
+                            {isListening ? 'headphones' : 'assignment'}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-gray-800 block truncate">
+                                {exData.examTitle || eid.replace('exam_official_', '').replace(/_/g, ' ')}
+                              </span>
+                              {isListening && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                  Listening
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-gray-400">
+                              {exData.completedAt ? new Date(exData.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Completado'}
+                              {exData.byTimeout ? ' • Por límite de tiempo' : ' • Enviado a tiempo'}
+                            </span>
+                          </div>
+                        </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        {exData.score !== undefined ? (
-                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
-                            exData.score >= 60 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700'
-                          }`}>
-                            {exData.correctCount != null ? `${exData.correctCount}/${exData.totalQuestions} (${exData.score}%)` : `${exData.score}%`}
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
-                            Entregado (Sin nota)
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                          {exData.score !== undefined ? (
+                            <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
+                              exData.score >= 60 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {exData.correctCount != null ? `${exData.correctCount}/${exData.totalQuestions} (${exData.score}%)` : `${exData.score}%`}
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                              Entregado
+                            </span>
+                          )}
+
+                          {onUnlockExam && (
+                            <button
+                              type="button"
+                              onClick={() => onUnlockExam(selectedDetailStudent, eid)}
+                              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title={`Resetear esta actividad (${exData.examTitle || eid}) para que el alumno pueda realizarla de nuevo`}
+                            >
+                              <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                              <span>Resetear Actividad</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="p-3 bg-white/70 rounded-xl border border-dashed border-sky-200 text-center text-xs text-gray-400 italic">
@@ -652,15 +696,29 @@ export default function AnalyticsDashboard({
                   </span>
                 </div>
 
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                  selectedDetailStudent.totalWarnings > 0
-                    ? 'bg-rose-100 text-rose-800'
-                    : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {selectedDetailStudent.totalWarnings > 0
-                    ? `${selectedDetailStudent.totalWarnings} advertencias`
-                    : 'Sin incidencias'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                    selectedDetailStudent.totalWarnings > 0
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {selectedDetailStudent.totalWarnings > 0
+                      ? `${selectedDetailStudent.totalWarnings} advertencias`
+                      : 'Sin incidencias'}
+                  </span>
+
+                  {onClearFraud && selectedDetailStudent.totalWarnings > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onClearFraud(selectedDetailStudent, null)}
+                      className="px-2.5 py-0.5 rounded-xl text-[10px] font-bold text-rose-800 bg-white hover:bg-rose-100 border border-rose-300 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                      title="Resetear y limpiar las alertas de fraude de este alumno"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">cleaning_services</span>
+                      <span>Resetear Fraude</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {selectedDetailStudent.totalWarnings > 0 ? (

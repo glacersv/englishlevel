@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import iconNextApp from '../../assets/icon_next_app.png'
 
 export default function Sidebar({
@@ -16,6 +16,58 @@ export default function Sidebar({
   collapseTooltip = 'Colapsar barra',
   expandTooltip = 'Expandir barra'
 }) {
+  // Estado de grupos colapsados: mapeo de { [categoryLabel]: boolean (true = colapsado) }
+  const [collapsedCategories, setCollapsedCategories] = useState({})
+
+  // Asegurar que la categoría del item activo esté siempre expandida
+  useEffect(() => {
+    if (!activeKey) return
+    let currentCat = null
+    for (const item of menuItems) {
+      if (item.type === 'category' || item.isCategory) {
+        currentCat = item.label
+      } else if (item.key === activeKey && currentCat) {
+        setCollapsedCategories(prev => {
+          if (prev[currentCat]) {
+            const next = { ...prev }
+            delete next[currentCat]
+            return next
+          }
+          return prev
+        })
+        break
+      }
+    }
+  }, [activeKey, menuItems])
+
+  const toggleCategory = (catLabel) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [catLabel]: !prev[catLabel]
+    }))
+  }
+
+  // Agrupar items por categorías o items sueltos
+  const groupedSections = React.useMemo(() => {
+    const sections = []
+    let currentSection = { category: null, items: [] }
+
+    menuItems.forEach((item, idx) => {
+      if (item.type === 'category' || item.isCategory) {
+        if (currentSection.category || currentSection.items.length > 0) {
+          sections.push(currentSection)
+        }
+        currentSection = { category: item, items: [] }
+      } else {
+        currentSection.items.push(item)
+      }
+    })
+    if (currentSection.category || currentSection.items.length > 0) {
+      sections.push(currentSection)
+    }
+    return sections
+  }, [menuItems])
+
   return (
     <aside
       className={`bg-white border-r border-[#eceaf6] flex flex-col justify-between transition-all duration-300 z-40 shrink-0 shadow-xs ${
@@ -67,50 +119,94 @@ export default function Sidebar({
           </button>
         </div>
 
-        {/* Lista de Navegación */}
-        <nav className="p-3.5 space-y-1.5">
-          {menuItems.map((item) => {
-            const isActive = activeKey === item.key
+        {/* Lista de Navegación con Categorías Colapsables */}
+        <nav className="p-3.5 space-y-1.5 max-h-[calc(100vh-220px)] overflow-y-auto">
+          {groupedSections.map((sec, secIdx) => {
+            const catLabel = sec.category?.label
+            const isCatCollapsed = catLabel ? Boolean(collapsedCategories[catLabel]) : false
+            const hasActiveItem = sec.items.some(it => it.key === activeKey)
+
             return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => onSelect(item.key)}
-                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer relative ${
-                  isActive
-                    ? 'bg-[#e9e3ff] text-[#5446a8] shadow-xs ring-1 ring-[#8a70d6]/20'
-                    : 'text-[#585567] hover:bg-[#f8f7fc] hover:text-[#2d2c38]'
-                } ${collapsed ? 'justify-center px-0' : 'justify-start'}`}
-                title={collapsed ? item.label : undefined}
-              >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                  isActive ? 'bg-white text-[#8a70d6] shadow-xs' : 'text-[#8e8a9f]'
-                }`}>
-                  <span
-                    className={`material-symbols-outlined text-[20px] ${
-                      isActive ? 'fill' : ''
-                    }`}
-                  >
-                    {item.icon}
-                  </span>
-                </div>
-
-                {!collapsed && (
-                  <span className="truncate flex-1 text-left tracking-wide">{item.label}</span>
+              <div key={sec.category?.key || catLabel || `sec_${secIdx}`} className="space-y-1">
+                {sec.category && (
+                  collapsed ? (
+                    <div className="my-2 border-t border-[#eceaf6] mx-2" title={catLabel} />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(catLabel)}
+                      className="w-full flex items-center justify-between pt-2.5 pb-1 px-2.5 text-left rounded-lg hover:bg-[#f8f7fc] group cursor-pointer transition-colors"
+                      title={isCatCollapsed ? `Expandir ${catLabel}` : `Colapsar ${catLabel}`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-black uppercase tracking-wider transition-colors ${
+                          hasActiveItem ? 'text-[#5446a8]' : 'text-[#8e8a9f] group-hover:text-[#2d2c38]'
+                        }`}>
+                          {catLabel}
+                        </span>
+                        {isCatCollapsed && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#8a70d6]/70"></span>
+                        )}
+                      </div>
+                      <span className={`material-symbols-outlined text-[16px] text-[#8e8a9f] group-hover:text-[#5446a8] transition-transform duration-200 ${
+                        isCatCollapsed ? '-rotate-90' : 'rotate-0'
+                      }`}>
+                        expand_more
+                      </span>
+                    </button>
+                  )
                 )}
 
-                {!collapsed && item.badge && (
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-tight ${
-                      isActive
-                        ? 'bg-[#8a70d6] text-white shadow-xs'
-                        : 'bg-[#f4f1fd] text-[#8a70d6]'
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
+                {/* Subitems de la sección (visibles si no está colapsada la categoría) */}
+                {(!isCatCollapsed || collapsed) && (
+                  <div className="space-y-0.5 animate-fadeIn">
+                    {sec.items.map((item) => {
+                      const isActive = activeKey === item.key
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => onSelect(item.key)}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer relative ${
+                            isActive
+                              ? 'bg-[#e9e3ff] text-[#5446a8] shadow-2xs ring-1 ring-[#8a70d6]/20'
+                              : 'text-[#585567] hover:bg-[#f8f7fc] hover:text-[#2d2c38]'
+                          } ${collapsed ? 'justify-center px-0' : 'justify-start'}`}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                            isActive ? 'bg-white text-[#8a70d6] shadow-xs' : 'text-[#8e8a9f]'
+                          }`}>
+                            <span
+                              className={`material-symbols-outlined text-[18px] ${
+                                isActive ? 'fill' : ''
+                              }`}
+                            >
+                              {item.icon}
+                            </span>
+                          </div>
+
+                          {!collapsed && (
+                            <span className="truncate flex-1 text-left tracking-tight text-[12px]">{item.label}</span>
+                          )}
+
+                          {!collapsed && item.badge && (
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-tight shrink-0 ${
+                                isActive
+                                  ? 'bg-[#8a70d6] text-white shadow-2xs'
+                                  : 'bg-[#f4f1fd] text-[#8a70d6]'
+                              }`}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
             )
           })}
         </nav>

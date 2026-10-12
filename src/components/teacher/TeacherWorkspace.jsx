@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Sidebar from '../shared/Sidebar'
 import ExamBuilder from './ExamBuilder'
 import OralInterviewExam from './OralInterviewExam'
@@ -27,6 +27,7 @@ import {
   setStudentExamStatus,
   resetGradeExamOverrides,
   unlockStudentExam,
+  clearFraudIncidents,
   getCoordinationModulesConfig
 } from '../../lib/dataService'
 
@@ -53,10 +54,21 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   }, [user])
 
   // Segmentos / Toggles de Grados, Secciones, Especialidad de Bachillerato y Filtro por Docente Asignado
+  const [activeInterviewGradeId, setActiveInterviewGradeId] = useState(null) // null = ver tarjetas de grados, '6','7','8',etc = ver nómina
   const [gradePill, setGradePill] = useState('all')
   const [sectionPill, setSectionPill] = useState('all')
   const [modalityPill, setModalityPill] = useState('all') // 'all' | 'General' | 'Técnico'
   const [levelPill, setLevelPill] = useState('all')
+
+  // Estados para Navegador y Filtros de Fraudes y Pestaña (Combinación A + B)
+  const [fraudGradeFilter, setFraudGradeFilter] = useState('all') // 'all' o '6','7','8','9','10','11'
+  const [fraudSeverityFilter, setFraudSeverityFilter] = useState('all') // 'all' | 'critical' (>=3 o auto) | 'medium' (2) | 'low' (1)
+  const [fraudSectionFilter, setFraudSectionFilter] = useState('all')
+  const [fraudSearchTerm, setFraudSearchTerm] = useState('')
+  const [fraudPage, setFraudPage] = useState(1)
+  const fraudPageSize = 12
+  const [expandedFraudStudentId, setExpandedFraudStudentId] = useState(null)
+  const [expandedInterviewStudentId, setExpandedInterviewStudentId] = useState(null)
   // Por defecto, si el usuario logueado es uno de los docentes oficiales, se preselecciona ver sus alumnos asignados
   const [teacherFilter, setTeacherFilter] = useState(() => {
     const email = (user?.email || '').toLowerCase()
@@ -117,6 +129,234 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   const [resultsTeacherFilter, setResultsTeacherFilter] = useState('all')
   const [resultsPage, setResultsPage] = useState(1)
   const resultsPageSize = 10
+
+  // Estado para visualización e impresión de Acta Oficial
+  const [actaToPrint, setActaToPrint] = useState(null) // null o { title, items, gradeFilter, teacherFilter, date }
+
+  // Modal para componer y editar el mensaje de Microsoft Teams antes de enviar
+  const [teamsModalData, setTeamsModalData] = useState(null) // null o { studentEmail, studentName, grade, groupLevel, cefrLevel, message }
+
+  // Obtener el nivel institucional de destino (L1-A, L1-B, L2, L3, L4, etc.)
+  // Obtener la información completa de ubicación según la Matriz Oficial Institucional y el % obtenido
+  const getEvaluationPlacementData = (studentOrEval) => {
+    if (!studentOrEval) {
+      return { group: 'Sin Asignar', scorePercent: 0, category: 'intermediate', categoryLabel: 'Intermedio', cefr: 'A2' }
+    }
+
+    const email = (studentOrEval.email || studentOrEval.studentEmail || '').toLowerCase()
+    const student = students.find(s => (s.email || '').toLowerCase() === email) || studentOrEval
+
+    // 1. Si ya tiene asignado un grupo institucional explícito (ej: L1-A, L2-B, L3...)
+    if (student.assignedGroup) {
+      return {
+        group: student.assignedGroup,
+        scorePercent: student.totalDiagnosticScore ?? studentOrEval.totalScorePercent ?? 0,
+        category: student.assignedGroup.includes('-A') ? 'basic' : student.assignedGroup.includes('-B') ? 'intermediate' : 'advanced',
+        categoryLabel: student.assignedGroup.includes('-A') ? 'Básico' : student.assignedGroup.includes('-B') ? 'Intermedio' : 'Avanzado',
+        cefr: student.assignedCefr || studentOrEval.finalLevel || 'A2'
+      }
+    }
+
+    // 2. Determinar porcentajes de plataforma y oral
+    const oralScore = typeof studentOrEval.oralScorePercent === 'number'
+      ? studentOrEval.oralScorePercent
+      : (typeof studentOrEval.scorePercent === 'number'
+        ? studentOrEval.scorePercent
+        : (studentOrEval.finalLevel === 'A1' ? 40 :
+           studentOrEval.finalLevel === 'A2' ? 60 :
+           studentOrEval.finalLevel === 'B1' ? 80 :
+           studentOrEval.finalLevel === 'B2' ? 95 :
+           studentOrEval.finalLevel === 'C1' ? 100 : (student.oralScorePercent || 0)))
+
+    // Calcular porcentaje de plataforma
+    const compExams = student.completedExams || {}
+    const examEntries = Object.values(compExams)
+    const platScore = examEntries.length > 0
+      ? Math.round(examEntries.reduce((acc, ex) => acc + (ex.score || 0), 0) / examEntries.length)
+      : (typeof student.platformScorePercent === 'number' ? student.platformScorePercent : oralScore)
+
+    // Ponderación (por defecto 60% plataforma, 40% oral)
+    const weights = diagnosticConfig?.weights || { platform: 60, oral: 40 }
+    const wPlat = (weights.platform ?? 60) / 100
+    const wOral = (weights.oral ?? 40) / 100
+    const totalScorePercent = Math.min(100, Math.max(0, Math.round((platScore * wPlat) + (oralScore * wOral))))
+
+    // 3. Determinar grado al que pasa el alumno
+    const rawGrade = String(studentOrEval.grade || student.grade || student.codigoGrado || '7')
+    const gradeNum = parseInt(rawGrade.replace(/\D/g, ''), 10) || 7
+    let targetGradeKey = '7'
+    if (gradeNum === 6) targetGradeKey = '7'
+    else if (gradeNum === 7) targetGradeKey = '8'
+    else if (gradeNum === 8) targetGradeKey = '9'
+    else if (gradeNum === 9) targetGradeKey = '10'
+    else if (gradeNum === 10) targetGradeKey = '11'
+    else if (gradeNum === 11) targetGradeKey = student.especialidad === 'Técnico' ? '12' : '11'
+
+    // 4. Cortes de la Matriz Oficial (Básico: 0-40%, Intermedio: 41-70%, Avanzado: ≥71%)
+    const cutoffs = diagnosticConfig?.cutoffs || { basicMax: 40, intermediateMax: 70 }
+    const bMax = cutoffs.basicMax ?? 40
+    const iMax = cutoffs.intermediateMax ?? 70
+
+    let category = 'intermediate'
+    let categoryLabel = 'Intermedio'
+    let suggestedCefr = 'A2'
+    if (totalScorePercent <= bMax) {
+      category = 'basic'
+      categoryLabel = 'Básico'
+      suggestedCefr = 'A1'
+    } else if (totalScorePercent <= iMax) {
+      category = 'intermediate'
+      categoryLabel = 'Intermedio'
+      suggestedCefr = 'A2'
+    } else {
+      category = 'advanced'
+      categoryLabel = 'Avanzado'
+      suggestedCefr = 'B1'
+    }
+
+    // 5. Matriz Fija Institucional Oficial de Libros y Grupos por Grado
+    const fixedMatrix = {
+      '7': { basic: 'L1-A', intermediate: 'L1-B', advanced: 'L2' },
+      '8': { basic: 'L2-A', intermediate: 'L2-B', advanced: 'L3' },
+      '9': { basic: 'L2-A', intermediate: 'L2-B', advanced: 'L3' },
+      '10': { basic: 'L3-A', intermediate: 'L3-B', advanced: 'L4-A' },
+      '11': { basic: 'L4-A', intermediate: 'L4-A', advanced: 'L5-A' },
+      '12': { basic: 'L4-A', intermediate: 'L5-A', advanced: 'L5-B' }
+    }
+
+    const dynDest = diagnosticConfig?.gradeDestinations?.[targetGradeKey]
+    const assignedGroup = dynDest?.[category]?.code || fixedMatrix[targetGradeKey]?.[category] || 'L1-B'
+
+    return {
+      group: assignedGroup,
+      scorePercent: totalScorePercent,
+      category,
+      categoryLabel,
+      cefr: student.assignedCefr || studentOrEval.finalLevel || suggestedCefr,
+      targetGrade: targetGradeKey
+    }
+  }
+
+  // Obtener el nivel institucional de destino (L1-A, L1-B, L2, L2-A, L2-B, L3, etc.)
+  const getStudentInstitutionalLevel = (studentOrEval) => {
+    return getEvaluationPlacementData(studentOrEval).group
+  }
+
+  // Abrir modal interactivo para previsualizar y editar el mensaje de Teams
+  const handleOpenTeamsComposer = (studentOrEval) => {
+    const email = studentOrEval.email || studentOrEval.studentEmail
+    if (!email) {
+      alert('El estudiante no tiene un correo institucional registrado.')
+      return
+    }
+
+    const name = studentOrEval.name || studentOrEval.studentName || 'Student'
+    const placement = getEvaluationPlacementData(studentOrEval)
+    const teacherName = currentTeacher?.name || user?.name || 'English Department Teacher'
+
+    // Determinar etiqueta en inglés de la categoría (Basic, Intermediate, Advanced)
+    const categoryEn = placement.category === 'basic' ? 'Basic' :
+                       placement.category === 'intermediate' ? 'Intermediate' : 'Advanced'
+    const targetGradeLabel = `${placement.targetGrade}th Grade`
+
+    const defaultMsg = `Hello ${name},\n\nGreetings from Prof. ${teacherName} from the Foreign Languages Department at Colegio Salesiano San José.\n\nI am sharing the official results of your English Diagnostic Assessment 2026:\n• Official Assigned Level: **${placement.group}** (${categoryEn})\n• Target Grade: ${targetGradeLabel}\n\nCongratulations on your effort, dedication, and commitment during this diagnostic process! Keep giving your best.`
+
+    setTeamsModalData({
+      studentEmail: email.trim(),
+      studentName: name,
+      grade: targetGradeLabel,
+      groupLevel: placement.group,
+      categoryLabel: categoryEn,
+      scorePercent: placement.scorePercent,
+      cefrLevel: placement.cefr,
+      message: defaultMsg
+    })
+  }
+
+  // Despachar hacia la URL de Teams
+  const handleSendTeamsMessage = () => {
+    if (!teamsModalData || !teamsModalData.studentEmail) return
+    const teamsUrl = `https://teams.microsoft.com/l/chat/0/0?users=${encodeURIComponent(teamsModalData.studentEmail)}&message=${encodeURIComponent(teamsModalData.message)}`
+    window.open(teamsUrl, '_blank')
+    setTeamsModalData(null)
+  }
+
+  // Exportar actas filtradas a Excel / CSV con Nivel de Matriz y % Global
+  const handleExportCSV = (evaluationsList, filename = 'Acta_Resultados_Ingles_2026.csv') => {
+    if (!evaluationsList || evaluationsList.length === 0) {
+      alert('No hay evaluaciones para exportar con los filtros seleccionados.')
+      return
+    }
+
+    const headers = [
+      'Carnet',
+      'Estudiante',
+      'Correo Institucional',
+      'Grado',
+      'Seccion',
+      'Nivel Matriz (Grupo)',
+      'Categoria',
+      'Puntaje Global (%)',
+      'Equivalencia MCER',
+      'Docente Evaluador',
+      'Duracion',
+      'Fecha Evaluacion'
+    ]
+
+    const rows = evaluationsList.map(ev => {
+      const p = getEvaluationPlacementData(ev)
+      return [
+        `"${ev.studentCarnet || 'N/A'}"`,
+        `"${(ev.studentName || '').replace(/"/g, '""')}"`,
+        `"${ev.studentEmail || ''}"`,
+        `"${ev.grade || ''}"`,
+        `"${ev.section || ''}"`,
+        `"${p.group}"`,
+        `"${p.categoryLabel}"`,
+        `"${p.scorePercent}%"`,
+        `"${p.cefr}"`,
+        `"${(ev.teacherName || ev.teacherEmail || '').replace(/"/g, '""')}"`,
+        `"${ev.durationFormatted || `${ev.totalDurationSeconds || 0}s`}"`,
+        `"${ev.completedAt ? new Date(ev.completedAt).toLocaleString('es-SV') : 'N/A'}"`
+      ]
+    })
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  // Preparar y disparar impresión de Acta Oficial
+  const handleOpenPrintActa = (evaluationsList) => {
+    if (!evaluationsList || evaluationsList.length === 0) {
+      alert('No hay registros de evaluación para emitir el acta con los filtros actuales.')
+      return
+    }
+
+    setActaToPrint({
+      items: evaluationsList,
+      generatedAt: new Date(),
+      grade: resultsGradeFilter === 'all' ? 'Todos los Grados' : `${resultsGradeFilter}° Grado`,
+      level: resultsLevelFilter === 'all' ? 'Todos los Niveles' : `Nivel ${resultsLevelFilter}`,
+      teacher: resultsTeacherFilter === 'all' ? (currentTeacher?.name || user?.name || 'Cuerpo Docente') : resultsTeacherFilter.toUpperCase(),
+      totalStudents: evaluationsList.length
+    })
+  }
+
+  const triggerBrowserPrint = () => {
+    document.body.classList.add('printing-report')
+    window.print()
+    setTimeout(() => {
+      document.body.classList.remove('printing-report')
+    }, 500)
+  }
 
   // Configuración de módulos activados desde el Admin
   const [coordinationModules, setCoordinationModules] = useState({})
@@ -219,17 +459,25 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     }
   }
 
-  // Desbloquear / Re-habilitar test específico de un alumno (por fraude o reintento)
+  // Desbloquear / Re-habilitar / Resetear test específico o todos los tests de un alumno (Listening, Plataforma, etc.)
   const handleUnlockExam = async (student, examId = null) => {
+    const isListening = examId && (examId.toLowerCase().includes('listening') || examId.toLowerCase().includes('audio'))
+    const examLabel = examId 
+      ? (isListening ? `Prueba de Comprensión Auditiva (Listening: ${examId})` : `Actividad "${examId}"`)
+      : 'todas las actividades y pruebas digitales de plataforma'
+
     const msg = examId
-      ? `¿Deseas habilitar y desbloquear el test "${examId}" para ${student.name}?\n\nEl alumno podrá volver a ingresar y continuar la prueba.`
-      : `¿Deseas desbloquear y reiniciar los exámenes digitales para ${student.name}?`
+      ? `¿Deseas RESETEAR y habilitar la ${examLabel} para el alumno ${student.name || student.studentName}?\n\nAl resetearla, se borrará su intento previo y el alumno podrá ingresar a realizarla de nuevo inmediatamente.`
+      : `¿Deseas RESETEAR todas las pruebas de plataforma y listening para ${student.name || student.studentName}?\n\nEl alumno podrá realizar todas sus pruebas nuevamente desde cero.`
+    
     if (!confirm(msg)) return
+    const targetEmail = student.email || student.studentEmail
     try {
-      await unlockStudentExam(student.email, examId)
+      await unlockStudentExam(targetEmail, examId)
       await loadData()
-      // Actualizar el modal si está abierto
-      if (selectedStudentSecurityDetail?.email === student.email) {
+
+      // Actualizar el modal de seguridad si está abierto
+      if (selectedStudentSecurityDetail?.email === targetEmail) {
         const updatedStudent = { ...selectedStudentSecurityDetail }
         const comp = { ...(updatedStudent.completedExams || {}) }
         if (examId) delete comp[examId]
@@ -237,10 +485,69 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
         updatedStudent.completedExams = comp
         setSelectedStudentSecurityDetail(updatedStudent)
       }
-      alert('✓ Test habilitado y desbloqueado exitosamente para el estudiante.')
+
+      alert(`✓ Actividad ${examId ? `"${examId}"` : 'digital'} reseteada y desbloqueada exitosamente para el estudiante. Ya puede volver a realizarla.`)
     } catch (e) {
       console.error('Error al desbloquear examen:', e)
       alert('Error al desbloquear examen: ' + e.message)
+    }
+  }
+
+  // Resetear / Limpiar las alertas de fraude y salidas de pestaña de un alumno
+  const handleClearFraud = async (student, examId = null) => {
+    const studentName = student.name || student.studentName || 'el alumno'
+    const msg = examId
+      ? `¿Deseas RESETEAR las alertas de fraude del test "${examId}" para ${studentName}?\n\nLas advertencias y eventos de salida de pestaña se reiniciarán a 0 conservando la nota del estudiante.`
+      : `¿Deseas RESETEAR TODAS las alertas de fraude e incidencias de ${studentName}?\n\nLa bitácora de salidas de pantalla se limpiará y el alumno quedará sin penalizaciones de fraude.`
+
+    if (!confirm(msg)) return
+    const targetEmail = student.email || student.studentEmail
+    try {
+      await clearFraudIncidents(targetEmail, examId)
+      await loadData()
+
+      // Actualizar el modal si está abierto
+      if (selectedStudentSecurityDetail?.email === targetEmail) {
+        const updatedStudent = { ...selectedStudentSecurityDetail }
+        const comp = { ...(updatedStudent.completedExams || {}) }
+        if (examId && comp[examId]) {
+          comp[examId] = { ...comp[examId], warningsCount: 0, incidents: [], byTimeout: false }
+        } else {
+          for (let k of Object.keys(comp)) {
+            comp[k] = { ...comp[k], warningsCount: 0, incidents: [], byTimeout: false }
+          }
+        }
+        updatedStudent.completedExams = comp
+        setSelectedStudentSecurityDetail(updatedStudent)
+      }
+
+      alert(`✓ Alertas de fraude reseteadas exitosamente para ${studentName}.`)
+    } catch (e) {
+      console.error('Error al resetear fraude:', e)
+      alert('Error al resetear alertas de fraude: ' + e.message)
+    }
+  }
+
+  // Resetear / Limpiar alertas de fraude de forma masiva para los alumnos filtrados
+  const handleBatchClearFraud = async (studentsList, label = 'la lista seleccionada') => {
+    if (!studentsList || studentsList.length === 0) return
+    if (!confirm(`⚠️ ¿Deseas RESETEAR las alertas de fraude y salidas de pantalla de los ${studentsList.length} alumno(s) de ${label}?\n\nLas advertencias se restablecerán a 0 y quedarán con expediente limpio conservando sus notas.`)) return
+    
+    try {
+      setLoadingStudents(true)
+      await Promise.all(
+        studentsList.map(s => {
+          const target = s.email || s.studentEmail
+          return target ? clearFraudIncidents(target, null) : Promise.resolve()
+        })
+      )
+      await loadData()
+      alert(`✅ Se limpiaron exitosamente las alertas de fraude para ${studentsList.length} estudiantes.`)
+    } catch (e) {
+      console.error('Error al resetear alertas masivas:', e)
+      alert('Error al resetear alertas: ' + e.message)
+    } finally {
+      setLoadingStudents(false)
     }
   }
 
@@ -328,18 +635,18 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
       (statusToggle === 'pending' && !isCompleted) ||
       (statusToggle === 'incidents' && totalWarnings > 0)
 
-    // Filtro de grado
+    // Filtro de grado (Si se está en nómina dedicada activeInterviewGradeId, se usa ese grado; de lo contrario gradePill)
+    const effectiveGrade = activeInterviewGradeId || gradePill
     let matchGrade = true
-    if (gradePill !== 'all') {
+    if (effectiveGrade !== 'all') {
       const gStr = (s.grade || '') + ' ' + (s.codigoGrado || '')
-      if (gradePill === '6') matchGrade = gStr.includes('6°') || s.codigoGrado === '06'
-      else if (gradePill === '7') matchGrade = gStr.includes('7°') || s.codigoGrado === '07'
-      else if (gradePill === '8') matchGrade = gStr.includes('8°') || s.codigoGrado === '08'
-      else if (gradePill === '9') matchGrade = gStr.includes('9°') || s.codigoGrado === '09'
-      else if (gradePill === '10') matchGrade = gStr.includes('10°') || gStr.includes('1° Bachillerato') || s.codigoGrado === '10'
-      else if (gradePill === '11') matchGrade = gStr.includes('11°') || gStr.includes('2° Bachillerato') || s.codigoGrado === '11'
-      else if (gradePill === '12') matchGrade = gStr.includes('12°') || gStr.includes('3° Bachillerato') || s.codigoGrado === '32'
-      else matchGrade = gStr.includes(gradePill)
+      if (effectiveGrade === '6') matchGrade = gStr.includes('6°') || s.codigoGrado === '06'
+      else if (effectiveGrade === '7') matchGrade = gStr.includes('7°') || s.codigoGrado === '07'
+      else if (effectiveGrade === '8') matchGrade = gStr.includes('8°') || s.codigoGrado === '08'
+      else if (effectiveGrade === '9') matchGrade = gStr.includes('9°') || s.codigoGrado === '09'
+      else if (effectiveGrade === '10') matchGrade = gStr.includes('10°') || gStr.includes('1° Bachillerato') || s.codigoGrado === '10'
+      else if (effectiveGrade === '11') matchGrade = gStr.includes('11°') || gStr.includes('2° Bachillerato') || s.codigoGrado === '11' || gStr.includes('12°') || s.codigoGrado === '32'
+      else matchGrade = gStr.includes(effectiveGrade)
     }
 
     const matchSection = sectionPill === 'all' || s.section === sectionPill
@@ -376,11 +683,17 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1
   const paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  // Filtrado de Evaluaciones en Sección Resultados
+  // Filtrado de Evaluaciones en Sección Resultados basado en la Matriz Oficial
   const filteredEvaluations = evaluations.filter(ev => {
-    // Nivel
-    if (resultsLevelFilter !== 'all' && (ev.finalLevel || '').toUpperCase() !== resultsLevelFilter.toUpperCase()) {
-      return false
+    const placement = getEvaluationPlacementData(ev)
+
+    // Filtro por Nivel / Categoría de la Matriz Oficial
+    if (resultsLevelFilter !== 'all') {
+      const targetFilter = resultsLevelFilter.toUpperCase()
+      const matchCategory = placement.category.toUpperCase() === targetFilter
+      const matchGroup = placement.group.toUpperCase() === targetFilter
+      const matchCefr = (placement.cefr || '').toUpperCase() === targetFilter || (ev.finalLevel || '').toUpperCase() === targetFilter
+      if (!matchCategory && !matchGroup && !matchCefr) return false
     }
     // Grado
     if (resultsGradeFilter !== 'all') {
@@ -401,7 +714,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
         (ev.studentName && ev.studentName.toLowerCase().includes(s)) ||
         (ev.studentCarnet && ev.studentCarnet.toLowerCase().includes(s)) ||
         (ev.studentEmail && ev.studentEmail.toLowerCase().includes(s)) ||
-        (ev.teacherName && ev.teacherName.toLowerCase().includes(s))
+        (ev.teacherName && ev.teacherName.toLowerCase().includes(s)) ||
+        (placement.group && placement.group.toLowerCase().includes(s))
       if (!match) return false
     }
     return true
@@ -410,12 +724,13 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   const resultsTotalPages = Math.ceil(filteredEvaluations.length / resultsPageSize) || 1
   const paginatedEvaluations = filteredEvaluations.slice((resultsPage - 1) * resultsPageSize, resultsPage * resultsPageSize)
 
-  // Métricas del Dashboard de Resultados
-  const levelCounts = evaluations.reduce((acc, ev) => {
-    const lvl = (ev.finalLevel || 'Otros').toUpperCase()
-    acc[lvl] = (acc[lvl] || 0) + 1
+  // Métricas del Dashboard de Resultados según la Matriz Oficial Fija
+  const matrixCounts = evaluations.reduce((acc, ev) => {
+    const p = getEvaluationPlacementData(ev)
+    acc[p.category] = (acc[p.category] || 0) + 1 // 'basic', 'intermediate', 'advanced'
+    acc[p.group] = (acc[p.group] || 0) + 1
     return acc
-  }, {})
+  }, { basic: 0, intermediate: 0, advanced: 0 })
 
   const totalEvaluatedTime = evaluations.reduce((sum, ev) => sum + (ev.totalDurationSeconds || 0), 0)
   const avgDurationMinutes = evaluations.length ? Math.round(totalEvaluatedTime / evaluations.length / 60) : 0
@@ -429,16 +744,27 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   const isAnalyticsEnabled = coordinationModules?.analytics?.enabled !== false
 
   const menuItems = [
-    { key: 'interview', label: 'Entrevista Oral (A1-C1)', icon: 'record_voice_over', badge: `${students.length}` },
-    { key: 'final_verdict', label: 'Veredicto Final (360°)', icon: 'gavel', badge: `${students.filter(s => Boolean(s.assignedLevel)).length}/${students.length}` },
-    ...(isAnalyticsEnabled ? [{ key: 'analytics', label: 'Dashboard Analítico', icon: 'analytics', badge: `${students.filter(s => Boolean(s.assignedLevel)).length} eval.` }] : []),
-    { key: 'security_audit', label: 'Alertas de Fraude y Pestaña', icon: 'security', badge: totalStudentsWithIncidents > 0 ? `${totalStudentsWithIncidents} alertas` : null },
-    { key: 'interview_questions', label: 'Banco de Preguntas Orales', icon: 'quiz' },
-    { key: 'exam_dispatch', label: 'Despacho por Grados (Control)', icon: 'hub', badge: 'En Vivo' },
-    { key: 'results', label: 'Resultados y Niveles', icon: 'military_tech', badge: `${evaluations.length}` },
-    { key: 'builder', label: 'Batería y Tests MCER', icon: 'auto_stories' },
-    { key: 'diagnostic_config', label: 'Ponderaciones y Cortes 2026', icon: 'tune' },
-    { key: 'profile', label: 'Mi Perfil Docente', icon: 'account_circle' },
+    // 1. GRUPO: ANÁLISIS DE NIVEL
+    { type: 'category', label: 'Análisis de Nivel' },
+    { key: 'final_verdict', label: 'Veredicto Final', icon: 'gavel', badge: `${students.filter(s => Boolean(s.assignedLevel)).length}/${students.length}` },
+
+    // 2. GRUPO: EVALUACIÓN
+    { type: 'category', label: 'Evaluación' },
+    { key: 'interview', label: 'Entrevista Oral', icon: 'record_voice_over', badge: `${students.length}` },
+    { key: 'exam_dispatch', label: 'Gestión de Pruebas', icon: 'hub', badge: 'En Vivo' },
+    { key: 'security_audit', label: 'Fraudes y Pestaña', icon: 'security', badge: totalStudentsWithIncidents > 0 ? `${totalStudentsWithIncidents}` : null },
+
+    // 3. GRUPO: REPORTES
+    { type: 'category', label: 'Reportes' },
+    { key: 'results', label: 'Actas y Resultados', icon: 'military_tech', badge: `${evaluations.length}` },
+    ...(isAnalyticsEnabled ? [{ key: 'analytics', label: 'Analíticas', icon: 'analytics', badge: `${students.filter(s => Boolean(s.assignedLevel)).length} eval.` }] : []),
+
+    // 4. GRUPO: CONFIGURACIÓN
+    { type: 'category', label: 'Configuración' },
+    { key: 'interview_questions', label: 'Banco de Preguntas', icon: 'quiz' },
+    { key: 'builder', label: 'Batería MCER', icon: 'auto_stories' },
+    { key: 'diagnostic_config', label: 'Ponderaciones', icon: 'tune' },
+    { key: 'profile', label: 'Mi Perfil', icon: 'account_circle' },
   ]
 
   return (
@@ -597,581 +923,515 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
                   </div>
 
-                  {/* BARRA DE BOTONES OVALADOS PARA GRADOS, SECCIONES Y ESTADO - CARD ACADEMY */}
-                  <div className="card-academy p-6 space-y-4">
-                    {/* Fila 1: Botones Ovalados de Grado */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
-                        Grado:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setGradePill('all')
-                          setCurrentPage(1)
-                        }}
-                        className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
-                          gradePill === 'all'
-                            ? 'bg-[#8a70d6] text-white shadow-md shadow-[#8a70d6]/30 ring-2 ring-[#e9e3ff]'
-                            : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] hover:text-[#2d2c38] border border-[#e2e0ed]'
-                        }`}
-                      >
-                        Todos los Grados
-                      </button>
-                      {(academic.grades && academic.grades.length > 0 ? academic.grades : [
-                        { id: '6', label: '6°' },
-                        { id: '7', label: '7°' },
-                        { id: '8', label: '8°' },
-                        { id: '9', label: '9°' },
-                        { id: '10', label: '10°' },
-                        { id: '11', label: '11°' },
-                        { id: '12', label: '12°' }
-                      ]).map(g => {
-                        const shortLabel = g.id ? `${parseInt(g.id, 10)}°` : g.label
-                        const isSelected = gradePill === g.id
-                        return (
-                          <button
-                            key={g.id}
-                            type="button"
-                            onClick={() => {
-                              setGradePill(g.id)
-                              setCurrentPage(1)
-                            }}
-                            className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
-                              isSelected
-                                ? 'bg-[#8a70d6] text-white shadow-md shadow-[#8a70d6]/30 ring-2 ring-[#e9e3ff]'
-                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] hover:text-[#2d2c38] border border-[#e2e0ed]'
-                            }`}
-                          >
-                            {shortLabel}
-                          </button>
-                        )
-                      })}
-                    </div>
+                  {/* VISTA 1: NAVEGADOR DE NÓMINAS POR GRADO (Si activeInterviewGradeId es null) */}
+                  {!activeInterviewGradeId ? (
+                    <div className="space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-[#eceaf6] shadow-xs">
+                        <div>
+                          <h3 className="font-heading font-black text-lg text-[#2d2c38] flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[#7052c9] text-[22px]">badge</span>
+                            <span>Nóminas por Grado — Selección Rápida</span>
+                          </h3>
+                          <p className="text-xs text-[#8e8a9f] font-medium mt-0.5">
+                            Selecciona un grado para abrir su nómina limpia y llamar a los estudiantes a su entrevista oral.
+                          </p>
+                        </div>
 
-                    {/* Fila 2: Filtro por Docente Titular y Nivel Institucional Asignado */}
-                    <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[#eceaf6]">
-                      <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[15px]">school</span>
-                        Docente:
-                      </span>
-                      {[
-                        { id: 'all', label: 'Todos los Docentes' },
-                        { id: 'ronald', label: 'Ronald Cardona', short: 'Teacher Ronald' },
-                        { id: 'silvia', label: 'Silvia Herrera', short: 'Teacher Silvia' },
-                        { id: 'nelsi', label: 'Nelsi Ramos', short: 'Teacher Nelsi' },
-                        { id: 'edgar', label: 'Edgar Pacheco', short: 'Teacher Edgar' }
-                      ].map(t => {
-                        const isSelected = teacherFilter === t.id
-                        return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => {
-                              setTeacherFilter(t.id)
-                              setCurrentPage(1)
-                            }}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
-                              isSelected
-                                ? 'bg-[#5446a8] text-white shadow-xs'
-                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
-                            }`}
-                          >
-                            <span>{t.short || t.label}</span>
-                            {t.id !== 'all' && (
-                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                                isSelected ? 'bg-white/20 text-white' : 'bg-[#e2e0ed] text-[#585567]'
-                              }`}>
-                                {students.filter(s => (s.assignedTeacher || '').toLowerCase().includes(t.id)).length}
-                              </span>
-                            )}
-                          </button>
-                        )
-                      })}
+                        {/* Filtro por Docente para las estadísticas */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[15px]">school</span>
+                            Docente:
+                          </span>
+                          {[
+                            { id: 'all', label: 'Todos' },
+                            { id: 'ronald', label: 'Ronald' },
+                            { id: 'silvia', label: 'Silvia' },
+                            { id: 'nelsi', label: 'Nelsi' },
+                            { id: 'edgar', label: 'Edgar' }
+                          ].map(t => {
+                            const isSelected = teacherFilter === t.id
+                            return (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => setTeacherFilter(t.id)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#5446a8] text-white shadow-xs'
+                                    : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                                }`}
+                              >
+                                {t.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
 
-                      <span className="text-gray-300 mx-1 hidden md:inline">|</span>
-
-                      {/* Filtro por Nivel Institucional CSSJ */}
-                      <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
-                        Nivel:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLevelPill('all')
-                          setCurrentPage(1)
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                          levelPill === 'all'
-                            ? 'bg-[#2d2c38] text-white shadow-xs'
-                            : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
-                        }`}
-                      >
-                        Todos
-                      </button>
-                      {['L1-A', 'L1-B', 'L2', 'L2-A', 'L2-B', 'L3', 'L3-A', 'L3-B', 'L4-A', 'L5-A'].map(lvl => (
-                        <button
-                          key={lvl}
-                          type="button"
-                          onClick={() => {
-                            setLevelPill(lvl)
-                            setCurrentPage(1)
-                          }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
-                            levelPill === lvl
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
-                          }`}
-                        >
-                          {lvl}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Fila 3: Botones Ovalados de Sección, Estado y Búsqueda */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#eceaf6]">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
-                          Sección:
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSectionPill('all')
-                            setCurrentPage(1)
-                          }}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                            sectionPill === 'all'
-                              ? 'bg-[#5446a8] text-white shadow-xs'
-                              : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
-                          }`}
-                        >
-                          Todas
-                        </button>
-                        {(academic.sections && academic.sections.length > 0 ? academic.sections : ['A', 'B', 'C', 'D']).map(sec => (
-                          <button
-                            key={sec}
-                            type="button"
-                            onClick={() => {
-                              setSectionPill(sec)
-                              setCurrentPage(1)
-                            }}
-                            className={`w-8 h-8 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
-                              sectionPill === sec
-                                ? 'bg-[#5446a8] text-white shadow-xs'
-                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
-                            }`}
-                            title={`Sección ${sec}`}
-                          >
-                            {sec}
-                          </button>
-                        ))}
-
-                        <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
-
-                        {/* Especialidad de Bachillerato: General / Técnico */}
-                        <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
-                          Bachillerato:
-                        </span>
+                      {/* Tarjetas de Grados en Cuadrícula (6°, 7°, 8°, 9°, 10°, 11°) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {[
-                          { id: 'all', label: 'Todos' },
-                          { id: 'General', label: 'General' },
-                          { id: 'Técnico', label: 'Técnico' }
-                        ].map(mod => (
+                          { id: '6', label: '6° Grado', fullTitle: '6° Grado (Educación Básica)', badge: 'Básica' },
+                          { id: '7', label: '7° Grado', fullTitle: '7° Grado (Educación Básica)', badge: 'Básica' },
+                          { id: '8', label: '8° Grado', fullTitle: '8° Grado (Educación Básica)', badge: 'Básica' },
+                          { id: '9', label: '9° Grado', fullTitle: '9° Grado (Tercer Ciclo)', badge: 'Tercer Ciclo' },
+                          { id: '10', label: '1° Bachillerato', fullTitle: '1° Bachillerato (10° Grado)', badge: 'Media' },
+                          { id: '11', label: '2° Bachillerato', fullTitle: '2° Bachillerato (11° Grado)', badge: 'Graduandos' }
+                        ].map(gDef => {
+                          const gId = gDef.id
+                          const gradeStudents = students.filter(s => {
+                            const gStr = (s.grade || '') + ' ' + (s.codigoGrado || '')
+                            if (gId === '6') return gStr.includes('6°') || s.codigoGrado === '06'
+                            if (gId === '7') return gStr.includes('7°') || s.codigoGrado === '07'
+                            if (gId === '8') return gStr.includes('8°') || s.codigoGrado === '08'
+                            if (gId === '9') return gStr.includes('9°') || s.codigoGrado === '09'
+                            if (gId === '10') return gStr.includes('10°') || gStr.includes('1° Bach') || s.codigoGrado === '10'
+                            if (gId === '11') return gStr.includes('11°') || gStr.includes('2° Bach') || s.codigoGrado === '11' || gStr.includes('12°') || s.codigoGrado === '32'
+                            return false
+                          })
+
+                          const visibleStudents = teacherFilter === 'all'
+                            ? gradeStudents
+                            : gradeStudents.filter(s => {
+                                const tKey = teacherFilter.toLowerCase()
+                                const sTeacher = (s.assignedTeacher || '').toLowerCase()
+                                const sTeacherEmail = (s.assignedTeacherEmail || '').toLowerCase()
+                                return sTeacher.includes(tKey) || sTeacherEmail.includes(tKey)
+                              })
+
+                          const total = visibleStudents.length
+                          const evaluated = visibleStudents.filter(s => Boolean(s.assignedLevel)).length
+                          const pending = total - evaluated
+                          const percent = total > 0 ? Math.round((evaluated / total) * 100) : 0
+
+                          return (
+                            <div
+                              key={gId}
+                              className="card-academy p-6 flex flex-col justify-between hover:shadow-lg hover:border-[#8a70d6]/50 transition-all duration-200 group bg-white"
+                            >
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed]">
+                                    {gDef.badge}
+                                  </span>
+                                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#8e8a9f]">
+                                    <span className="material-symbols-outlined text-[16px] text-[#7052c9]">group</span>
+                                    <span>{total} alumnos</span>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-heading font-black text-xl text-[#2d2c38] group-hover:text-[#7052c9] transition-colors">
+                                    {gDef.label}
+                                  </h4>
+                                  <p className="text-xs text-[#8e8a9f] font-medium mt-0.5">
+                                    {gDef.fullTitle}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-1.5 bg-[#fbfbfd] p-3.5 rounded-2xl border border-[#eceaf6]">
+                                  <div className="flex items-center justify-between text-xs font-bold">
+                                    <span className="text-[#585567]">Avance Entrevista:</span>
+                                    <span className="text-[#7052c9] font-black">{percent}%</span>
+                                  </div>
+                                  <div className="w-full bg-[#e2e0ed] h-2.5 rounded-full overflow-hidden">
+                                    <div
+                                      className="bg-gradient-to-r from-[#8a70d6] to-emerald-500 h-full rounded-full transition-all duration-500"
+                                      style={{ width: `${percent}%` }}
+                                    ></div>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[11px] pt-1 font-semibold">
+                                    <span className="text-emerald-700 flex items-center gap-1">
+                                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                      {evaluated} Evaluados
+                                    </span>
+                                    <span className="text-amber-700 flex items-center gap-1">
+                                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                      {pending} Pendientes
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveInterviewGradeId(gId)
+                                  setSectionPill('all')
+                                  setStatusToggle('all')
+                                  setSearchTerm('')
+                                  setCurrentPage(1)
+                                }}
+                                className="mt-5 w-full py-3 rounded-2xl bg-gradient-to-r from-[#7052c9] to-[#8a70d6] hover:from-[#5e41b5] hover:to-[#7a60c7] text-white font-black text-xs shadow-md shadow-[#8a70d6]/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">format_list_bulleted</span>
+                                <span>Ver Nómina ({gDef.label})</span>
+                                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    /* VISTA 2: NÓMINA DEDICADA DEL GRADO SELECCIONADO */
+                    <div className="space-y-5 animate-fadeIn">
+                      {/* Cabecera de la Nómina con Botón Volver */}
+                      <div className="bg-white p-5 rounded-3xl border border-[#eceaf6] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5">
                           <button
-                            key={mod.id}
                             type="button"
                             onClick={() => {
-                              setModalityPill(mod.id)
-                              setCurrentPage(1)
+                              setActiveInterviewGradeId(null)
+                              setSearchTerm('')
                             }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
-                              modalityPill === mod.id
-                                ? mod.id === 'Técnico'
-                                  ? 'bg-[#8a70d6] text-white shadow-xs'
-                                  : mod.id === 'General'
-                                  ? 'bg-[#5446a8] text-white shadow-xs'
-                                  : 'bg-[#2d2c38] text-white shadow-xs'
-                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
-                            }`}
+                            className="w-10 h-10 rounded-2xl bg-[#f8f7fc] hover:bg-[#e9e3ff] text-[#5446a8] border border-[#e2e0ed] flex items-center justify-center transition-all cursor-pointer shadow-2xs group"
+                            title="Volver al navegador de grados"
                           >
-                            {mod.label}
+                            <span className="material-symbols-outlined text-[20px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
                           </button>
-                        ))}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#e9e3ff] text-[#5446a8]">
+                                Nómina de Grado
+                              </span>
+                              <h3 className="font-heading font-black text-xl text-[#2d2c38]">
+                                {activeInterviewGradeId === '6' && '6° Grado'}
+                                {activeInterviewGradeId === '7' && '7° Grado'}
+                                {activeInterviewGradeId === '8' && '8° Grado'}
+                                {activeInterviewGradeId === '9' && '9° Grado'}
+                                {activeInterviewGradeId === '10' && '1° Bachillerato (10°)'}
+                                {activeInterviewGradeId === '11' && '2° Bachillerato (11°)'}
+                              </h3>
+                            </div>
+                            <span className="text-xs text-[#8e8a9f] font-medium block mt-0.5">
+                              Lista oficial de entrevistas • {filteredStudents.length} alumno(s) mostrados
+                            </span>
+                          </div>
+                        </div>
 
-                        <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
+                        {/* Buscador Rápido y Reset de Prueba */}
+                        <div className="flex items-center gap-2.5 w-full md:w-auto">
+                          <div className="relative flex-1 md:w-72">
+                            <input
+                              type="text"
+                              value={searchTerm}
+                              onChange={(e) => {
+                                setSearchTerm(e.target.value)
+                                setCurrentPage(1)
+                              }}
+                              placeholder="Buscar carnet o nombre..."
+                              className="w-full pl-9 pr-4 py-2 rounded-2xl bg-[#f8f7fc] border border-[#e2e0ed] text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 text-[#2d2c38]"
+                            />
+                            <span className="material-symbols-outlined text-[18px] text-[#8e8a9f] absolute left-3 top-1/2 -translate-y-1/2">
+                              search
+                            </span>
+                          </div>
 
-                        {/* Estado de Evaluación */}
-                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleResetAll}
+                            className="px-3 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                            title="Resetear niveles en modo pruebas"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                            <span className="hidden sm:inline">Reset</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Filtros Limpios de Nómina: Sección, Estado y Docente */}
+                      <div className="card-academy p-4 px-5 flex flex-wrap items-center justify-between gap-3 bg-white">
+                        {/* Selector de Secciones */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
+                            Sección:
+                          </span>
                           <button
                             type="button"
                             onClick={() => {
-                              setStatusToggle('all')
+                              setSectionPill('all')
                               setCurrentPage(1)
                             }}
                             className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                              statusToggle === 'all' ? 'bg-[#2d2c38] text-white' : 'text-[#8e8a9f] hover:text-[#2d2c38] bg-[#f8f7fc]'
+                              sectionPill === 'all'
+                                ? 'bg-[#5446a8] text-white shadow-xs'
+                                : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
                             }`}
                           >
-                            Todos
+                            Todas
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setStatusToggle('pending')
-                              setCurrentPage(1)
-                            }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                              statusToggle === 'pending' ? 'bg-amber-500 text-white shadow-xs' : 'text-[#585567] hover:text-amber-700 bg-[#f8f7fc] border border-[#e2e0ed]'
-                            }`}
-                          >
-                            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                            <span>Por Evaluar ({students.filter(s => !s.assignedLevel).length})</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setStatusToggle('completed')
-                              setCurrentPage(1)
-                            }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                              statusToggle === 'completed' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#585567] hover:text-emerald-700 bg-[#f8f7fc] border border-[#e2e0ed]'
-                            }`}
-                          >
-                            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                            <span>Completados ({students.filter(s => Boolean(s.assignedLevel)).length})</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setStatusToggle('incidents')
-                              setCurrentPage(1)
-                            }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                              statusToggle === 'incidents' ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-200' : 'text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200'
-                            }`}
-                            title="Ver alumnos con salidas de pestaña o alertas de fraude registradas"
-                          >
-                            <span className="material-symbols-outlined text-[15px]">warning</span>
-                            <span>Con Alertas ({students.filter(s => {
-                              const c = s.completedExams || {}
-                              return Object.values(c).reduce((acc, x) => acc + (x.warningsCount || (x.incidents?.length || 0)), 0) > 0
-                            }).length})</span>
-                          </button>
+                          {(academic.sections && academic.sections.length > 0 ? academic.sections : ['A', 'B', 'C', 'D']).map(sec => (
+                            <button
+                              key={sec}
+                              type="button"
+                              onClick={() => {
+                                setSectionPill(sec)
+                                setCurrentPage(1)
+                              }}
+                              className={`w-8 h-8 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center ${
+                                sectionPill === sec
+                                  ? 'bg-[#5446a8] text-white shadow-xs'
+                                  : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                              }`}
+                            >
+                              {sec}
+                            </button>
+                          ))}
+
+                          <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
+
+                          {/* Modalidad si es Bachillerato */}
+                          {(activeInterviewGradeId === '10' || activeInterviewGradeId === '11') && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
+                                Modalidad:
+                              </span>
+                              {['all', 'General', 'Técnico'].map(mod => (
+                                <button
+                                  key={mod}
+                                  type="button"
+                                  onClick={() => {
+                                    setModalityPill(mod)
+                                    setCurrentPage(1)
+                                  }}
+                                  className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                    modalityPill === mod
+                                      ? 'bg-[#2d2c38] text-white shadow-xs'
+                                      : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                                  }`}
+                                >
+                                  {mod === 'all' ? 'Todas' : mod}
+                                </button>
+                              ))}
+                              <span className="text-gray-300 mx-1 hidden sm:inline">|</span>
+                            </div>
+                          )}
+
+                          {/* Filtro de Estado: Todos, Pendientes, Evaluados */}
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStatusToggle('all')
+                                setCurrentPage(1)
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                statusToggle === 'all' ? 'bg-[#2d2c38] text-white shadow-xs' : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                              }`}
+                            >
+                              Todos
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStatusToggle('pending')
+                                setCurrentPage(1)
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                                statusToggle === 'pending' ? 'bg-amber-500 text-white shadow-xs' : 'text-[#585567] hover:text-amber-700 bg-[#f8f7fc] border border-[#e2e0ed]'
+                              }`}
+                            >
+                              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                              <span>Por Evaluar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStatusToggle('completed')
+                                setCurrentPage(1)
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                                statusToggle === 'completed' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#585567] hover:text-emerald-700 bg-[#f8f7fc] border border-[#e2e0ed]'
+                              }`}
+                            >
+                              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                              <span>Evaluados</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Filtro por Docente en la Nómina */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">school</span>
+                            Docente:
+                          </span>
+                          {[
+                            { id: 'all', label: 'Todos' },
+                            { id: 'ronald', label: 'Ronald' },
+                            { id: 'silvia', label: 'Silvia' },
+                            { id: 'nelsi', label: 'Nelsi' },
+                            { id: 'edgar', label: 'Edgar' }
+                          ].map(t => {
+                            const isSelected = teacherFilter === t.id
+                            return (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => {
+                                  setTeacherFilter(t.id)
+                                  setCurrentPage(1)
+                                }}
+                                className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#5446a8] text-white shadow-xs'
+                                    : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                                }`}
+                              >
+                                {t.label}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
 
-                      {/* Buscador Rápido y Reset General */}
-                      <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                        <div className="relative flex-1 sm:w-60">
-                          <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => {
-                              setSearchTerm(e.target.value)
-                              setCurrentPage(1)
-                            }}
-                            placeholder="Buscar carnet o nombre..."
-                            className="w-full pl-9 pr-4 py-2 rounded-2xl bg-[#f8f7fc] border border-[#e2e0ed] text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 text-[#2d2c38]"
-                          />
-                          <span className="material-symbols-outlined text-[18px] text-[#8e8a9f] absolute left-3 top-1/2 -translate-y-1/2">
-                            search
+                      {/* TABLA LIMPIA Y PRÁCTICA DE NÓMINA (SOLO 5 COLUMNAS ESENCIALES) */}
+                      <div className="card-academy overflow-hidden bg-white shadow-sm">
+                        <div className="p-4 px-6 border-b border-[#eceaf6] flex items-center justify-between bg-gradient-to-r from-white to-[#f4f1fd]/40">
+                          <span className="text-xs font-black text-[#2d2c38] flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[18px] text-[#7052c9]">playlist_add_check</span>
+                            <span>Lista Oficial para Entrevistas ({filteredStudents.length} estudiantes)</span>
+                          </span>
+                          <span className="text-xs font-black text-[#5446a8] bg-[#e9e3ff] px-3 py-1 rounded-full shadow-xs">
+                            Página {currentPage} de {totalPages}
                           </span>
                         </div>
 
-                        {/* Botón para resetear todos los niveles en pruebas */}
-                        <button
-                          type="button"
-                          onClick={handleResetAll}
-                          className="px-3.5 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-                          title="Resetear los niveles oficiales de todos los alumnos (modo pruebas)"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
-                          <span className="hidden md:inline">Reset</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tabla de Alumnos Paginada - card-academy */}
-                  <div className="card-academy overflow-hidden">
-                    <div className="p-4 px-6 border-b border-[#eceaf6] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-white via-[#fbfbfb] to-[#f4f1fd]/50">
-                      <div>
-                        <h3 className="font-heading font-black text-sm text-[#2d2c38]">
-                          Alumnos en Lista ({filteredStudents.length})
-                        </h3>
-                        <span className="text-[11px] text-[#8e8a9f] font-medium">
-                          Pulsa <strong>"Llamar / Evaluar"</strong> para abrir las 3 preguntas orales del nivel.
-                        </span>
-                      </div>
-                      <span className="text-xs font-black text-[#5446a8] bg-[#e9e3ff] px-3 py-1 rounded-full shadow-xs">
-                        Página {currentPage} de {totalPages}
-                      </span>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs md:text-sm">
-                        <thead>
-                          <tr className="border-b border-[#eceaf6] text-[11px] font-black uppercase text-[#8e8a9f] bg-[#fbfbfb]">
-                            <th className="py-4 px-4 font-black">Carnet</th>
-                            <th className="py-4 px-4 font-black">Estudiante</th>
-                            <th className="py-4 px-4 text-center font-black">Grado</th>
-                            <th className="py-4 px-4 text-center font-black">Secc.</th>
-                            <th className="py-4 px-4 text-center font-black">Especialidad</th>
-                            <th className="py-4 px-4 font-black">Docente</th>
-                            <th className="py-4 px-4 text-center font-black">Nivel Actual</th>
-                            <th className="py-4 px-4 text-center font-black">Nivel Obtenido</th>
-                            <th className="py-4 px-4 text-center font-black">Bitácora Tests</th>
-                            <th className="py-4 px-4 text-center font-black">Acceso</th>
-                            <th className="py-4 px-4 text-right font-black">Acción</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#eceaf6]/60">
-                          {paginatedStudents.length === 0 ? (
-                            <tr>
-                              <td colSpan="11" className="py-14 text-center text-[#8e8a9f] text-xs italic">
-                                No se encontraron alumnos con los criterios seleccionados.
-                              </td>
-                            </tr>
-                          ) : (
-                            paginatedStudents.map((s) => {
-                              const hasLevel = Boolean(s.assignedLevel)
-                              // Grado conciso: 6°, 7°, 8°, 9°, 10°, 11°, 12°
-                              const displayGrade = s.codigoGrado ? `${parseInt(s.codigoGrado, 10)}°` : (s.grade || '').match(/\d+/)?.[0] ? `${(s.grade || '').match(/\d+/)[0]}°` : s.grade
-
-                              return (
-                                <tr key={s.carnet || s.email} className="table-academy-row">
-                                  <td className="py-3.5 px-4 font-mono font-bold text-[#585567]">{s.carnet || 'N/A'}</td>
-                                  <td className="py-3.5 px-4 font-bold text-[#2d2c38]">
-                                    <div className="flex items-center gap-1.5">
-                                      <span>{s.name}</span>
-                                      {s.selfReportedLevel && (
-                                        <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold" title="Auto-reportado">
-                                          Auto: {s.selfReportedLevel}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-[11px] text-[#8e8a9f] font-mono font-normal truncate max-w-xs">{s.email}</div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs md:text-sm">
+                            <thead>
+                              <tr className="border-b border-[#eceaf6] text-[11px] font-black uppercase text-[#8e8a9f] bg-[#fbfbfb]">
+                                <th className="py-3.5 px-5 font-black">Estudiante</th>
+                                <th className="py-3.5 px-4 text-center font-black">Sección</th>
+                                <th className="py-3.5 px-4 font-black">Docente Titular</th>
+                                <th className="py-3.5 px-4 text-center font-black">Estado Oral</th>
+                                <th className="py-3.5 px-5 text-right font-black">Acción</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#eceaf6]/60">
+                              {paginatedStudents.length === 0 ? (
+                                <tr>
+                                  <td colSpan="5" className="py-14 text-center text-[#8e8a9f] text-xs italic">
+                                    No se encontraron alumnos en esta sección o con los filtros seleccionados.
                                   </td>
+                                </tr>
+                              ) : (
+                                paginatedStudents.map((s) => {
+                                  const hasLevel = Boolean(s.assignedLevel)
+                                  const userEmail = (user?.email || '').toLowerCase()
+                                  const userName = (user?.name || '').toLowerCase()
+                                  const isGlobalAdminOrCoord = user?.role === 'admin' || user?.role === 'coordination' || userEmail.includes('admin') || userEmail.includes('docente@')
+                                  const studentTeacher = (s.assignedTeacher || '').toLowerCase()
+                                  const studentTeacherEmail = (s.assignedTeacherEmail || '').toLowerCase()
 
-                                  {/* Columna: Grado (6°, 7°, 8°, 9°, 10°, 11°) */}
-                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                    <span className="inline-block px-2.5 py-1 rounded-xl bg-[#f8f7fc] font-black text-xs text-[#2d2c38] border border-[#e2e0ed] shadow-2xs">
-                                      {displayGrade}
-                                    </span>
-                                  </td>
+                                  const isMyStudent = isGlobalAdminOrCoord ||
+                                    (userEmail && studentTeacherEmail && userEmail === studentTeacherEmail) ||
+                                    (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
+                                    (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
+                                    (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi'))) ||
+                                    ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar'))) ||
+                                    (userName && studentTeacher && userName.includes(studentTeacher))
 
-                                  {/* Columna: Sección (A, B, C...) */}
-                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-[#e9e3ff] font-black text-xs text-[#5446a8] border border-[#d8ceff] shadow-2xs">
-                                      {s.section || 'A'}
-                                    </span>
-                                  </td>
+                                  const isExpanded = expandedInterviewStudentId === (s.id || s.email || s.carnet)
 
-                                  {/* Columna: Especialidad (General / Técnico / N/A) */}
-                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                    {s.especialidad ? (
-                                      <span className={`inline-block px-2.5 py-0.5 rounded-full font-black text-[11px] uppercase tracking-wider border shadow-2xs ${
-                                        s.especialidad === 'Técnico'
-                                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                          : 'bg-blue-50 text-blue-700 border-blue-200'
-                                      }`}>
-                                        {s.especialidad}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[#8e8a9f] text-xs font-semibold">-</span>
-                                    )}
-                                  </td>
-
-                                  {/* Columna: Docente */}
-                                  <td className="py-3.5 px-4 whitespace-nowrap">
-                                    {s.assignedTeacher ? (
-                                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#585567] bg-[#f8f7fc] px-2.5 py-1 rounded-xl border border-[#e2e0ed]">
-                                        <span>👨‍🏫</span>
-                                        <span>{s.assignedTeacher}</span>
-                                      </span>
-                                    ) : (
-                                      <span className="text-[#8e8a9f] text-xs italic">Sin asignar</span>
-                                    )}
-                                  </td>
-
-                                  {/* Columna: Nivel Actual (Inicial) */}
-                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                    {((s.grade || '').includes('6°') || s.codigoGrado === '06' || s.codigoGrado === '6') ? (
-                                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="Sexto grado no tiene nivel previo; el nivel se le asignará al iniciar 7° grado según esta evaluación.">
-                                        Asignación 7°
-                                      </span>
-                                    ) : s.currentLevel && s.currentLevel !== 'Sin Nivel' ? (
-                                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
-                                        {s.currentLevel}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[#8e8a9f] text-xs">-</span>
-                                    )}
-                                  </td>
-
-                                  {/* Columna: Nivel Obtenido (Oficial) */}
-                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                    {hasLevel ? (
-                                      <div className="inline-flex items-center gap-1">
-                                        <span className="px-3 py-1 rounded-full font-black text-xs bg-[#8a70d6] text-white shadow-xs">
-                                          {s.assignedLevel}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleResetStudent(s)}
-                                          className="p-1 rounded-lg text-[#8e8a9f] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                                          title={`Resetear nivel de ${s.name} a Sin Evaluar`}
-                                        >
-                                          <span className="material-symbols-outlined text-[15px]">restart_alt</span>
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-50 text-amber-700 border border-amber-200">
-                                        Sin Evaluar
-                                      </span>
-                                    )}
-                                  </td>
-
-                                  {/* Columna: Bitácora Tests y Advertencias de Seguridad */}
-                                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                    {(() => {
-                                      const completed = s.completedExams || {}
-                                      const examsDoneCount = Object.keys(completed).length
-                                      const totalWarnings = Object.values(completed).reduce(
-                                        (acc, c) => acc + (c.warningsCount || 0),
-                                        0
-                                      )
-
-                                      if (examsDoneCount === 0) {
-                                        return (
-                                          <span className="text-[11px] text-[#8e8a9f] font-medium">
-                                            Pendiente
-                                          </span>
-                                        )
-                                      }
-
-                                      return (
-                                        <div className="inline-flex flex-col items-center gap-1">
-                                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">
-                                            {examsDoneCount} test(s)
-                                          </span>
-                                          {totalWarnings > 0 ? (
+                                  return (
+                                    <React.Fragment key={s.id || s.carnet || s.email}>
+                                      <tr className={`table-academy-row transition-colors ${isExpanded ? 'bg-[#f4f1fd]/40' : 'hover:bg-[#fbfafd]'}`}>
+                                        {/* Columna 1: Estudiante (Nombre + Carnet + Colapsable) */}
+                                        <td className="py-3.5 px-5 font-bold text-[#2d2c38]">
+                                          <div className="flex items-center gap-2.5">
                                             <button
                                               type="button"
-                                              onClick={() => setSelectedStudentSecurityDetail(s)}
-                                              className="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs hover:scale-105"
-                                              title="Ver bitácora detallada de fraudes y salidas de pestaña"
+                                              onClick={() => setExpandedInterviewStudentId(isExpanded ? null : (s.id || s.email || s.carnet))}
+                                              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                                                isExpanded ? 'bg-[#5446a8] text-white shadow-xs rotate-180' : 'bg-[#f4f1fd] text-[#5446a8] hover:bg-[#e9e3ff]'
+                                              }`}
+                                              title={isExpanded ? 'Ocultar detalles del alumno' : 'Ver detalle completo del alumno'}
                                             >
-                                              <span className="material-symbols-outlined text-[13px] text-rose-600">warning</span>
-                                              <span>{totalWarnings} salida(s)</span>
-                                              <span className="material-symbols-outlined text-[12px] opacity-70">open_in_new</span>
+                                              <span className="material-symbols-outlined text-[16px]">expand_more</span>
                                             </button>
-                                          ) : (
-                                            <button
-                                              type="button"
-                                              onClick={() => setSelectedStudentSecurityDetail(s)}
-                                              className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5 cursor-pointer transition-colors"
-                                              title="Sin alertas. Clic para ver historial de tests completados."
-                                            >
-                                              <span className="material-symbols-outlined text-[13px]">check_circle</span>
-                                              <span>Limpio</span>
-                                            </button>
-                                          )}
-                                        </div>
-                                      )
-                                    })()}
-                                  </td>
-                                  <td className="py-3.5 px-4 text-center">
-                                    {(() => {
-                                      const isActive = s.status === 'active'
-                                      // Verificar si el alumno le pertenece al docente conectado
-                                      const userEmail = (user?.email || '').toLowerCase()
-                                      const userName = (user?.name || '').toLowerCase()
-                                      const isGlobalAdminOrCoord = user?.role === 'admin' || user?.role === 'coordination' || userEmail.includes('admin') || userEmail.includes('docente@')
-                                      const studentTeacher = (s.assignedTeacher || '').toLowerCase()
-                                      const studentTeacherEmail = (s.assignedTeacherEmail || '').toLowerCase()
-
-                                      const isMyStudent = isGlobalAdminOrCoord ||
-                                        (userEmail && studentTeacherEmail && userEmail === studentTeacherEmail) ||
-                                        (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
-                                        (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
-                                        (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi'))) ||
-                                        ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar')))
-
-                                      return (
-                                        <button
-                                          type="button"
-                                          disabled={!isMyStudent}
-                                          onClick={(e) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-                                            if (isMyStudent) handleToggleStatus(s.email, s.status)
-                                          }}
-                                          className={`inline-flex items-center gap-2 select-none px-2.5 py-1.5 rounded-xl border transition-all ${
-                                            !isMyStudent
-                                              ? 'cursor-not-allowed opacity-40 bg-gray-50 border-gray-200'
-                                              : isActive
-                                                ? 'cursor-pointer bg-emerald-50/80 border-emerald-200 hover:bg-emerald-100/70 shadow-2xs'
-                                                : 'cursor-pointer bg-[#f8f7fc] border-[#e2e0ed] hover:bg-[#f4f1fd] shadow-2xs'
-                                          }`}
-                                          title={!isMyStudent ? `Alumno asignado a ${s.assignedTeacher || 'otro docente'}` : (isActive ? 'Clic para pausar / desactivar acceso' : 'Clic para activar alumno')}
-                                        >
-                                          <div className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-all duration-200 pointer-events-none ${
-                                            isActive ? 'bg-emerald-500 justify-end' : 'bg-gray-300 justify-start'
-                                          }`}>
-                                            <div className="bg-white w-3.5 h-3.5 rounded-full shadow-sm"></div>
+                                            <div className="w-8 h-8 rounded-xl bg-[#e9e3ff] text-[#5446a8] font-black text-xs flex items-center justify-center shrink-0">
+                                              {(s.name || 'A').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="text-sm font-black text-[#2d2c38]">{s.name}</span>
+                                                {s.selfReportedLevel && (
+                                                  <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold">
+                                                    Auto: {s.selfReportedLevel}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div className="text-[11px] text-[#8e8a9f] font-mono flex items-center gap-2">
+                                                <span className="font-bold text-[#585567]">{s.carnet || 'S/C'}</span>
+                                                <span>•</span>
+                                                <span className="truncate max-w-xs">{s.email}</span>
+                                              </div>
+                                            </div>
                                           </div>
-                                          <span className={`text-[11px] font-black pointer-events-none tracking-wide ${
-                                            isActive ? 'text-emerald-800' : 'text-[#8e8a9f]'
-                                          }`}>
-                                            {isActive ? 'Activo' : 'Pausado'}
+                                        </td>
+
+                                        {/* Columna 2: Sección */}
+                                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-[#e9e3ff] font-black text-xs text-[#5446a8] border border-[#d8ceff] shadow-2xs">
+                                            {s.section || 'A'}
                                           </span>
-                                        </button>
-                                      )
-                                    })()}
-                                  </td>
-                                  <td className="py-3.5 px-4 text-right">
-                                    {(() => {
-                                      const userEmail = (user?.email || '').toLowerCase()
-                                      const userName = (user?.name || '').toLowerCase()
-                                      const isGlobalAdminOrCoord = user?.role === 'admin' || user?.role === 'coordination' || userEmail.includes('admin') || userEmail.includes('docente@')
-                                      const studentTeacher = (s.assignedTeacher || '').toLowerCase()
-                                      const studentTeacherEmail = (s.assignedTeacherEmail || '').toLowerCase()
+                                        </td>
 
-                                      const isMyStudent = isGlobalAdminOrCoord ||
-                                        (userEmail && studentTeacherEmail && userEmail === studentTeacherEmail) ||
-                                        (userEmail.includes('ronald') && (studentTeacher.includes('ronald') || studentTeacherEmail.includes('ronald'))) ||
-                                        (userEmail.includes('silvia') && (studentTeacher.includes('silvia') || studentTeacherEmail.includes('silvia'))) ||
-                                        (userEmail.includes('nelsi') && (studentTeacher.includes('nelsi') || studentTeacherEmail.includes('nelsi'))) ||
-                                        ((userEmail.includes('edgar') || userEmail.includes('pacheco')) && (studentTeacher.includes('edgar') || studentTeacher.includes('pacheco') || studentTeacherEmail.includes('edgar'))) ||
-                                        (userName && studentTeacher && userName.includes(studentTeacher))
+                                        {/* Columna 3: Docente */}
+                                        <td className="py-3.5 px-4 whitespace-nowrap">
+                                          {s.assignedTeacher ? (
+                                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#585567] bg-[#f8f7fc] px-2.5 py-1 rounded-xl border border-[#e2e0ed]">
+                                              <span>👨‍🏫</span>
+                                              <span>{s.assignedTeacher}</span>
+                                            </span>
+                                          ) : (
+                                            <span className="text-[#8e8a9f] text-xs italic">Sin asignar</span>
+                                          )}
+                                        </td>
 
-                                      return (
-                                        <div className="flex items-center justify-end gap-1.5">
-                                          <button
-                                            type="button"
-                                            onClick={() => onSwitchToStudentView?.(s)}
-                                            className="p-2 rounded-xl text-[#8e8a9f] hover:text-[#8a70d6] hover:bg-[#f4f1fd] transition-colors cursor-pointer"
-                                            title={`Ver portal como ${s.name}`}
-                                          >
-                                            <span className="material-symbols-outlined text-[18px]">visibility</span>
-                                          </button>
+                                        {/* Columna 4: Estado Oral */}
+                                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                          {hasLevel ? (
+                                            <div className="inline-flex items-center gap-1.5">
+                                              <span className="px-3 py-1 rounded-full font-black text-xs bg-emerald-600 text-white shadow-xs">
+                                                Nivel {s.assignedLevel}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleResetStudent(s)}
+                                                className="p-1 rounded-lg text-[#8e8a9f] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                                title={`Resetear nivel de ${s.name}`}
+                                              >
+                                                <span className="material-symbols-outlined text-[15px]">restart_alt</span>
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200">
+                                              Por Evaluar
+                                            </span>
+                                          )}
+                                        </td>
+
+                                        {/* Columna 5: Acción Directa */}
+                                        <td className="py-3.5 px-5 text-right whitespace-nowrap">
                                           {s.canEvaluate === false ? (
                                             <span
-                                              className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold text-[11px] flex items-center gap-1 border border-slate-200 select-none"
-                                              title="Los alumnos de 11° General ya completaron su proceso o no se evalúan este año"
+                                              className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs inline-flex items-center gap-1 border border-slate-200"
+                                              title="No requiere evaluación oral"
                                             >
-                                              <span className="material-symbols-outlined text-[14px] text-slate-400">check_circle</span>
+                                              <span className="material-symbols-outlined text-[14px]">check_circle</span>
                                               <span>No se evalúa</span>
                                             </span>
                                           ) : isMyStudent ? (
-                                            <div className="flex items-center gap-1.5">
+                                            <div className="inline-flex items-center gap-2">
                                               <button
                                                 type="button"
                                                 onClick={() => setSelectedVerdictStudent(s)}
-                                                className="px-3 py-1.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                                                title="Revisar notas consolidadas (plataforma + oral) y emitir veredicto final"
+                                                className="px-3 py-1.5 rounded-2xl bg-[#f8f7fc] hover:bg-[#ede9f7] text-[#5446a8] border border-[#e2e0ed] font-black text-xs flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                                                title="Ver veredicto y notas consolidadas"
                                               >
                                                 <span className="material-symbols-outlined text-[15px]">gavel</span>
                                                 <span>Veredicto</span>
@@ -1180,112 +1440,217 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                                 type="button"
                                                 onClick={() => handleStartInterview(s)}
                                                 className="px-4 py-1.5 rounded-2xl bg-gradient-to-r from-[#8a70d6] to-[#7052c9] hover:from-[#7a60c7] hover:to-[#5e41b5] text-white font-black text-xs shadow-md shadow-[#8a70d6]/20 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                                                title="Abrir consola de preguntas orales"
                                               >
                                                 <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
-                                                <span>{hasLevel ? 'Reevaluar' : 'Llamar'}</span>
+                                                <span>{hasLevel ? 'Reevaluar' : 'Llamar a Entrevista'}</span>
                                               </button>
                                             </div>
                                           ) : (
-                                            <div className="flex items-center gap-1.5">
+                                            <div className="inline-flex items-center gap-2">
                                               <button
                                                 type="button"
                                                 onClick={() => setSelectedVerdictStudent(s)}
                                                 className="px-3 py-1.5 rounded-2xl bg-[#f8f7fc] hover:bg-[#ede9f7] text-[#585567] font-black text-xs border border-[#e2e0ed] flex items-center gap-1 cursor-pointer transition-all"
-                                                title="Consultar notas consolidadas y veredicto"
                                               >
                                                 <span className="material-symbols-outlined text-[15px]">gavel</span>
                                                 <span>Veredicto</span>
                                               </button>
                                               <span
-                                                className="px-3 py-1.5 rounded-2xl bg-[#f8f7fc] text-[#8e8a9f] font-black text-xs flex items-center gap-1 cursor-not-allowed select-none border border-[#e2e0ed]"
-                                                title={`Solo puede ser evaluado por ${s.assignedTeacher || 'su docente titular'}`}
+                                                className="px-3 py-1.5 rounded-2xl bg-[#f8f7fc] text-[#8e8a9f] font-bold text-xs inline-flex items-center gap-1 border border-[#e2e0ed] select-none"
+                                                title={`Asignado a ${s.assignedTeacher || 'otro docente'}`}
                                               >
-                                                <span className="material-symbols-outlined text-[15px]">lock</span>
+                                                <span className="material-symbols-outlined text-[14px]">lock</span>
                                                 <span>Otro Docente</span>
                                               </span>
                                             </div>
                                           )}
-                                        </div>
-                                      )
-                                    })()}
-                                  </td>
-                                </tr>
-                              )
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                                        </td>
+                                      </tr>
 
-                    {/* PAGINACIÓN */}
-                    <div className="p-4 px-6 border-t border-[#eceaf6] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-                      <span className="text-xs font-semibold text-[#8e8a9f]">
-                        Página <strong className="text-[#2d2c38] font-black">{currentPage}</strong> de <strong className="text-[#2d2c38] font-black">{totalPages}</strong> ({filteredStudents.length} total)
-                      </span>
+                                      {/* FILA COLAPSABLE CON DETALLES DEL ALUMNO */}
+                                      {isExpanded && (
+                                        <tr className="bg-[#f9f8fe] border-b border-[#e2e0ed]">
+                                          <td colSpan="5" className="p-4 px-6">
+                                            <div className="rounded-2xl bg-white border border-[#eceaf6] p-4.5 shadow-2xs space-y-3">
+                                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f0edf7] pb-3">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="material-symbols-outlined text-[20px] text-[#7052c9]">badge</span>
+                                                  <span className="text-xs font-black uppercase text-[#2d2c38]">
+                                                    Ficha del Estudiante · {s.name} ({s.carnet || 'Sin Carnet'})
+                                                  </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs font-bold text-[#8e8a9f]">
+                                                  <span>Grado: <strong className="text-[#5446a8]">{s.grade || s.codigoGrado || '-'}</strong></span>
+                                                  <span>•</span>
+                                                  <span>Sección: <strong className="text-[#5446a8]">{s.section || 'A'}</strong></span>
+                                                  {s.especialidad && (
+                                                    <>
+                                                      <span>•</span>
+                                                      <span>Esp: <strong className="text-[#5446a8]">{s.especialidad}</strong></span>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              </div>
 
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          disabled={currentPage <= 1}
-                          onClick={() => setCurrentPage(1)}
-                          className="px-3 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
-                        >
-                          «
-                        </button>
-                        <button
-                          type="button"
-                          disabled={currentPage <= 1}
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className="px-3.5 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
-                        >
-                          Anterior
-                        </button>
+                                              {/* Cuadrícula de detalles y pruebas */}
+                                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                                                <div className="p-3 rounded-xl bg-[#fbfafd] border border-[#f0edf7]">
+                                                  <span className="text-[10px] font-bold text-[#8e8a9f] uppercase block">Nivel Asignado</span>
+                                                  <span className="font-heading font-black text-sm text-[#2d2c38] mt-0.5 block">
+                                                    {s.assignedLevel ? `Nivel ${s.assignedLevel}` : 'Pendiente de Entrevista'}
+                                                  </span>
+                                                  <span className="text-[10px] text-[#8e8a9f]">
+                                                    {s.currentLevel && s.currentLevel !== 'Sin Nivel' ? `Previo: ${s.currentLevel}` : 'Sin nivel anterior'}
+                                                  </span>
+                                                </div>
 
-                        <div className="flex items-center gap-1 mx-1">
-                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                            let pageNum = currentPage
-                            if (totalPages <= 5) pageNum = i + 1
-                            else if (currentPage <= 3) pageNum = i + 1
-                            else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i
-                            else pageNum = currentPage - 2 + i
+                                                <div className="p-3 rounded-xl bg-[#fbfafd] border border-[#f0edf7]">
+                                                  <span className="text-[10px] font-bold text-[#8e8a9f] uppercase block">Docente Titular</span>
+                                                  <span className="font-heading font-black text-sm text-[#2d2c38] mt-0.5 block truncate">
+                                                    {s.assignedTeacher || 'No asignado'}
+                                                  </span>
+                                                  <span className="text-[10px] text-[#8e8a9f] truncate block">
+                                                    {s.assignedTeacherEmail || s.email}
+                                                  </span>
+                                                </div>
 
-                            return (
-                              <button
-                                key={pageNum}
-                                type="button"
-                                onClick={() => setCurrentPage(pageNum)}
-                                className={`w-8 h-8 rounded-xl text-xs font-black flex items-center justify-center transition-all cursor-pointer ${
-                                  currentPage === pageNum
-                                    ? 'bg-[#8a70d6] text-white shadow-xs'
-                                    : 'text-[#585567] hover:bg-[#f4f1fd]'
-                                }`}
-                              >
-                                {pageNum}
-                              </button>
-                            )
-                          })}
+                                                <div className="p-3 rounded-xl bg-[#fbfafd] border border-[#f0edf7]">
+                                                  <span className="text-[10px] font-bold text-[#8e8a9f] uppercase block">Pruebas Digitales</span>
+                                                  <span className="font-heading font-black text-sm text-[#5446a8] mt-0.5 block">
+                                                    {Object.keys(s.completedExams || {}).length} completada(s)
+                                                  </span>
+                                                  <span className="text-[10px] text-[#8e8a9f]">
+                                                    {Object.keys(s.completedExams || {}).join(', ') || 'Sin envíos aún'}
+                                                  </span>
+                                                </div>
+
+                                                <div className="p-3 rounded-xl bg-[#fbfafd] border border-[#f0edf7]">
+                                                  <span className="text-[10px] font-bold text-[#8e8a9f] uppercase block">Seguridad e Integridad</span>
+                                                  {(() => {
+                                                    const comp = s.completedExams || {}
+                                                    let w = 0
+                                                    Object.values(comp).forEach(c => {
+                                                      w += c.warningsCount || (c.incidents?.length || 0)
+                                                    })
+                                                    return (
+                                                      <div>
+                                                        <span className={`font-heading font-black text-sm mt-0.5 block ${w > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                          {w > 0 ? `${w} salida(s) detectadas` : '100% Limpio ✓'}
+                                                        </span>
+                                                        <span className="text-[10px] text-[#8e8a9f]">
+                                                          {w >= 3 ? 'Alerta crítica de fraude' : w > 0 ? 'Observado' : 'Sin incidencias'}
+                                                        </span>
+                                                      </div>
+                                                    )
+                                                  })()}
+                                                </div>
+                                              </div>
+
+                                              {/* Acciones del detalle */}
+                                              <div className="flex items-center justify-end gap-2 pt-1">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setSelectedVerdictStudent(s)}
+                                                  className="px-3 py-1.5 rounded-xl bg-[#f4f1fd] hover:bg-[#e9e3ff] text-[#5446a8] text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                                                >
+                                                  <span className="material-symbols-outlined text-[15px]">gavel</span>
+                                                  <span>Ver Expediente y Veredicto Completo</span>
+                                                </button>
+                                                {s.completedExams && Object.keys(s.completedExams).length > 0 && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => setSelectedStudentSecurityDetail(s)}
+                                                    className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-rose-200"
+                                                  >
+                                                    <span className="material-symbols-outlined text-[15px]">shield</span>
+                                                    <span>Auditar Bitácora de Fraude</span>
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </React.Fragment>
+                                  )
+                                })
+                              )}
+                            </tbody>
+                          </table>
                         </div>
 
-                        <button
-                          type="button"
-                          disabled={currentPage >= totalPages}
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className="px-3.5 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
-                        >
-                          Siguiente
-                        </button>
-                        <button
-                          type="button"
-                          disabled={currentPage >= totalPages}
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="px-3 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
-                        >
-                          »
-                        </button>
+                        {/* Paginación de Nómina */}
+                        <div className="p-4 px-6 border-t border-[#eceaf6] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+                          <span className="text-xs font-semibold text-[#8e8a9f]">
+                            Página <strong className="text-[#2d2c38] font-black">{currentPage}</strong> de <strong className="text-[#2d2c38] font-black">{totalPages}</strong> ({filteredStudents.length} total)
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              disabled={currentPage <= 1}
+                              onClick={() => setCurrentPage(1)}
+                              className="px-3 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
+                            >
+                              «
+                            </button>
+                            <button
+                              type="button"
+                              disabled={currentPage <= 1}
+                              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                              className="px-3.5 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
+                            >
+                              Anterior
+                            </button>
+
+                            <div className="flex items-center gap-1 mx-1">
+                              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                let pageNum = currentPage
+                                if (totalPages <= 5) pageNum = i + 1
+                                else if (currentPage <= 3) pageNum = i + 1
+                                else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i
+                                else pageNum = currentPage - 2 + i
+
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    type="button"
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`w-8 h-8 rounded-xl text-xs font-black flex items-center justify-center transition-all cursor-pointer ${
+                                      currentPage === pageNum
+                                        ? 'bg-[#8a70d6] text-white shadow-xs'
+                                        : 'text-[#585567] hover:bg-[#f4f1fd]'
+                                    }`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                )
+                              })}
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={currentPage >= totalPages}
+                              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                              className="px-3.5 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
+                            >
+                              Siguiente
+                            </button>
+                            <button
+                              type="button"
+                              disabled={currentPage >= totalPages}
+                              onClick={() => setCurrentPage(totalPages)}
+                              className="px-3 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
+                            >
+                              »
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                  </div>
                 </div>
               )}
 
@@ -1812,6 +2177,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   evaluations={evaluations}
                   academic={academic}
                   onResetStudent={handleResetStudent}
+                  onUnlockExam={handleUnlockExam}
+                  onClearFraud={handleClearFraud}
                   isTeacherView={true}
                   teacherName={currentTeacher?.name || user?.name || ''}
                 />
@@ -1820,8 +2187,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
               {/* SECCIÓN 2: RESULTADOS Y NIVELES (DASHBOARD COMPLETO) */}
               {currentSection === 'results' && (
                 <div className="space-y-6">
-                  {/* KPI DASHBOARD CARDS */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+                  {/* KPI DASHBOARD CARDS SEGÚN MATRIZ OFICIAL DE LIBROS Y GRUPOS */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
                     {/* Tarjeta Total Evaluados */}
                     <div className="card-academy p-4 flex flex-col justify-between">
                       <div className="flex items-center justify-between">
@@ -1836,75 +2203,61 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       </div>
                     </div>
 
-                    {/* Tarjeta Nivel A1 */}
-                    <div className="card-academy p-4 flex flex-col justify-between border-emerald-100 bg-gradient-to-br from-white to-emerald-50/30">
+                    {/* Tarjeta Grupo Básico (0-40%) */}
+                    <div className="card-academy p-4 flex flex-col justify-between border-amber-200 bg-gradient-to-br from-white to-amber-50/40">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Nivel A1</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs"></span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Grupo Básico</span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[10px]">0 - 40%</span>
                       </div>
                       <div className="mt-2">
-                        <span className="font-heading font-black text-2xl text-emerald-800">{levelCounts['A1'] || 0}</span>
-                        <span className="text-[11px] text-emerald-600 font-medium block mt-0.5">
-                          {evaluations.length ? Math.round(((levelCounts['A1'] || 0) / evaluations.length) * 100) : 0}% del total
+                        <span className="font-heading font-black text-2xl text-amber-900">{matrixCounts['basic'] || 0}</span>
+                        <span className="text-[11px] text-amber-700 font-medium block mt-0.5">
+                          {evaluations.length ? Math.round(((matrixCounts['basic'] || 0) / evaluations.length) * 100) : 0}% • L1-A / L2-A / L3-A
                         </span>
                       </div>
                     </div>
 
-                    {/* Tarjeta Nivel A2 */}
-                    <div className="card-academy p-4 flex flex-col justify-between border-cyan-100 bg-gradient-to-br from-white to-cyan-50/30">
+                    {/* Tarjeta Grupo Intermedio (41-70%) */}
+                    <div className="card-academy p-4 flex flex-col justify-between border-indigo-200 bg-gradient-to-br from-white to-indigo-50/40">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-700">Nivel A2</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-xs"></span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">Grupo Intermedio</span>
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-extrabold text-[10px]">41 - 70%</span>
                       </div>
                       <div className="mt-2">
-                        <span className="font-heading font-black text-2xl text-cyan-800">{levelCounts['A2'] || 0}</span>
-                        <span className="text-[11px] text-cyan-600 font-medium block mt-0.5">
-                          {evaluations.length ? Math.round(((levelCounts['A2'] || 0) / evaluations.length) * 100) : 0}% del total
+                        <span className="font-heading font-black text-2xl text-indigo-900">{matrixCounts['intermediate'] || 0}</span>
+                        <span className="text-[11px] text-indigo-700 font-medium block mt-0.5">
+                          {evaluations.length ? Math.round(((matrixCounts['intermediate'] || 0) / evaluations.length) * 100) : 0}% • L1-B / L2-B / L3-B / L4-A
                         </span>
                       </div>
                     </div>
 
-                    {/* Tarjeta Nivel B1 */}
-                    <div className="card-academy p-4 flex flex-col justify-between border-blue-100 bg-gradient-to-br from-white to-blue-50/30">
+                    {/* Tarjeta Grupo Avanzado (≥71%) */}
+                    <div className="card-academy p-4 flex flex-col justify-between border-emerald-200 bg-gradient-to-br from-white to-emerald-50/40">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Nivel B1</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-xs"></span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Grupo Avanzado</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[10px]">≥ 71%</span>
                       </div>
                       <div className="mt-2">
-                        <span className="font-heading font-black text-2xl text-blue-800">{levelCounts['B1'] || 0}</span>
-                        <span className="text-[11px] text-blue-600 font-medium block mt-0.5">
-                          {evaluations.length ? Math.round(((levelCounts['B1'] || 0) / evaluations.length) * 100) : 0}% del total
+                        <span className="font-heading font-black text-2xl text-emerald-900">{matrixCounts['advanced'] || 0}</span>
+                        <span className="text-[11px] text-emerald-700 font-medium block mt-0.5">
+                          {evaluations.length ? Math.round(((matrixCounts['advanced'] || 0) / evaluations.length) * 100) : 0}% • L2 / L3 / L4-A / L5-A
                         </span>
-                      </div>
-                    </div>
-
-                    {/* Tarjeta Nivel B2 / C1 */}
-                    <div className="card-academy p-4 flex flex-col justify-between border-purple-100 bg-gradient-to-br from-white to-purple-50/30">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Nivel B2 / C1</span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#8a70d6] shadow-xs"></span>
-                      </div>
-                      <div className="mt-2">
-                        <span className="font-heading font-black text-2xl text-purple-800">
-                          {(levelCounts['B2'] || 0) + (levelCounts['C1'] || 0)}
-                        </span>
-                        <span className="text-[11px] text-[#7052c9] font-medium block mt-0.5">Avanzados</span>
                       </div>
                     </div>
 
                     {/* Tarjeta Tiempo Promedio */}
-                    <div className="card-academy p-4 flex flex-col justify-between border-amber-100 bg-gradient-to-br from-white to-amber-50/30">
+                    <div className="card-academy p-4 flex flex-col justify-between border-slate-200 bg-gradient-to-br from-white to-slate-50/50">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Duración Prom.</span>
-                        <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Duración Prom.</span>
+                        <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
                           <span className="material-symbols-outlined text-[18px]">timer</span>
                         </div>
                       </div>
                       <div className="mt-2">
-                        <span className="font-heading font-black text-2xl text-amber-900">
+                        <span className="font-heading font-black text-2xl text-slate-900">
                           {avgDurationMinutes > 0 ? `${avgDurationMinutes} min` : `${Math.round(totalEvaluatedTime / (evaluations.length || 1))}s`}
                         </span>
-                        <span className="text-[11px] text-amber-600 font-medium block mt-0.5">por entrevista oral</span>
+                        <span className="text-[11px] text-slate-500 font-medium block mt-0.5">por entrevista oral</span>
                       </div>
                     </div>
                   </div>
@@ -1915,51 +2268,83 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       <div>
                         <h2 className="font-heading font-black text-base text-[#2d2c38] flex items-center gap-2">
                           <span className="material-symbols-outlined text-[#7052c9] text-[22px]">bar_chart</span>
-                          <span>Panel de Resultados y Niveles Oficiales</span>
+                          <span>Panel de Resultados y Ubicación Oficial en Matriz</span>
                         </h2>
                         <p className="text-xs text-[#8e8a9f]">
-                          Filtra por nivel asignado, grado o docente evaluador y haz clic en <strong>"Ver Detalles"</strong> para auditar cada criterio de la rúbrica.
+                          Niveles y libros asignados según el marco curricular institucional (L1-A a L5-A) y puntaje ponderado global.
                         </p>
                       </div>
 
-                      {/* Buscador de alumnos en resultados */}
-                      <div className="relative w-full md:w-72">
-                        <input
-                          type="text"
-                          value={resultsSearch}
-                          onChange={(e) => {
-                            setResultsSearch(e.target.value)
-                            setResultsPage(1)
-                          }}
-                          placeholder="Buscar por nombre, carnet..."
-                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#eceaf6] text-xs focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 bg-[#f8f7fc] text-[#2d2c38]"
-                        />
-                        <span className="material-symbols-outlined text-[18px] text-[#8e8a9f] absolute left-3 top-1/2 -translate-y-1/2">
-                          search
-                        </span>
+                      {/* Controles de Búsqueda y Generación de Reportes */}
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        {/* Buscador de alumnos en resultados */}
+                        <div className="relative w-full sm:w-60">
+                          <input
+                            type="text"
+                            value={resultsSearch}
+                            onChange={(e) => {
+                              setResultsSearch(e.target.value)
+                              setResultsPage(1)
+                            }}
+                            placeholder="Buscar por nombre, carnet..."
+                            className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#eceaf6] text-xs focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 bg-[#f8f7fc] text-[#2d2c38]"
+                          />
+                          <span className="material-symbols-outlined text-[18px] text-[#8e8a9f] absolute left-3 top-1/2 -translate-y-1/2">
+                            search
+                          </span>
+                        </div>
+
+                        {/* Botón Imprimir Acta Oficial (PDF) */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPrintActa(filteredEvaluations)}
+                          disabled={filteredEvaluations.length === 0}
+                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#2528b7] to-[#5446a8] hover:from-[#1b1c8f] hover:to-[#43378d] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Generar Acta Oficial con membrete del Colegio Salesiano San José para imprimir o guardar como PDF"
+                        >
+                          <span className="material-symbols-outlined text-[17px]">picture_as_pdf</span>
+                          <span>Acta Oficial (PDF)</span>
+                        </button>
+
+                        {/* Botón Exportar a Excel (CSV) */}
+                        <button
+                          type="button"
+                          onClick={() => handleExportCSV(filteredEvaluations, `Acta_Ingles_${resultsGradeFilter !== 'all' ? resultsGradeFilter + 'Grado_' : ''}2026.csv`)}
+                          disabled={filteredEvaluations.length === 0}
+                          className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Descargar datos tabulados en formato CSV compatible con Microsoft Excel"
+                        >
+                          <span className="material-symbols-outlined text-[17px]">table_view</span>
+                          <span>Exportar Excel</span>
+                        </button>
                       </div>
                     </div>
 
                     {/* SELECTORES DE FILTRO RÁPIDO */}
                     <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#eceaf6]">
-                      {/* Filtro por Nivel Oficial */}
+                      {/* Filtro por Categoría y Niveles de la Matriz Oficial */}
                       <div className="flex items-center gap-1.5 bg-[#f8f7fc] p-1 rounded-2xl border border-[#eceaf6]">
-                        <span className="text-[10px] font-bold text-[#8e8a9f] uppercase px-2">Nivel:</span>
-                        {['all', 'A1', 'A2', 'B1', 'B2', 'C1'].map((lvl) => (
+                        <span className="text-[10px] font-bold text-[#8e8a9f] uppercase px-2">Categoría Matriz:</span>
+                        {[
+                          { key: 'all', label: 'Todos' },
+                          { key: 'basic', label: 'Básico (0-40%)' },
+                          { key: 'intermediate', label: 'Intermedio (41-70%)' },
+                          { key: 'advanced', label: 'Avanzado (≥71%)' }
+                        ].map((cat) => (
                           <button
-                            key={lvl}
+                            key={cat.key}
                             type="button"
                             onClick={() => {
-                              setResultsLevelFilter(lvl)
+                              setResultsLevelFilter(cat.key)
                               setResultsPage(1)
                             }}
                             className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
-                              resultsLevelFilter === lvl
+                              resultsLevelFilter === cat.key
                                 ? 'bg-[#5446a8] text-white shadow-xs'
                                 : 'text-[#585567] hover:bg-white hover:text-[#2d2c38]'
                             }`}
                           >
-                            {lvl === 'all' ? 'Todos' : lvl}
+                            {cat.label}
                           </button>
                         ))}
                       </div>
@@ -2057,30 +2442,38 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <th className="py-3 px-3">Carnet</th>
                             <th className="py-3 px-3">Estudiante</th>
                             <th className="py-3 px-3 text-center">Grado</th>
-                            <th className="py-3 px-3 text-center">Nivel Obtenido</th>
+                            <th className="py-3 px-3 text-center">Nivel Matriz (Grupo)</th>
+                            <th className="py-3 px-3 text-center">Puntaje Global (%)</th>
                             <th className="py-3 px-3">Docente Evaluador</th>
                             <th className="py-3 px-3 text-center">Duración</th>
-                            <th className="py-3 px-3">Fecha y Hora</th>
+                            <th className="py-3 px-3">Fecha</th>
                             <th className="py-3 px-3 text-right">Acciones</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#eceaf6]/60">
                           {paginatedEvaluations.length === 0 ? (
                             <tr>
-                              <td colSpan="8" className="py-12 text-center text-[#8e8a9f] text-xs italic">
+                              <td colSpan="9" className="py-12 text-center text-[#8e8a9f] text-xs italic">
                                 No se encontraron actas con los filtros aplicados.
                               </td>
                             </tr>
                           ) : (
                             paginatedEvaluations.map((ev, i) => {
-                              const badgeColors = {
-                                A1: 'bg-emerald-50 text-emerald-800 border-emerald-300',
-                                A2: 'bg-cyan-50 text-cyan-800 border-cyan-300',
-                                B1: 'bg-blue-50 text-blue-800 border-blue-300',
-                                B2: 'bg-purple-50 text-purple-800 border-purple-300',
-                                C1: 'bg-pink-50 text-pink-800 border-pink-300',
+                              const placement = getEvaluationPlacementData(ev)
+                              const groupBadgeColors = {
+                                'L1-A': 'bg-amber-50 text-amber-900 border-amber-300',
+                                'L1-B': 'bg-indigo-50 text-indigo-900 border-indigo-300',
+                                'L2': 'bg-emerald-50 text-emerald-900 border-emerald-300',
+                                'L2-A': 'bg-amber-50 text-amber-900 border-amber-300',
+                                'L2-B': 'bg-indigo-50 text-indigo-900 border-indigo-300',
+                                'L3': 'bg-emerald-50 text-emerald-900 border-emerald-300',
+                                'L3-A': 'bg-amber-50 text-amber-900 border-amber-300',
+                                'L3-B': 'bg-indigo-50 text-indigo-900 border-indigo-300',
+                                'L4-A': 'bg-purple-50 text-purple-900 border-purple-300',
+                                'L5-A': 'bg-rose-50 text-rose-900 border-rose-300',
+                                'L5-B': 'bg-pink-50 text-pink-900 border-pink-300'
                               }
-                              const colorClass = badgeColors[ev.finalLevel] || 'bg-[#f4f1fd] text-[#5446a8] border-[#e2e0ed]'
+                              const colorClass = groupBadgeColors[placement.group] || 'bg-[#f4f1fd] text-[#5446a8] border-[#e2e0ed]'
 
                               return (
                                 <tr key={ev.id || i} className="table-academy-row">
@@ -2093,12 +2486,26 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                   </td>
                                   <td className="py-3.5 px-3 text-center">
                                     <span className="inline-block px-2.5 py-0.5 rounded-lg bg-[#f4f1fd] font-bold text-xs text-[#5446a8] border border-[#e2e0ed]">
-                                      {ev.grade} - Secc. {ev.section}
+                                      {ev.grade} {ev.section}
                                     </span>
                                   </td>
                                   <td className="py-3.5 px-3 text-center">
-                                    <span className={`inline-block px-3 py-1 rounded-full font-black text-xs border shadow-2xs ${colorClass}`}>
-                                      {ev.finalLevel}
+                                    <div className="flex flex-col items-center">
+                                      <span className={`inline-block px-3 py-1 rounded-xl font-black text-xs border shadow-2xs ${colorClass}`}>
+                                        {placement.group}
+                                      </span>
+                                      <span className="text-[10px] text-gray-500 font-semibold mt-0.5">
+                                        {placement.categoryLabel} • {placement.cefr}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-3 text-center">
+                                    <span className={`inline-block px-2.5 py-0.5 rounded-lg font-mono font-bold text-xs border ${
+                                      placement.scorePercent >= 71 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                                      placement.scorePercent >= 41 ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                                      'bg-amber-50 text-amber-800 border-amber-200'
+                                    }`}>
+                                      {placement.scorePercent}%
                                     </span>
                                   </td>
                                   <td className="py-3.5 px-3">
@@ -2115,6 +2522,17 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                   </td>
                                   <td className="py-3.5 px-3 text-right whitespace-nowrap">
                                     <div className="flex items-center justify-end gap-1.5">
+                                      {/* BOTÓN NOTIFICAR POR TEAMS */}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenTeamsComposer(ev)}
+                                        className="px-2.5 py-1.5 rounded-xl bg-[#eef3fc] hover:bg-[#dbe6fa] text-[#4b53bc] font-bold text-xs border border-[#cfd9f5] transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                                        title={`Redactar y enviar mensaje directo a ${ev.studentName} por Microsoft Teams`}
+                                      >
+                                        <span className="text-[14px]">💬</span>
+                                        <span>Teams</span>
+                                      </button>
+
                                       {/* BOTÓN VEREDICTO FINAL */}
                                       <button
                                         type="button"
@@ -2232,7 +2650,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             <div className="text-xs text-[#e9e3ff] font-mono flex items-center gap-3 mt-1 flex-wrap">
                               <span>Carnet: <strong>{selectedEvaluationDetail.studentCarnet || 'N/A'}</strong></span>
                               <span>·</span>
-                              <span>{selectedEvaluationDetail.grade} - Secc. {selectedEvaluationDetail.section}</span>
+                              <span>{selectedEvaluationDetail.grade} {selectedEvaluationDetail.section}</span>
                               <span>·</span>
                               <span>Docente: <strong>{selectedEvaluationDetail.teacherName || selectedEvaluationDetail.teacherEmail}</strong></span>
                             </div>
@@ -2246,44 +2664,59 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             >
                               <span className="material-symbols-outlined text-[20px]">close</span>
                             </button>
-                            <div className="px-4 py-1.5 rounded-2xl bg-white/15 border border-white/20 text-center">
-                              <span className="text-[10px] uppercase font-bold text-slate-200 block">Nivel Asignado</span>
-                              <span className="font-heading font-black text-2xl text-amber-300">
-                                {selectedEvaluationDetail.finalLevel}
-                              </span>
-                            </div>
+                            {(() => {
+                              const p = getEvaluationPlacementData(selectedEvaluationDetail)
+                              return (
+                                <div className="px-4 py-1.5 rounded-2xl bg-white/15 border border-white/20 text-center">
+                                  <span className="text-[10px] uppercase font-bold text-slate-200 block">Nivel Matriz (Grupo)</span>
+                                  <span className="font-heading font-black text-2xl text-amber-300">
+                                    {p.group}
+                                  </span>
+                                  <span className="text-[10px] text-white/80 font-semibold block">
+                                    {p.categoryLabel} • {p.scorePercent}%
+                                  </span>
+                                </div>
+                              )
+                            })()}
                           </div>
                         </div>
 
                         {/* Cuerpo scrollable con rúbricas */}
                         <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50">
                           {/* Ficha resumen */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-gray-200/80">
-                            <div>
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Tiempo Total</span>
-                              <span className="font-mono font-bold text-base text-gray-800">
-                                {selectedEvaluationDetail.durationFormatted || `${selectedEvaluationDetail.totalDurationSeconds} seg`}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Correo Alumno</span>
-                              <span className="text-xs font-mono text-gray-600 truncate block">
-                                {selectedEvaluationDetail.studentEmail}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nivel Oficial</span>
-                              <span className="text-base font-extrabold text-[#2528b7]">
-                                {selectedEvaluationDetail.finalLevel}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Docente</span>
-                              <span className="text-xs font-semibold text-gray-800 truncate block">
-                                {selectedEvaluationDetail.teacherName || selectedEvaluationDetail.teacherEmail}
-                              </span>
-                            </div>
-                          </div>
+                          {(() => {
+                            const p = getEvaluationPlacementData(selectedEvaluationDetail)
+                            return (
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-gray-200/80">
+                                <div>
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Puntaje Global</span>
+                                  <span className="font-mono font-black text-lg text-indigo-700">
+                                    {p.scorePercent}%
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 block">{p.categoryLabel}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Grupo Matriz</span>
+                                  <span className="text-base font-extrabold text-[#2528b7]">
+                                    {p.group}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 block">MCER: {p.cefr}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Tiempo Entrevista</span>
+                                  <span className="font-mono font-bold text-sm text-gray-800">
+                                    {selectedEvaluationDetail.durationFormatted || `${selectedEvaluationDetail.totalDurationSeconds} seg`}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Docente Evaluador</span>
+                                  <span className="text-xs font-semibold text-gray-800 truncate block">
+                                    {selectedEvaluationDetail.teacherName || selectedEvaluationDetail.teacherEmail}
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          })()}
 
                           {/* Detalle por niveles evaluados */}
                           {selectedEvaluationDetail.levelsEvaluated && Object.keys(selectedEvaluationDetail.levelsEvaluated).length > 0 ? (
@@ -2371,10 +2804,106 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                               No hay detalles específicos de rúbrica registrados para esta evaluación.
                             </div>
                           )}
+
+                          {/* SECCIÓN ADICIONAL: ACTIVIDADES DE PLATAFORMA Y LISTENING CON BOTÓN DE RESET */}
+                          {(() => {
+                            const evalEmail = (selectedEvaluationDetail.studentEmail || '').toLowerCase()
+                            const targetStudent = students.find(s => (s.email || '').toLowerCase() === evalEmail) || selectedEvaluationDetail
+                            const compExams = targetStudent.completedExams || {}
+                            const examEntries = Object.entries(compExams)
+
+                            return (
+                              <div className="bg-white rounded-2xl p-5 border border-indigo-100 shadow-2xs space-y-3">
+                                <div className="flex items-center justify-between border-b border-indigo-50 pb-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[20px] text-[#5446a8]">headphones</span>
+                                    <div>
+                                      <h4 className="font-heading font-black text-xs text-[#2d2c38] uppercase tracking-wider">
+                                        Pruebas Digitales de Plataforma & Listening ({examEntries.length})
+                                      </h4>
+                                      <span className="text-[10px] text-gray-400">
+                                        Permite al docente reiniciar actividades individuales (ej: Listening) para que el alumno las repita.
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {examEntries.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUnlockExam(targetStudent, null)}
+                                      className="px-2.5 py-1 rounded-xl text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-1 cursor-pointer"
+                                      title="Resetear todas las actividades de plataforma para este alumno"
+                                    >
+                                      <span className="material-symbols-outlined text-[13px]">restart_alt</span>
+                                      <span>Resetear Todas</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {examEntries.length === 0 ? (
+                                  <div className="p-4 text-center text-xs text-gray-400 bg-slate-50 rounded-xl border border-dashed border-gray-200 italic">
+                                    El alumno no tiene pruebas de plataforma ni de listening completadas actualmente.
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {examEntries.map(([eid, edata]) => {
+                                      const isListening = eid.toLowerCase().includes('listening') || (edata.examTitle || '').toLowerCase().includes('listening') || (edata.examTitle || '').toLowerCase().includes('audio')
+                                      return (
+                                        <div
+                                          key={eid}
+                                          className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
+                                            isListening ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/70 border-slate-200'
+                                          }`}
+                                        >
+                                          <div className="min-w-0 flex items-center gap-2">
+                                            <span className={`material-symbols-outlined text-[18px] shrink-0 ${isListening ? 'text-indigo-600' : 'text-slate-600'}`}>
+                                              {isListening ? 'headphones' : 'assignment'}
+                                            </span>
+                                            <div className="min-w-0">
+                                              <div className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="font-bold text-gray-800 truncate block">
+                                                  {edata.examTitle || eid.replace('exam_official_', '').replace(/_/g, ' ')}
+                                                </span>
+                                                {isListening && (
+                                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                                    Listening
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <span className="text-[10px] text-gray-400">
+                                                {edata.completedAt ? new Date(edata.completedAt).toLocaleString('es-SV') : 'Completado'}
+                                                {edata.byTimeout ? ' • Por tiempo' : ''}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                            {edata.score !== undefined && (
+                                              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200 font-mono">
+                                                {edata.score}%
+                                              </span>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() => handleUnlockExam(targetStudent, eid)}
+                                              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                              title="Resetear esta actividad para que el alumno pueda realizarla de nuevo"
+                                            >
+                                              <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                                              <span>Resetear {isListening ? 'Listening' : 'Actividad'}</span>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })()}
                         </div>
 
                         {/* Footer modal */}
-                        <div className="bg-white p-4 border-t border-gray-200 flex items-center justify-between">
+                        <div className="bg-white p-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
                           <button
                             type="button"
                             onClick={() => {
@@ -2389,13 +2918,37 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                             Eliminar Acta
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setSelectedEvaluationDetail(null)}
-                            className="px-6 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all cursor-pointer"
-                          >
-                            Cerrar
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {/* Botón notificar por Teams */}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenTeamsComposer(selectedEvaluationDetail)}
+                              className="px-3.5 py-2 rounded-xl bg-[#eef3fc] hover:bg-[#dbe6fa] text-[#4b53bc] text-xs font-bold border border-[#cfd9f5] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                              title="Abrir editor de mensaje en Teams con nivel institucional oficial"
+                            >
+                              <span>💬</span>
+                              <span>Notificar en Teams</span>
+                            </button>
+
+                            {/* Botón Imprimir Ficha Oficial */}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPrintActa([selectedEvaluationDetail])}
+                              className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                              title="Imprimir acta individual para el expediente del estudiante"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">print</span>
+                              <span>Imprimir Ficha</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedEvaluationDetail(null)}
+                              className="px-6 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all cursor-pointer"
+                            >
+                              Cerrar
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2404,11 +2957,11 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                 </div>
               )}
 
-              {/* SECCIÓN NUEVA: BITÁCORA Y ALERTAS DE FRAUDE / SALIDA DE PESTAÑA */}
+              {/* SECCIÓN NUEVA: BITÁCORA Y ALERTAS DE FRAUDE / SALIDA DE PESTAÑA (COMBINADA A + B) */}
               {currentSection === 'security_audit' && (
                 <div className="space-y-6">
                   {/* Encabezado y resumen métrico */}
-                  <div className="bg-gradient-to-r from-[#ffeef2] via-[#fff5f7] to-[#fbfbfb] rounded-4xl p-7 border border-[#ffd5df] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="bg-gradient-to-r from-[#ffeef2] via-[#fff5f7] to-[#fbfbfb] rounded-4xl p-6 sm:p-7 border border-[#ffd5df] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-3xl bg-white border border-[#ffd5df] text-rose-600 flex items-center justify-center shrink-0 shadow-xs">
                         <span className="material-symbols-outlined text-[32px]">shield</span>
@@ -2423,7 +2976,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                           </span>
                         </div>
                         <p className="text-xs text-[#8e8a9f] mt-1 font-medium">
-                          Monitoreo de salidas de pestaña, cambios de ventana, atajos bloqueados y desconexiones durante las pruebas digitales.
+                          Detección y auditoría de salidas de pantalla, cambios de ventana y bloqueos durante las pruebas digitales.
                         </p>
                       </div>
                     </div>
@@ -2449,11 +3002,11 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
                   </div>
 
-                  {/* Tarjetas KPI de Fraude */}
+                  {/* Cálculo previo de incidencias globales y por grado */}
                   {(() => {
                     let totalIncidentsCount = 0
                     let autoSubmittedByFraud = 0
-                    const flaggedStudents = []
+                    const allFlaggedStudents = []
 
                     students.forEach(s => {
                       const comp = s.completedExams || {}
@@ -2466,188 +3019,752 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       })
                       if (studentWarnings > 0) {
                         totalIncidentsCount += studentWarnings
-                        flaggedStudents.push(s)
+                        allFlaggedStudents.push(s)
                       }
                       if (hasAutoSubmit) autoSubmittedByFraud++
                     })
 
-                    return (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="card-academy p-5 border-rose-200/80 bg-gradient-to-br from-white to-rose-50/20 flex items-center justify-between">
-                          <div>
-                            <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">
-                              Alumnos con Incidencias
-                            </span>
-                            <span className="font-heading font-black text-2xl text-rose-900 mt-1 block">
-                              {flaggedStudents.length}
-                            </span>
-                            <span className="text-[11px] text-[#8e8a9f]">De {students.length} alumnos totales</span>
-                          </div>
-                          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[26px]">person_alert</span>
-                          </div>
-                        </div>
+                    const gradesDef = [
+                      { id: '6', label: '6° Grado', fullTitle: '6° Grado (Educación Básica)' },
+                      { id: '7', label: '7° Grado', fullTitle: '7° Grado (Educación Básica)' },
+                      { id: '8', label: '8° Grado', fullTitle: '8° Grado (Educación Básica)' },
+                      { id: '9', label: '9° Grado', fullTitle: '9° Grado (Tercer Ciclo)' },
+                      { id: '10', label: '1° Bachillerato', fullTitle: '1° Bachillerato (10° Grado)' },
+                      { id: '11', label: '2° Bachillerato', fullTitle: '2° Bachillerato (11° Grado)' }
+                    ]
 
-                        <div className="card-academy p-5 border-amber-200/80 bg-gradient-to-br from-white to-amber-50/20 flex items-center justify-between">
-                          <div>
-                            <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">
-                              Total de Salidas Registradas
-                            </span>
-                            <span className="font-heading font-black text-2xl text-amber-900 mt-1 block">
-                              {totalIncidentsCount}
-                            </span>
-                            <span className="text-[11px] text-[#8e8a9f]">En todas las evaluaciones digitales</span>
-                          </div>
-                          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[26px]">tab_unselected</span>
-                          </div>
-                        </div>
+                    // Filtrar estudiantes para la tabla según los controles A+B
+                    const filteredFlaggedStudents = allFlaggedStudents.filter(s => {
+                      // Filtro de grado
+                      if (fraudGradeFilter !== 'all') {
+                        const gStr = (s.grade || '') + ' ' + (s.codigoGrado || '')
+                        let match = false
+                        if (fraudGradeFilter === '6') match = gStr.includes('6°') || s.codigoGrado === '06'
+                        else if (fraudGradeFilter === '7') match = gStr.includes('7°') || s.codigoGrado === '07'
+                        else if (fraudGradeFilter === '8') match = gStr.includes('8°') || s.codigoGrado === '08'
+                        else if (fraudGradeFilter === '9') match = gStr.includes('9°') || s.codigoGrado === '09'
+                        else if (fraudGradeFilter === '10') match = gStr.includes('10°') || gStr.includes('1° Bach') || s.codigoGrado === '10'
+                        else if (fraudGradeFilter === '11') match = gStr.includes('11°') || gStr.includes('2° Bach') || s.codigoGrado === '11' || gStr.includes('12°') || s.codigoGrado === '32'
+                        if (!match) return false
+                      }
 
-                        <div className="card-academy p-5 border-emerald-200/80 bg-gradient-to-br from-white to-emerald-50/20 flex items-center justify-between">
-                          <div>
-                            <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
-                              Alumnos Sin Ninguna Alerta
-                            </span>
-                            <span className="font-heading font-black text-2xl text-emerald-900 mt-1 block">
-                              {Math.max(0, students.length - flaggedStudents.length)}
-                            </span>
-                            <span className="text-[11px] text-[#8e8a9f]">Comportamiento transparente</span>
-                          </div>
-                          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[26px]">verified_user</span>
-                          </div>
-                        </div>
-                      </div>
+                      // Filtro de sección
+                      if (fraudSectionFilter !== 'all' && s.section !== fraudSectionFilter) return false
+
+                      // Total de advertencias del alumno
+                      const comp = s.completedExams || {}
+                      let warnings = 0
+                      let hasAuto = false
+                      Object.values(comp).forEach(c => {
+                        const count = c.warningsCount || (c.incidents?.length || 0)
+                        warnings += count
+                        if (c.byTimeout || count >= 3) hasAuto = true
+                      })
+
+                      // Filtro de severidad (Semáforo)
+                      if (fraudSeverityFilter === 'critical' && warnings < 3 && !hasAuto) return false
+                      if (fraudSeverityFilter === 'medium' && warnings !== 2) return false
+                      if (fraudSeverityFilter === 'low' && warnings !== 1) return false
+
+                      // Búsqueda
+                      if (fraudSearchTerm) {
+                        const term = fraudSearchTerm.toLowerCase()
+                        const matchName = (s.name || '').toLowerCase().includes(term)
+                        const matchCarnet = (s.carnet || '').includes(term)
+                        const matchEmail = (s.email || '').toLowerCase().includes(term)
+                        if (!matchName && !matchCarnet && !matchEmail) return false
+                      }
+
+                      return true
+                    })
+
+                    // Paginación para la tabla de Fraudes
+                    const totalFraudPages = Math.max(1, Math.ceil(filteredFlaggedStudents.length / fraudPageSize))
+                    const paginatedFlaggedStudents = filteredFlaggedStudents.slice(
+                      (fraudPage - 1) * fraudPageSize,
+                      fraudPage * fraudPageSize
                     )
-                  })()}
 
-                  {/* Tabla de Alumnos con Alertas de Fraude */}
-                  <div className="card-academy overflow-hidden">
-                    <div className="p-4 border-b border-[#eceaf6] flex items-center justify-between bg-[#fbfbfb]">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-heading font-black text-sm text-[#2d2c38]">
-                          Bitácora de Estudiantes con Alertas
-                        </h3>
-                        <span className="text-[11px] text-[#8e8a9f]">
-                          (Haz clic en <strong>"Ver Registro"</strong> para auditar fechas, horas y tipo de acción)
-                        </span>
-                      </div>
-                    </div>
+                    return (
+                      <>
+                        {/* Tarjetas KPI de Fraude */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="card-academy p-5 border-rose-200/80 bg-gradient-to-br from-white to-rose-50/20 flex items-center justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">
+                                Alumnos Observados
+                              </span>
+                              <span className="font-heading font-black text-2xl text-rose-900 mt-1 block">
+                                {allFlaggedStudents.length}
+                              </span>
+                              <span className="text-[11px] text-[#8e8a9f]">De {students.length} alumnos totales</span>
+                            </div>
+                            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[26px]">person_alert</span>
+                            </div>
+                          </div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs md:text-sm">
-                        <thead>
-                          <tr className="border-b border-[#eceaf6] text-[11px] font-black uppercase text-[#8e8a9f] bg-[#fbfbfb]">
-                            <th className="py-3 px-3">Carnet</th>
-                            <th className="py-3 px-3">Estudiante</th>
-                            <th className="py-3 px-3 text-center">Grado</th>
-                            <th className="py-3 px-3 text-center">Secc.</th>
-                            <th className="py-3 px-3">Docente Asignado</th>
-                            <th className="py-3 px-3 text-center">Nivel Obtenido</th>
-                            <th className="py-3 px-3 text-center">Salidas de Pestaña</th>
-                            <th className="py-3 px-3 text-center">Estado de Acceso</th>
-                            <th className="py-3 px-3 text-right">Auditoría</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#eceaf6]/60">
-                          {(() => {
-                            const flagged = students.filter(s => {
-                              const c = s.completedExams || {}
-                              return Object.values(c).reduce((acc, x) => acc + (x.warningsCount || (x.incidents?.length || 0)), 0) > 0
-                            })
+                          <div className="card-academy p-5 border-amber-200/80 bg-gradient-to-br from-white to-amber-50/20 flex items-center justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">
+                                Total de Salidas Registradas
+                              </span>
+                              <span className="font-heading font-black text-2xl text-amber-900 mt-1 block">
+                                {totalIncidentsCount}
+                              </span>
+                              <span className="text-[11px] text-[#8e8a9f]">En todas las pruebas digitales</span>
+                            </div>
+                            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[26px]">tab_unselected</span>
+                            </div>
+                          </div>
 
-                            if (flagged.length === 0) {
+                          <div className="card-academy p-5 border-emerald-200/80 bg-gradient-to-br from-white to-emerald-50/20 flex items-center justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
+                                Alumnos 100% Limpios
+                              </span>
+                              <span className="font-heading font-black text-2xl text-emerald-900 mt-1 block">
+                                {Math.max(0, students.length - allFlaggedStudents.length)}
+                              </span>
+                              <span className="text-[11px] text-[#8e8a9f]">Sin alertas ni salidas no autorizadas</span>
+                            </div>
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[26px]">verified_user</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* COMPONENTE B: NAVEGADOR DE AUDITORÍA POR GRADO */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider text-[#585567] flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-[18px] text-[#7052c9]">domain</span>
+                              <span>Estado de Seguridad por Grado</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFraudGradeFilter('all')
+                                setFraudPage(1)
+                              }}
+                              className={`text-xs font-black px-3 py-1 rounded-xl transition-all cursor-pointer ${
+                                fraudGradeFilter === 'all'
+                                  ? 'bg-[#5446a8] text-white shadow-xs'
+                                  : 'bg-white text-[#585567] hover:bg-[#f4f1fd] border border-[#eceaf6]'
+                              }`}
+                            >
+                              Ver Todos los Grados
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                            {gradesDef.map(g => {
+                              // Estudiantes de este grado con incidencias
+                              const gradeFlagged = allFlaggedStudents.filter(s => {
+                                const gStr = (s.grade || '') + ' ' + (s.codigoGrado || '')
+                                if (g.id === '6') return gStr.includes('6°') || s.codigoGrado === '06'
+                                if (g.id === '7') return gStr.includes('7°') || s.codigoGrado === '07'
+                                if (g.id === '8') return gStr.includes('8°') || s.codigoGrado === '08'
+                                if (g.id === '9') return gStr.includes('9°') || s.codigoGrado === '09'
+                                if (g.id === '10') return gStr.includes('10°') || gStr.includes('1° Bach') || s.codigoGrado === '10'
+                                if (g.id === '11') return gStr.includes('11°') || gStr.includes('2° Bach') || s.codigoGrado === '11' || gStr.includes('12°') || s.codigoGrado === '32'
+                                return false
+                              })
+
+                              const isSelected = fraudGradeFilter === g.id
+                              const count = gradeFlagged.length
+
                               return (
-                                <tr>
-                                  <td colSpan="9" className="py-12 text-center text-[#8e8a9f] text-xs italic">
-                                    <div className="flex flex-col items-center gap-2">
-                                      <span className="material-symbols-outlined text-[36px] text-emerald-500">check_circle</span>
-                                      <span className="font-bold text-[#2d2c38]">No hay incidencias de seguridad registradas</span>
-                                      <span className="text-[#8e8a9f]">Todos los estudiantes han completado sus exámenes sin registrar salidas no autorizadas.</span>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )
-                            }
-
-                            return flagged.map(s => {
-                              const completed = s.completedExams || {}
-                              const totalWarnings = Object.values(completed).reduce(
-                                (acc, c) => acc + (c.warningsCount || (c.incidents?.length || 0)),
-                                0
-                              )
-
-                              return (
-                                <tr key={s.id || s.email} className="table-academy-row hover:bg-rose-50/30">
-                                  <td className="py-3.5 px-3 font-mono font-bold text-[#585567]">
-                                    {s.carnet || 'N/A'}
-                                  </td>
-                                  <td className="py-3.5 px-3">
-                                    <div className="font-extrabold text-[#2d2c38]">{s.name}</div>
-                                    <div className="text-[11px] text-[#8e8a9f] font-mono truncate max-w-xs">{s.email}</div>
-                                  </td>
-                                  <td className="py-3.5 px-3 text-center">
-                                    <span className="inline-block px-2 py-0.5 rounded-lg bg-[#f4f1fd] font-bold text-[#5446a8] border border-[#e2e0ed]">
-                                      {s.grade || s.codigoGrado || '-'}
+                                <button
+                                  key={g.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFraudGradeFilter(isSelected ? 'all' : g.id)
+                                    setFraudPage(1)
+                                  }}
+                                  className={`p-3.5 rounded-2xl text-left transition-all cursor-pointer border relative flex flex-col justify-between ${
+                                    isSelected
+                                      ? 'bg-[#5446a8] text-white border-[#5446a8] shadow-md ring-2 ring-[#e9e3ff]'
+                                      : count > 0
+                                      ? 'bg-rose-50/50 hover:bg-rose-50 text-[#2d2c38] border-rose-200'
+                                      : 'bg-white hover:bg-[#f8f7fc] text-[#2d2c38] border-[#eceaf6]'
+                                  }`}
+                                >
+                                  <div>
+                                    <span className={`text-[10px] font-black uppercase block ${isSelected ? 'text-white/80' : 'text-[#8e8a9f]'}`}>
+                                      {g.label}
                                     </span>
-                                  </td>
-                                  <td className="py-3.5 px-3 text-center font-bold text-[#585567]">
-                                    {s.section || '-'}
-                                  </td>
-                                  <td className="py-3.5 px-3 text-[#2d2c38] font-medium">
-                                    {s.assignedTeacher || 'Sin asignar'}
-                                  </td>
-                                  <td className="py-3.5 px-3 text-center">
-                                    {s.assignedLevel ? (
-                                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed]">
-                                        {s.assignedLevel}
+                                    <span className="font-heading font-black text-lg block mt-0.5">
+                                      {count} {count === 1 ? 'Alerta' : 'Alertas'}
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-2 pt-2 border-t border-current/10 flex items-center justify-between text-[10px] font-bold">
+                                    {count === 0 ? (
+                                      <span className={`flex items-center gap-1 ${isSelected ? 'text-emerald-200' : 'text-emerald-700'}`}>
+                                        <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                                        Limpio
                                       </span>
                                     ) : (
-                                      <span className="text-[11px] text-[#8e8a9f]">Sin nivel</span>
+                                      <span className={`flex items-center gap-1 ${isSelected ? 'text-rose-200' : 'text-rose-700'}`}>
+                                        <span className="material-symbols-outlined text-[13px]">warning</span>
+                                        Observado
+                                      </span>
                                     )}
-                                  </td>
-                                  <td className="py-3.5 px-3 text-center">
-                                    <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1 shadow-2xs">
-                                      <span className="material-symbols-outlined text-[15px] text-rose-600">warning</span>
-                                      <span>{totalWarnings} advertencia(s)</span>
+                                    <span className="material-symbols-outlined text-[14px]">
+                                      {isSelected ? 'expand_less' : 'arrow_forward'}
                                     </span>
-                                  </td>
-                                  <td className="py-3.5 px-3 text-center">
-                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                      s.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                      {s.status === 'active' ? 'Habilitado' : 'Pausado'}
-                                    </span>
-                                  </td>
-                                  <td className="py-3.5 px-3 text-right">
-                                    <div className="flex items-center justify-end gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleUnlockExam(s, null)}
-                                        className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200 transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
-                                        title="Habilitar / Desbloquear exámenes para este alumno"
-                                      >
-                                        <span className="material-symbols-outlined text-[15px]">lock_open</span>
-                                        <span>Desbloquear</span>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setSelectedStudentSecurityDetail(s)}
-                                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#8a70d6] to-[#7052c9] hover:from-[#7a60c7] hover:to-[#5e41b5] text-white text-xs font-black transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
-                                      >
-                                        <span className="material-symbols-outlined text-[15px]">visibility</span>
-                                        <span>Ver Registro</span>
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
+                                  </div>
+                                </button>
                               )
-                            })
-                          })()}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                            })}
+                          </div>
+                        </div>
+
+                        {/* COMPONENTE A: BARRA DE FILTROS ÁGILES (SEMÁFORO DE SEVERIDAD + SECCIÓN + BUSCADOR) */}
+                        <div className="card-academy p-4 px-5 space-y-3 bg-white">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            {/* Semáforo de Severidad */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
+                                Severidad:
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFraudSeverityFilter('all')
+                                  setFraudPage(1)
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                  fraudSeverityFilter === 'all'
+                                    ? 'bg-[#2d2c38] text-white shadow-xs'
+                                    : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                                }`}
+                              >
+                                Todas ({allFlaggedStudents.length})
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFraudSeverityFilter('critical')
+                                  setFraudPage(1)
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                                  fraudSeverityFilter === 'critical'
+                                    ? 'bg-rose-600 text-white shadow-xs'
+                                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                                }`}
+                                title="3 o más salidas, o examen entregado automáticamente por fraude"
+                              >
+                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                <span>🔴 Crítica (3+ o Bloqueo)</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFraudSeverityFilter('medium')
+                                  setFraudPage(1)
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                                  fraudSeverityFilter === 'medium'
+                                    ? 'bg-amber-600 text-white shadow-xs'
+                                    : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                                }`}
+                              >
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                                <span>🟠 Media (2 salidas)</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFraudSeverityFilter('low')
+                                  setFraudPage(1)
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                                  fraudSeverityFilter === 'low'
+                                    ? 'bg-yellow-500 text-white shadow-xs'
+                                    : 'bg-yellow-50 text-yellow-800 hover:bg-yellow-100 border border-yellow-200'
+                                }`}
+                              >
+                                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
+                                <span>🟡 Leve (1 salida)</span>
+                              </button>
+                            </div>
+
+                            {/* Buscador Rápido */}
+                            <div className="relative w-full md:w-64">
+                              <input
+                                type="text"
+                                value={fraudSearchTerm}
+                                onChange={(e) => {
+                                  setFraudSearchTerm(e.target.value)
+                                  setFraudPage(1)
+                                }}
+                                placeholder="Buscar carnet o nombre..."
+                                className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#eceaf6] text-xs focus:outline-none focus:ring-2 focus:ring-[#8a70d6]/30 bg-[#f8f7fc] text-[#2d2c38]"
+                              />
+                              <span className="material-symbols-outlined text-[17px] text-[#8e8a9f] absolute left-2.5 top-1/2 -translate-y-1/2">
+                                search
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Fila secundaria: Sección + Botón de Acción Masiva */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2.5 border-t border-[#eceaf6]">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[11px] font-black text-[#8e8a9f] uppercase tracking-wider mr-1">
+                                Sección:
+                              </span>
+                              {['all', 'A', 'B', 'C', 'D'].map(sec => (
+                                <button
+                                  key={sec}
+                                  type="button"
+                                  onClick={() => {
+                                    setFraudSectionFilter(sec)
+                                    setFraudPage(1)
+                                  }}
+                                  className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                    fraudSectionFilter === sec
+                                      ? 'bg-[#5446a8] text-white shadow-xs'
+                                      : 'bg-[#f8f7fc] text-[#585567] hover:bg-[#f4f1fd] border border-[#e2e0ed]'
+                                  }`}
+                                >
+                                  {sec === 'all' ? 'Todas' : sec}
+                                </button>
+                              ))}
+
+                              {fraudGradeFilter !== 'all' && (
+                                <span className="ml-2 px-2.5 py-0.5 rounded-lg bg-[#e9e3ff] text-[#5446a8] text-[11px] font-black">
+                                  Filtrando: {gradesDef.find(g => g.id === fraudGradeFilter)?.label}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Botón de Acción Masiva: Resetear Alertas de la Vista Filtrada */}
+                            {filteredFlaggedStudents.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleBatchClearFraud(filteredFlaggedStudents, fraudGradeFilter !== 'all' ? `del ${gradesDef.find(g => g.id === fraudGradeFilter)?.label}` : 'los alumnos filtrados')}
+                                className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-black border border-rose-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+                                title="Limpiar todas las alertas de fraude para los alumnos visibles en este filtro"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">cleaning_services</span>
+                                <span>Limpiar Alertas de esta Lista ({filteredFlaggedStudents.length})</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* TABLA DE AUDITORÍA DETALLADA */}
+                        <div className="card-academy overflow-hidden bg-white shadow-sm">
+                          <div className="p-4 px-6 border-b border-[#eceaf6] flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-white to-[#f4f1fd]/40">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-heading font-black text-sm text-[#2d2c38]">
+                                Bitácora de Estudiantes Observados ({filteredFlaggedStudents.length})
+                              </h3>
+                              <span className="text-[11px] text-[#8e8a9f]">
+                                (Despliega la ficha o pulsa "Ver Registro")
+                              </span>
+                            </div>
+                            <span className="text-xs font-black text-[#5446a8] bg-[#e9e3ff] px-3 py-1 rounded-full shadow-xs self-start sm:self-auto">
+                              Página {fraudPage} de {totalFraudPages}
+                            </span>
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs md:text-sm">
+                              <thead>
+                                <tr className="border-b border-[#eceaf6] text-[11px] font-black uppercase text-[#8e8a9f] bg-[#fbfbfb]">
+                                  <th className="py-3.5 px-4 font-black">Estudiante</th>
+                                  <th className="py-3.5 px-3 text-center font-black">Grado</th>
+                                  <th className="py-3.5 px-3 text-center font-black">Secc.</th>
+                                  <th className="py-3.5 px-4 font-black">Docente Titular</th>
+                                  <th className="py-3.5 px-4 text-center font-black">Severidad / Alertas</th>
+                                  <th className="py-3.5 px-4 text-center font-black">Incidencias</th>
+                                  <th className="py-3.5 px-4 text-right font-black">Acciones</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#eceaf6]/60">
+                                {paginatedFlaggedStudents.length === 0 ? (
+                                  <tr>
+                                    <td colSpan="7" className="py-14 text-center text-[#8e8a9f] text-xs italic">
+                                      <div className="flex flex-col items-center gap-2">
+                                        <span className="material-symbols-outlined text-[36px] text-emerald-500">check_circle</span>
+                                        <span className="font-bold text-[#2d2c38]">Sin incidencias con los criterios seleccionados</span>
+                                        <span className="text-[#8e8a9f]">No se encontraron alumnos con alertas para este grado, sección o nivel de severidad.</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  paginatedFlaggedStudents.map(s => {
+                                    const completed = s.completedExams || {}
+                                    let totalWarnings = 0
+                                    let hasAutoSubmit = false
+                                    const examBreakdown = []
+
+                                    Object.entries(completed).forEach(([eid, edata]) => {
+                                      const count = edata.warningsCount || (edata.incidents?.length || 0)
+                                      if (count > 0 || edata.byTimeout) {
+                                        totalWarnings += count
+                                        if (edata.byTimeout || count >= 3) hasAutoSubmit = true
+                                        const cleanTitle = edata.examTitle || (eid.toLowerCase().includes('listening') ? 'Listening' : eid)
+                                        examBreakdown.push({
+                                          id: eid,
+                                          title: cleanTitle,
+                                          count,
+                                          byTimeout: edata.byTimeout,
+                                          score: edata.score,
+                                          scorePercent: edata.scorePercent,
+                                          completedAt: edata.completedAt,
+                                          incidents: edata.incidents || []
+                                        })
+                                      }
+                                    })
+
+                                    const isCritical = totalWarnings >= 3 || hasAutoSubmit
+                                    const isMedium = totalWarnings === 2
+                                    const isLow = totalWarnings === 1
+                                    const isExpanded = expandedFraudStudentId === (s.id || s.email || s.carnet)
+
+                                    return (
+                                      <React.Fragment key={s.id || s.email || s.carnet}>
+                                        <tr className={`table-academy-row transition-colors ${
+                                          isExpanded ? 'bg-amber-50/50' : isCritical ? 'bg-rose-50/40 hover:bg-rose-50/70' : 'hover:bg-[#fbfafd]'
+                                        }`}>
+                                          {/* Columna Estudiante */}
+                                          <td className="py-3 px-4">
+                                            <div className="flex items-center gap-2.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => setExpandedFraudStudentId(isExpanded ? null : (s.id || s.email || s.carnet))}
+                                                className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                                                  isExpanded ? 'bg-[#5446a8] text-white shadow-xs rotate-180' : 'bg-[#f4f1fd] text-[#5446a8] hover:bg-[#e9e3ff]'
+                                                }`}
+                                                title={isExpanded ? 'Cerrar sub-tabla de pruebas' : 'Ver sub-tabla con el detalle de pruebas e incidencias'}
+                                              >
+                                                <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                                              </button>
+                                              <div>
+                                                <div className="font-extrabold text-[#2d2c38]">{s.name}</div>
+                                                <div className="text-[11px] text-[#8e8a9f] font-mono flex items-center gap-1.5">
+                                                  <span className="font-bold text-[#585567]">{s.carnet || 'S/C'}</span>
+                                                  <span>•</span>
+                                                  <span className="truncate max-w-xs">{s.email}</span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </td>
+
+                                          <td className="py-3 px-3 text-center whitespace-nowrap">
+                                            <span className="inline-block px-2.5 py-0.5 rounded-lg bg-[#f4f1fd] font-black text-xs text-[#5446a8] border border-[#e2e0ed]">
+                                              {s.grade || s.codigoGrado || '-'}
+                                            </span>
+                                          </td>
+
+                                          <td className="py-3 px-3 text-center font-black text-xs text-[#585567] whitespace-nowrap">
+                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-gray-100">
+                                              {s.section || 'A'}
+                                            </span>
+                                          </td>
+
+                                          <td className="py-3 px-4 text-[#2d2c38] font-medium text-xs whitespace-nowrap">
+                                            {s.assignedTeacher ? (
+                                              <span className="inline-flex items-center gap-1 text-xs text-[#585567]">
+                                                <span>👨‍🏫</span>
+                                                <span>{s.assignedTeacher}</span>
+                                              </span>
+                                            ) : (
+                                              <span className="text-[#8e8a9f] italic">Sin asignar</span>
+                                            )}
+                                          </td>
+
+                                          {/* Severidad y Semáforo */}
+                                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                                            {isCritical ? (
+                                              <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-600 text-white shadow-xs inline-flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[15px]">gpp_bad</span>
+                                                <span>{totalWarnings} (Crítica / Bloqueo)</span>
+                                              </span>
+                                            ) : isMedium ? (
+                                              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-800 border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                                <span>{totalWarnings} salidas (Media)</span>
+                                              </span>
+                                            ) : (
+                                              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-yellow-50 text-yellow-800 border border-yellow-300 inline-flex items-center gap-1 shadow-2xs">
+                                                <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+                                                <span>{totalWarnings} salida (Leve)</span>
+                                              </span>
+                                            )}
+                                          </td>
+
+                                          {/* Resumen Compacto: Botón para abrir Sub-Tabla */}
+                                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                                            <button
+                                              type="button"
+                                              onClick={() => setExpandedFraudStudentId(isExpanded ? null : (s.id || s.email || s.carnet))}
+                                              className={`px-2.5 py-1 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                isExpanded
+                                                  ? 'bg-[#5446a8] text-white shadow-xs'
+                                                  : 'bg-[#f4f1fd] hover:bg-[#e9e3ff] text-[#5446a8] border border-[#d8ceff]'
+                                              }`}
+                                            >
+                                              <span className="material-symbols-outlined text-[15px]">table_rows</span>
+                                              <span>{examBreakdown.length} {examBreakdown.length === 1 ? 'Prueba' : 'Pruebas'}</span>
+                                              <span className="text-[10px] opacity-80">({totalWarnings} sal.)</span>
+                                            </button>
+                                          </td>
+
+                                          {/* Acciones */}
+                                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleClearFraud(s, null)}
+                                                className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold border border-rose-200 transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                                                title="Resetear y limpiar las alertas de fraude y salidas de pestaña de este alumno"
+                                              >
+                                                <span className="material-symbols-outlined text-[15px]">cleaning_services</span>
+                                                <span>Reset Fraude</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUnlockExam(s, null)}
+                                                className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200 transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                                                title="Habilitar / Desbloquear exámenes para este alumno"
+                                              >
+                                                <span className="material-symbols-outlined text-[15px]">lock_open</span>
+                                                <span>Desbloquear</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => setSelectedStudentSecurityDetail(s)}
+                                                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#8a70d6] to-[#7052c9] hover:from-[#7a60c7] hover:to-[#5e41b5] text-white text-xs font-black transition-all shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                                              >
+                                                <span className="material-symbols-outlined text-[15px]">visibility</span>
+                                                <span>Ver Registro</span>
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+
+                                        {/* SUB-TABLA INTEGRADA DE INCIDENCIAS POR PRUEBA */}
+                                        {isExpanded && (
+                                          <tr className="bg-slate-50/80 border-b border-[#ffd5df]">
+                                            <td colSpan="7" className="p-4 px-6">
+                                              <div className="rounded-2xl bg-white border border-[#eceaf6] shadow-md overflow-hidden">
+                                                {/* Header de la Sub-Tabla */}
+                                                <div className="p-3.5 px-5 bg-gradient-to-r from-rose-50/70 via-white to-[#f4f1fd]/50 border-b border-[#eceaf6] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-[18px] text-rose-600">table_chart</span>
+                                                    <h4 className="text-xs font-black text-[#2d2c38] uppercase">
+                                                      Sub-Tabla de Pruebas Observadas · {s.name} ({s.carnet || 'S/C'})
+                                                    </h4>
+                                                  </div>
+                                                  <div className="flex items-center gap-2 text-xs">
+                                                    <span className="text-[#8e8a9f]">Total acumulado:</span>
+                                                    <span className="font-black text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
+                                                      {totalWarnings} salidas de pestaña
+                                                    </span>
+                                                  </div>
+                                                </div>
+
+                                                {/* Contenido de la Sub-Tabla */}
+                                                <div className="overflow-x-auto">
+                                                  <table className="w-full text-left text-xs">
+                                                    <thead>
+                                                      <tr className="bg-[#fbfafd] border-b border-[#eceaf6] text-[10px] font-black uppercase text-[#8e8a9f]">
+                                                        <th className="py-2.5 px-4 font-black">Prueba Digital</th>
+                                                        <th className="py-2.5 px-3 text-center font-black">Salidas</th>
+                                                        <th className="py-2.5 px-3 text-center font-black">Estado / Causa</th>
+                                                        <th className="py-2.5 px-4 font-black">Horarios Registrados</th>
+                                                        <th className="py-2.5 px-4 text-right font-black">Acción por Prueba</th>
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-[#eceaf6]/60">
+                                                      {examBreakdown.map((ex, idx) => (
+                                                        <tr key={idx} className="hover:bg-rose-50/30 transition-colors">
+                                                          {/* Prueba */}
+                                                          <td className="py-3 px-4 font-bold text-[#2d2c38]">
+                                                            <div className="flex items-center gap-2">
+                                                              <span className="material-symbols-outlined text-[16px] text-[#7052c9]">quiz</span>
+                                                              <div>
+                                                                <span className="font-extrabold text-xs text-[#2d2c38]">{ex.title}</span>
+                                                                <span className="text-[10px] text-[#8e8a9f] block font-mono">ID: {ex.id}</span>
+                                                              </div>
+                                                            </div>
+                                                          </td>
+
+                                                          {/* Contador de Salidas */}
+                                                          <td className="py-3 px-3 text-center whitespace-nowrap">
+                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${
+                                                              ex.count >= 3
+                                                                ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                                                                : ex.count === 2
+                                                                ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                                                : 'bg-yellow-100 text-yellow-900 border-yellow-300'
+                                                            }`}>
+                                                              {ex.count} salida(s)
+                                                            </span>
+                                                          </td>
+
+                                                          {/* Estado / Bloqueo */}
+                                                          <td className="py-3 px-3 text-center whitespace-nowrap">
+                                                            {ex.byTimeout || ex.count >= 3 ? (
+                                                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 inline-flex items-center gap-1">
+                                                                <span className="material-symbols-outlined text-[12px]">lock</span>
+                                                                <span>Auto-Entregado</span>
+                                                              </span>
+                                                            ) : (
+                                                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                                                Advertencia de foco
+                                                              </span>
+                                                            )}
+                                                          </td>
+
+                                                          {/* Bitácora de Horas */}
+                                                          <td className="py-3 px-4">
+                                                            {ex.incidents && ex.incidents.length > 0 ? (
+                                                              <div className="flex flex-wrap gap-1 max-w-sm">
+                                                                {ex.incidents.map((inc, iIdx) => (
+                                                                  <span key={iIdx} className="px-2 py-0.5 rounded bg-[#f4f1fd] text-[#5446a8] border border-[#e2e0ed] font-mono text-[10px]">
+                                                                    #{inc.count || iIdx + 1}: {inc.timestamp ? new Date(inc.timestamp).toLocaleTimeString('es-SV') : 'Detectada'}
+                                                                  </span>
+                                                                ))}
+                                                              </div>
+                                                            ) : (
+                                                              <span className="text-[11px] text-[#8e8a9f] italic">
+                                                                Registrada durante la sesión de examen.
+                                                              </span>
+                                                            )}
+                                                          </td>
+
+                                                          {/* Botón para perdonar solo esta prueba */}
+                                                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                                                            <button
+                                                              type="button"
+                                                              onClick={() => handleClearFraud(s, ex.id)}
+                                                              className="px-2.5 py-1 rounded-xl bg-white hover:bg-rose-50 text-rose-800 text-[11px] font-bold border border-rose-200 transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                                                              title={`Limpiar y perdonar alertas únicamente para ${ex.title}`}
+                                                            >
+                                                              <span className="material-symbols-outlined text-[14px]">cleaning_services</span>
+                                                              <span>Limpiar esta prueba</span>
+                                                            </button>
+                                                          </td>
+                                                        </tr>
+                                                      ))}
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+
+                                                {/* Footer de la Sub-Tabla */}
+                                                <div className="p-3 px-5 bg-[#faf9fc] border-t border-[#eceaf6] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                                  <div className="text-[#8e8a9f]">
+                                                    Docente asignado: <strong className="text-[#2d2c38]">{s.assignedTeacher || 'Sin asignar'}</strong> · Sección {s.section || 'A'}
+                                                  </div>
+                                                  <div className="flex items-center gap-2">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleClearFraud(s, null)}
+                                                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-xs"
+                                                    >
+                                                      <span className="material-symbols-outlined text-[15px]">cleaning_services</span>
+                                                      <span>Resetear Todas las Pruebas</span>
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setSelectedStudentSecurityDetail(s)}
+                                                      className="px-3 py-1.5 rounded-xl bg-[#5446a8] hover:bg-[#43368b] text-white text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-xs"
+                                                    >
+                                                      <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+                                                      <span>Ver Auditoría Completa</span>
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </React.Fragment>
+                                    )
+                                  })
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* PAGINACIÓN DE FRAUDES */}
+                          <div className="p-4 px-6 border-t border-[#eceaf6] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+                            <span className="text-xs font-semibold text-[#8e8a9f]">
+                              Página <strong className="text-[#2d2c38] font-black">{fraudPage}</strong> de <strong className="text-[#2d2c38] font-black">{totalFraudPages}</strong> ({filteredFlaggedStudents.length} con alertas)
+                            </span>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                disabled={fraudPage <= 1}
+                                onClick={() => setFraudPage(1)}
+                                className="px-3 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
+                              >
+                                «
+                              </button>
+                              <button
+                                type="button"
+                                disabled={fraudPage <= 1}
+                                onClick={() => setFraudPage(p => Math.max(1, p - 1))}
+                                className="px-3.5 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
+                              >
+                                Anterior
+                              </button>
+
+                              <div className="flex items-center gap-1 mx-1">
+                                {Array.from({ length: Math.min(5, totalFraudPages) }, (_, i) => {
+                                  let pageNum = fraudPage
+                                  if (totalFraudPages <= 5) pageNum = i + 1
+                                  else if (fraudPage <= 3) pageNum = i + 1
+                                  else if (fraudPage >= totalFraudPages - 2) pageNum = totalFraudPages - 4 + i
+                                  else pageNum = fraudPage - 2 + i
+
+                                  return (
+                                    <button
+                                      key={pageNum}
+                                      type="button"
+                                      onClick={() => setFraudPage(pageNum)}
+                                      className={`w-8 h-8 rounded-xl text-xs font-black flex items-center justify-center transition-all cursor-pointer ${
+                                        fraudPage === pageNum
+                                          ? 'bg-[#5446a8] text-white shadow-xs'
+                                          : 'text-[#585567] hover:bg-[#f4f1fd]'
+                                      }`}
+                                    >
+                                      {pageNum}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={fraudPage >= totalFraudPages}
+                                onClick={() => setFraudPage(p => Math.min(totalFraudPages, p + 1))}
+                                className="px-3.5 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
+                              >
+                                Siguiente
+                              </button>
+                              <button
+                                type="button"
+                                disabled={fraudPage >= totalFraudPages}
+                                onClick={() => setFraudPage(totalFraudPages)}
+                                className="px-3 py-1.5 rounded-xl border border-[#e2e0ed] text-xs font-black text-[#585567] hover:bg-[#f4f1fd] disabled:opacity-30 cursor-pointer"
+                              >
+                                »
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
               )}
 
@@ -2692,6 +3809,8 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     handleStartInterview(st)
                     setCurrentSection('interview')
                   }}
+                  onUnlockStudentExam={handleUnlockExam}
+                  onViewStudentSecurity={(st) => setSelectedStudentSecurityDetail(st)}
                   currentTeacher={currentTeacher}
                 />
               )}
@@ -2847,15 +3966,28 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                       <div className="text-[11px] text-gray-500 flex flex-wrap items-center justify-between gap-2">
                                         <span>Fecha envío: {data.completedAt ? new Date(data.completedAt).toLocaleString('es-SV') : 'Registrado'}</span>
                                         <div className="flex items-center gap-2">
-                                          {/* Botón para Desbloquear / Habilitar este examen */}
+                                          {/* Botón para Resetear Alertas de Fraude si tiene advertencias */}
+                                          {warnings > 0 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleClearFraud(selectedStudentSecurityDetail, k)}
+                                              className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                              title="Limpiar y resetear a 0 las advertencias de fraude de este examen (conserva la nota)"
+                                            >
+                                              <span className="material-symbols-outlined text-[14px]">cleaning_services</span>
+                                              <span>Resetear Fraude</span>
+                                            </button>
+                                          )}
+
+                                          {/* Botón para Resetear / Desbloquear este examen */}
                                           <button
                                             type="button"
                                             onClick={() => handleUnlockExam(selectedStudentSecurityDetail, k)}
-                                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors flex items-center gap-1 cursor-pointer"
-                                            title="Desbloquear este examen para que el alumno pueda volver a rendirlo"
+                                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                            title="Resetear y habilitar este examen para que el alumno pueda realizarlo de nuevo"
                                           >
-                                            <span className="material-symbols-outlined text-[14px]">lock_open</span>
-                                            <span>Habilitar / Desbloquear Examen</span>
+                                            <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                                            <span>Resetear Actividad ({k.toLowerCase().includes('listening') ? 'Listening' : 'Plataforma'})</span>
                                           </button>
 
                                           {/* Botón para ver u ocultar respuestas de preguntas */}
@@ -2984,6 +4116,16 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() => handleClearFraud(selectedStudentSecurityDetail, null)}
+                          className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="Limpiar todas las alertas e incidencias de fraude de este alumno"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">cleaning_services</span>
+                          <span>Resetear Alertas de Fraude</span>
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => handleUnlockExam(selectedStudentSecurityDetail, null)}
                           className="px-3.5 py-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-1.5 cursor-pointer"
                           title="Desbloquear y habilitar todos los tests digitales para este alumno"
@@ -3028,6 +4170,339 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   onSaveVerdict={handleSaveFinalVerdict}
                   onClose={() => setSelectedVerdictStudent(null)}
                 />
+              )}
+
+              {/* MODAL DE ACTA OFICIAL IMPRIMIBLE / VISTA PREVIA (PDF / IMPRESIÓN) */}
+              {actaToPrint && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-50 overflow-y-auto animate-fadeIn">
+                  <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200">
+                    {/* Header de la ventana de vista previa (no se imprime) */}
+                    <div className="bg-gradient-to-r from-[#1d1b32] via-[#2d2454] to-[#5446a8] p-4 sm:p-5 text-white flex items-center justify-between no-print shrink-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[24px] text-amber-300">description</span>
+                        </div>
+                        <div>
+                          <h3 className="font-heading font-black text-base sm:text-lg">
+                            Acta Oficial de Ubicación y Evaluación 2026
+                          </h3>
+                          <p className="text-xs text-indigo-200">
+                            Colegio Salesiano San José • Vista previa de impresión oficial ({actaToPrint.totalStudents} estudiantes)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={triggerBrowserPrint}
+                          className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-extrabold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">print</span>
+                          <span>Imprimir / Guardar PDF</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActaToPrint(null)}
+                          className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">close</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Contenedor del documento imprimible oficial */}
+                    <div className="p-6 sm:p-10 overflow-y-auto flex-1 bg-white print-container font-sans text-gray-800">
+                      {/* Membrete Institucional Oficial */}
+                      <div className="border-b-2 border-gray-800 pb-5 mb-6 text-center">
+                        <div className="text-[11px] font-black uppercase tracking-widest text-indigo-900 mb-1">
+                          REPÚBLICA DE EL SALVADOR • MINISTERIO DE EDUCACIÓN, CIENCIA Y TECNOLOGÍA
+                        </div>
+                        <h1 className="font-serif font-black text-xl sm:text-2xl text-gray-900 tracking-wide uppercase">
+                          COLEGIO SALESIANO SAN JOSÉ
+                        </h1>
+                        <div className="text-xs font-semibold uppercase text-gray-600 mt-1">
+                          DEPARTAMENTO DE IDIOMAS EXTRANJEROS • EVALUACIÓN DIAGNÓSTICA DE INGLÉS 2026
+                        </div>
+                        <div className="inline-block mt-3 px-4 py-1 rounded-full bg-gray-100 text-gray-800 font-extrabold text-xs border border-gray-300 tracking-wide uppercase">
+                          ACTA OFICIAL DE UBICACIÓN Y COMPETENCIAS MCER
+                        </div>
+                      </div>
+
+                      {/* Metadatos del Acta */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs mb-6">
+                        <div>
+                          <span className="block text-[10px] font-bold text-gray-400 uppercase">Grado / Nivel:</span>
+                          <span className="font-bold text-gray-900">{actaToPrint.grade}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-gray-400 uppercase">Filtro de Nivel:</span>
+                          <span className="font-bold text-gray-900">{actaToPrint.level}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-gray-400 uppercase">Docente / Evaluador:</span>
+                          <span className="font-bold text-gray-900">{actaToPrint.teacher}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-gray-400 uppercase">Fecha de Emisión:</span>
+                          <span className="font-mono text-gray-900 font-semibold">{new Date(actaToPrint.generatedAt).toLocaleDateString('es-SV')}</span>
+                        </div>
+                      </div>
+
+                      {/* Resumen de Distribución de Grupos según Matriz Oficial en el Acta */}
+                      <div className="mb-6 p-4 rounded-xl border border-gray-200 bg-white">
+                        <div className="text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-2">
+                          Distribución de Ubicación Oficial en Matriz (Libros y Grupos):
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-xs">
+                          {['Básico (0-40%)', 'Intermedio (41-70%)', 'Avanzado (≥71%)'].map((catLabel, idx) => {
+                            const catKey = idx === 0 ? 'basic' : idx === 1 ? 'intermediate' : 'advanced'
+                            const count = actaToPrint.items.filter(it => getEvaluationPlacementData(it).category === catKey).length
+                            return (
+                              <div key={catKey} className="px-3 py-1 rounded-lg bg-gray-100 border border-gray-300 font-semibold text-gray-800">
+                                <strong>{catLabel}:</strong> {count} alumnos ({actaToPrint.items.length ? Math.round((count / actaToPrint.items.length) * 100) : 0}%)
+                              </div>
+                            )
+                          })}
+                          <div className="ml-auto font-black text-gray-900">
+                            Total Registros: {actaToPrint.items.length}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tabla del Acta Oficial */}
+                      <div className="border border-gray-300 rounded-lg overflow-hidden mb-8">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-gray-100 border-b border-gray-300 text-[10px] font-black uppercase text-gray-700">
+                              <th className="py-2.5 px-3 w-10 text-center">N°</th>
+                              <th className="py-2.5 px-3">Carnet</th>
+                              <th className="py-2.5 px-3">Nombre Completo del Estudiante</th>
+                              <th className="py-2.5 px-3 text-center">Grado / Secc.</th>
+                              <th className="py-2.5 px-3 text-center">Nivel Matriz (Grupo)</th>
+                              <th className="py-2.5 px-3 text-center">Puntaje Global (%)</th>
+                              <th className="py-2.5 px-3 text-center">MCER</th>
+                              <th className="py-2.5 px-3">Docente Evaluador</th>
+                              <th className="py-2.5 px-3 text-center">Fecha</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {actaToPrint.items.map((it, idx) => {
+                              const p = getEvaluationPlacementData(it)
+                              return (
+                                <tr key={it.id || idx} className="hover:bg-gray-50/50">
+                                  <td className="py-2 px-3 text-center font-mono text-gray-500">{idx + 1}</td>
+                                  <td className="py-2 px-3 font-mono font-bold text-gray-700">{it.studentCarnet || 'N/A'}</td>
+                                  <td className="py-2 px-3 font-semibold text-gray-900">{it.studentName}</td>
+                                  <td className="py-2 px-3 text-center text-gray-700">{it.grade} - {it.section}</td>
+                                  <td className="py-2 px-3 text-center font-black">
+                                    <span className="px-2 py-0.5 rounded border border-gray-400 bg-gray-50 text-gray-900 font-mono">
+                                      {p.group}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-3 text-center font-mono font-bold text-gray-800">
+                                    {p.scorePercent}%
+                                  </td>
+                                  <td className="py-2 px-3 text-center font-mono text-gray-600">
+                                    {p.cefr}
+                                  </td>
+                                  <td className="py-2 px-3 text-gray-700 text-[11px] truncate max-w-xs">{it.teacherName || it.teacherEmail || 'Docente'}</td>
+                                  <td className="py-2 px-3 text-center text-gray-500 font-mono text-[11px]">
+                                    {it.completedAt ? new Date(it.completedAt).toLocaleDateString('es-SV') : 'Hoy'}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Cláusula de Validez y Bloque de Firmas Oficiales */}
+                      <div className="mt-12 pt-6 border-t border-gray-300 text-xs text-gray-600">
+                        <p className="text-center italic text-[11px] mb-12">
+                          Se hace constar que los resultados anteriores corresponden a la evaluación diagnóstica estandarizada, aplicada conforme al Marco Común Europeo de Referencia (MCER).
+                        </p>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 text-center pt-8">
+                          <div>
+                            <div className="border-t border-gray-500 pt-2 font-bold text-gray-800">
+                              {actaToPrint.teacher}
+                            </div>
+                            <div className="text-[10px] text-gray-500 uppercase">Docente Evaluador / Titular</div>
+                          </div>
+                          <div>
+                            <div className="border-t border-gray-500 pt-2 font-bold text-gray-800">
+                              Coordinación Pedagógica
+                            </div>
+                            <div className="text-[10px] text-gray-500 uppercase">Área de Inglés & Bilingüismo</div>
+                          </div>
+                          <div className="col-span-2 sm:col-span-1">
+                            <div className="border-t border-gray-500 pt-2 font-bold text-gray-800">
+                              Dirección Académica
+                            </div>
+                            <div className="text-[10px] text-gray-500 uppercase">Colegio Salesiano San José</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer del Modal (no se imprime) */}
+                    <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between no-print">
+                      <span className="text-xs text-gray-500">
+                        Presiona <strong>"Imprimir / Guardar PDF"</strong> para abrir el diálogo del navegador y guardar en formato PDF oficial.
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={triggerBrowserPrint}
+                          className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#2528b7] to-[#5446a8] text-white font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span className="material-symbols-outlined text-[17px]">print</span>
+                          <span>Imprimir Acta</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActaToPrint(null)}
+                          className="px-5 py-2 rounded-xl bg-gray-800 hover:bg-black text-white font-bold text-xs transition-all cursor-pointer"
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL EDITOR / COMPOSER DE MENSAJE PARA MICROSOFT TEAMS */}
+              {teamsModalData && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+                  <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-200 animate-scaleUp flex flex-col">
+                    {/* Header del modal con branding Teams */}
+                    <div className="bg-[#464eb8] p-5 text-white flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center text-xl shadow-xs">
+                          💬
+                        </div>
+                        <div>
+                          <h3 className="font-heading font-black text-base text-white">
+                            Notificar Resultado por Microsoft Teams
+                          </h3>
+                          <p className="text-xs text-indigo-100">
+                            Para: <strong>{teamsModalData.studentName}</strong> ({teamsModalData.studentEmail})
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTeamsModalData(null)}
+                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">close</span>
+                      </button>
+                    </div>
+
+                    {/* Resumen de Ubicación y Nivel Institucional */}
+                    <div className="p-5 space-y-4 flex-1 bg-slate-50">
+                      <div className="p-3.5 rounded-2xl bg-white border border-indigo-100 flex items-center justify-between shadow-2xs">
+                        <div>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                            Nivel Matriz Asignado ({teamsModalData.grade})
+                          </span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="font-heading font-black text-xl text-[#464eb8]">
+                              {teamsModalData.groupLevel}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-200">
+                              {teamsModalData.categoryLabel} ({teamsModalData.scorePercent}%)
+                            </span>
+                            {teamsModalData.cefrLevel && (
+                              <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-xs border border-purple-200">
+                                MCER: {teamsModalData.cefrLevel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                            Destino Teams
+                          </span>
+                          <span className="text-xs font-mono font-bold text-gray-700 truncate max-w-[180px] block">
+                            {teamsModalData.studentEmail}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Área editable de mensaje */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[16px] text-[#464eb8]">edit_note</span>
+                            <span>Mensaje a Enviar (Puedes editarlo a tu gusto antes de despacharlo):</span>
+                          </label>
+                          <span className="text-[10px] text-gray-400">
+                            {teamsModalData.message.length} caracteres
+                          </span>
+                        </div>
+
+                        <textarea
+                          rows={7}
+                          value={teamsModalData.message}
+                          onChange={(e) => setTeamsModalData(prev => ({ ...prev, message: e.target.value }))}
+                          placeholder="Escribe el mensaje personalizado..."
+                          className="w-full p-3.5 rounded-2xl border border-gray-300 focus:border-[#464eb8] focus:ring-2 focus:ring-[#464eb8]/20 text-xs text-gray-800 leading-relaxed font-sans bg-white resize-none outline-none shadow-inner"
+                        />
+                      </div>
+
+                      <div className="text-[11px] text-gray-500 bg-amber-50/70 p-3 rounded-xl border border-amber-200 flex items-start gap-2">
+                        <span className="material-symbols-outlined text-[16px] text-amber-600 shrink-0 mt-0.5">info</span>
+                        <span>
+                          Al presionar <strong>"Enviar vía Teams"</strong>, se abrirá Microsoft Teams (Web o App de escritorio) directamente en la conversación privada con el estudiante con este mensaje listo para enviar.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Footer con botones de acción */}
+                    <div className="p-4 bg-white border-t border-gray-200 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setTeamsModalData(null)}
+                        className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-all cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const name = teamsModalData.studentName
+                            const teacher = currentTeacher?.name || user?.name || 'English Department Teacher'
+                            const grp = teamsModalData.groupLevel
+                            const cat = teamsModalData.categoryLabel
+                            setTeamsModalData(prev => ({
+                              ...prev,
+                              message: `Hello ${name},\n\nGreetings from Prof. ${teacher} from the Foreign Languages Department at Colegio Salesiano San José.\n\nI am sharing the official results of your English Diagnostic Assessment 2026:\n• Official Assigned Level: **${grp}** (${cat})\n• Target Grade: ${teamsModalData.grade}\n\nCongratulations on your effort, dedication, and commitment during this diagnostic process! Keep giving your best.`
+                            }))
+                          }}
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-[#464eb8] bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all cursor-pointer"
+                          title="Restablecer plantilla en inglés con los datos oficiales"
+                        >
+                          Restablecer Plantilla (Inglés)
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSendTeamsMessage}
+                          className="px-5 py-2 rounded-xl bg-[#464eb8] hover:bg-[#3b429f] text-white text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span>💬</span>
+                          <span>Abrir Chat en Teams</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </>
           )}

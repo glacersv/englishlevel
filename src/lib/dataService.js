@@ -1223,6 +1223,74 @@ export async function unlockStudentExam(studentEmail, examId = null) {
   }
 }
 
+// Limpiar / Resetear alertas e incidencias de fraude de un alumno (sin necesariamente borrar sus notas, o para un examen)
+export async function clearFraudIncidents(studentEmail, examId = null) {
+  const cleanEmail = (studentEmail || '').trim().toLowerCase()
+  if (!cleanEmail) return
+
+  const docId = sanitizeDocId(cleanEmail)
+
+  if (isFirebaseConfigured()) {
+    try {
+      const userRef = doc(db, 'users', docId)
+      const snap = await getDoc(userRef)
+      if (snap.exists()) {
+        const u = snap.data()
+        const currentCompleted = { ...(u.completedExams || {}) }
+
+        if (examId && currentCompleted[examId]) {
+          currentCompleted[examId] = {
+            ...currentCompleted[examId],
+            warningsCount: 0,
+            incidents: [],
+            byTimeout: false
+          }
+        } else {
+          // Limpiar alertas de todos los exámenes
+          for (let k of Object.keys(currentCompleted)) {
+            currentCompleted[k] = {
+              ...currentCompleted[k],
+              warningsCount: 0,
+              incidents: [],
+              byTimeout: false
+            }
+          }
+        }
+
+        await setDoc(userRef, { completedExams: currentCompleted }, { merge: true })
+      }
+    } catch (err) {
+      console.warn('Error al limpiar fraudes en Firestore:', err)
+    }
+  }
+
+  // Actualizar también en localStorage
+  const users = readLS(LS_USERS)
+  const userIdx = users.findIndex(u => u.email?.toLowerCase() === cleanEmail)
+  if (userIdx >= 0) {
+    const comp = { ...(users[userIdx].completedExams || {}) }
+    if (examId && comp[examId]) {
+      comp[examId] = {
+        ...comp[examId],
+        warningsCount: 0,
+        incidents: [],
+        byTimeout: false
+      }
+    } else {
+      for (let k of Object.keys(comp)) {
+        comp[k] = {
+          ...comp[k],
+          warningsCount: 0,
+          incidents: [],
+          byTimeout: false
+        }
+      }
+    }
+    users[userIdx].completedExams = comp
+    writeLS(LS_USERS, users)
+  }
+}
+
 // Eliminar un acta de evaluación oral individual
 export async function deleteOralEvaluation(evalId, studentEmail) {
   if (isFirebaseConfigured() && evalId) {

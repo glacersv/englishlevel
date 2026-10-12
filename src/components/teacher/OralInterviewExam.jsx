@@ -188,7 +188,7 @@ export default function OralInterviewExam({ student, teacher, onFinished, onCanc
           <div className="flex items-center gap-3 text-xs text-slate-300 mt-1 font-mono flex-wrap">
             <span>Carnet: <strong className="text-white">{student.carnet || 'N/A'}</strong></span>
             <span>·</span>
-            <span>{student.grade} - Secc. {student.section}</span>
+            <span>{student.grade} {student.section}</span>
             <span>·</span>
             <span className="text-slate-400 truncate max-w-xs">{student.email}</span>
             {student.selfReportedLevel && (
