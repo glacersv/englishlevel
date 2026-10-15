@@ -1781,14 +1781,14 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     <span className="material-symbols-outlined text-[24px]">lock_clock</span>
                   </div>
                   <span className="text-sm font-black text-[#2d2c38] block">
-                    Resultados en Proceso de Consolidación
+                    Results Under Final Consolidation
                   </span>
                   <p className="text-xs text-[#7c9285] leading-relaxed">
-                    Tu nivel oficial y material curricular asignado se publicarán automáticamente en esta sección una vez que el equipo docente de inglés autorice la liberación para tu grado.
+                    Your official placement level and assigned curricular textbook will be automatically published in this section once authorized by the English teaching department.
                   </p>
                   <div className="pt-2 border-t border-[#eceaf6] text-[11px] font-semibold text-[#5446a8] flex items-center justify-center gap-1.5">
                     <span className="material-symbols-outlined text-[15px]">verified_user</span>
-                    <span>Revisión docente institucional en curso</span>
+                    <span>Institutional Faculty Review in Progress</span>
                   </div>
                 </div>
               )}
