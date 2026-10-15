@@ -24,6 +24,7 @@ import {
   subscribeExamDispatch,
   saveExamDispatchConfig,
   setGradeExamStatus,
+  setGradeStudentLevelVisibility,
   setStudentExamStatus,
   resetGradeExamOverrides,
   unlockStudentExam,
@@ -3811,6 +3812,15 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                   }}
                   onUnlockStudentExam={handleUnlockExam}
                   onViewStudentSecurity={(st) => setSelectedStudentSecurityDetail(st)}
+                  onToggleStudentLevelVisibility={async (grade, isVisible) => {
+                    try {
+                      const teacherName = currentTeacher?.name || currentTeacher?.email || 'Docente'
+                      const updated = await setGradeStudentLevelVisibility(grade, isVisible, teacherName)
+                      setDispatchConfig(updated)
+                    } catch (e) {
+                      alert('Error al actualizar visibilidad de nivel para el grado: ' + e.message)
+                    }
+                  }}
                   currentTeacher={currentTeacher}
                 />
               )}

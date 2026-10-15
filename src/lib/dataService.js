@@ -677,15 +677,15 @@ export const DEFAULT_EXAM_DISPATCH = {
   updatedAt: new Date().toISOString(),
 
   // Control Maestro por Grado (6°, 7°, 8°, 9°, 10°/1° Bach, 11°/2° Bach, 12°/3° Bach)
-  // Por defecto todos los grados inician en 'paused' (bloqueados)
+  // Por defecto todos los grados inician en 'paused' (bloqueados) y visibilidad de nivel en el dashboard del alumno en false
   gradesControl: {
-    '6': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
-    '7': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
-    '8': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
-    '9': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
-    '10': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
-    '11': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() },
-    '12': { platformStatus: 'paused', interviewStatus: 'paused', updatedAt: new Date().toISOString() }
+    '6': { platformStatus: 'paused', interviewStatus: 'paused', studentLevelVisible: false, updatedAt: new Date().toISOString() },
+    '7': { platformStatus: 'paused', interviewStatus: 'paused', studentLevelVisible: false, updatedAt: new Date().toISOString() },
+    '8': { platformStatus: 'paused', interviewStatus: 'paused', studentLevelVisible: false, updatedAt: new Date().toISOString() },
+    '9': { platformStatus: 'paused', interviewStatus: 'paused', studentLevelVisible: false, updatedAt: new Date().toISOString() },
+    '10': { platformStatus: 'paused', interviewStatus: 'paused', studentLevelVisible: false, updatedAt: new Date().toISOString() },
+    '11': { platformStatus: 'paused', interviewStatus: 'paused', studentLevelVisible: false, updatedAt: new Date().toISOString() },
+    '12': { platformStatus: 'paused', interviewStatus: 'paused', studentLevelVisible: false, updatedAt: new Date().toISOString() }
   },
 
   // Overrides / Excepciones individuales por alumno (indexado por email sanitizado o email directo)
@@ -832,6 +832,36 @@ export async function setGradeExamStatus(grade, examType, status, updatedBy = 'D
   return await saveExamDispatchConfig({
     gradesControl: newGradesControl,
     closureLogs: newClosureLogs,
+    updatedBy
+  })
+}
+
+/**
+ * Habilita o deshabilita la visualización del nivel/resultado para los alumnos de un grado en su dashboard
+ */
+export async function setGradeStudentLevelVisibility(grade, isVisible, updatedBy = 'Docente') {
+  const gKey = String(grade)
+  const current = await getExamDispatchConfig()
+  const gradeData = current.gradesControl?.[gKey] || {
+    platformStatus: 'paused',
+    interviewStatus: 'paused',
+    studentLevelVisible: false
+  }
+
+  const updatedGrade = {
+    ...gradeData,
+    studentLevelVisible: Boolean(isVisible),
+    levelVisibilityUpdatedAt: new Date().toISOString(),
+    levelVisibilityUpdatedBy: updatedBy
+  }
+
+  const newGradesControl = {
+    ...(current.gradesControl || {}),
+    [gKey]: updatedGrade
+  }
+
+  return await saveExamDispatchConfig({
+    gradesControl: newGradesControl,
     updatedBy
   })
 }

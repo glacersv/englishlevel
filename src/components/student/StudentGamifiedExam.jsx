@@ -109,8 +109,12 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
 
   const gradeControl = dispatchConfig.gradesControl?.[studentGradeKey] || {
     platformStatus: 'paused',
-    interviewStatus: 'paused'
+    interviewStatus: 'paused',
+    studentLevelVisible: false
   }
+
+  // Permiso habilitado por los docentes para que este grado vea su nivel oficial
+  const isLevelVisibleByTeacher = Boolean(gradeControl.studentLevelVisible)
 
   const isPlatformFinishedForStudent = studentOverride?.platformStatus === 'finished' || gradeControl.platformStatus === 'finished'
 
@@ -511,7 +515,8 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   const totalCompletedCount = Object.keys(completedExams).length
   const progressPercent = examsList.length > 0 ? Math.round((totalCompletedCount / examsList.length) * 100) : 0
   const allTestsCompleted = examsList.length > 0 && totalCompletedCount >= examsList.length
-  const isPlacementFullyConcluded = Boolean(student.assignedLevel) && allTestsCompleted
+  // El nivel oficial solo es visible si está evaluado, si completó los exámenes Y si los docentes han habilitado la visibilidad para su grado
+  const isPlacementFullyConcluded = Boolean(student.assignedLevel) && allTestsCompleted && isLevelVisibleByTeacher
 
   const isStudentAuthorizedForExam = (() => {
     if (isPlatformFinishedForStudent) return false
@@ -1710,14 +1715,35 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                   Placement Status
                 </span>
                 <h2 className="font-heading font-black text-2xl text-[#1b382b]">
-                  {isPlacementFullyConcluded ? 'Assigned Level for 2027 Cycle' : 'Assessment Under Teacher Review'}
+                  {isPlacementFullyConcluded
+                    ? 'Assigned Level for 2027 Cycle'
+                    : (Boolean(student.assignedLevel) && allTestsCompleted && !isLevelVisibleByTeacher)
+                    ? 'Evaluation Complete • Results Pending Release'
+                    : 'Assessment Under Teacher Review'}
                 </h2>
                 <p className="text-xs sm:text-sm text-[#4d6657] max-w-md mx-auto">
                   {isPlacementFullyConcluded
                     ? 'Your English teachers have finalized your placement review.'
+                    : (Boolean(student.assignedLevel) && allTestsCompleted && !isLevelVisibleByTeacher)
+                    ? 'Your teachers have completed your assessment. Official levels will be published soon by your teachers.'
                     : 'Your diagnostic scores and oral evaluation are being consolidated.'}
                 </p>
               </div>
+
+              {/* Si los exámenes y la entrevista concluyeron pero el docente aún no habilita la visualización */}
+              {!isPlacementFullyConcluded && Boolean(student.assignedLevel) && allTestsCompleted && !isLevelVisibleByTeacher && (
+                <div className="p-6 rounded-3xl bg-[#f8f7fc] border border-[#eceaf6] max-w-sm mx-auto space-y-2">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 mx-auto flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[20px]">lock_clock</span>
+                  </div>
+                  <span className="text-xs font-black text-[#2d2c38] block">
+                    Under Teacher Final Verification
+                  </span>
+                  <p className="text-[11px] text-[#8e8a9f] leading-relaxed">
+                    Official grouping and placement will be unlocked once the English department concludes the grade assessment cycle.
+                  </p>
+                </div>
+              )}
 
               {isPlacementFullyConcluded && student.assignedLevel && (
                 <div className="p-6 rounded-3xl bg-gradient-to-br from-[#ebfbee] to-[#d7fbe8] border border-[#00875a]/30 max-w-sm mx-auto space-y-2">
