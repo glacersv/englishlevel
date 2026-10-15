@@ -857,9 +857,7 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                     Evaluación en Pausa • Esperando Docente
                   </span>
                   <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
-                    {gradeControl.platformStatus === 'paused'
-                      ? `La plataforma de ${studentGradeKey}° grado está en pausa`
-                      : 'La prueba está temporalmente pausada por tu docente'}
+                    La plataforma de evaluación está en pausa
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
                     El tiempo ha quedado congelado. Espera las indicaciones de tu profesor para continuar.
