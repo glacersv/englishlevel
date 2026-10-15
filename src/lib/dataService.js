@@ -926,11 +926,35 @@ export function subscribeExamDispatch(callback) {
   if (isFirebaseConfigured()) {
     try {
       unsubFirestore = onSnapshot(doc(db, 'systemSettings', 'examDispatch'), (snap) => {
-        if (snap.exists()) {
-          const data = { ...DEFAULT_EXAM_DISPATCH, ...snap.data() }
+          const raw = snap.data() || {}
+          const mergedGradesControl = { ...DEFAULT_EXAM_DISPATCH.gradesControl }
+          if (raw.gradesControl) {
+            Object.keys(DEFAULT_EXAM_DISPATCH.gradesControl).forEach(g => {
+              mergedGradesControl[g] = {
+                ...DEFAULT_EXAM_DISPATCH.gradesControl[g],
+                ...(raw.gradesControl[g] || {})
+              }
+            })
+            // También incluir claves dinámicas que puedan existir
+            Object.keys(raw.gradesControl).forEach(g => {
+              if (!mergedGradesControl[g]) {
+                mergedGradesControl[g] = {
+                  platformStatus: 'paused',
+                  interviewStatus: 'paused',
+                  studentLevelVisible: false,
+                  ...raw.gradesControl[g]
+                }
+              }
+            })
+          }
+          const data = {
+            ...DEFAULT_EXAM_DISPATCH,
+            ...raw,
+            gradesControl: mergedGradesControl,
+            studentOverrides: { ...(raw.studentOverrides || {}) }
+          }
           writeLS(LS_EXAM_DISPATCH, data)
           callback(data)
-        }
       }, (err) => {
         console.warn('Error en suscripción tiempo real a examDispatch:', err)
       })

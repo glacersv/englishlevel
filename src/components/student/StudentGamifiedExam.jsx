@@ -87,16 +87,19 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
     return () => unsub()
   }, [])
 
-  // Clave de grado normalizada
+  // Clave de grado normalizada ('6', '7', '8', '9', '10', '11', '12')
   const studentGradeKey = (() => {
-    const gStr = (student.grade || '') + ' ' + (student.codigoGrado || '')
-    if (gStr.includes('7°') || student.codigoGrado === '07') return '7'
-    if (gStr.includes('8°') || student.codigoGrado === '08') return '8'
-    if (gStr.includes('9°') || student.codigoGrado === '09') return '9'
-    if (gStr.includes('10°') || gStr.includes('1° Bach') || student.codigoGrado === '10') return '10'
-    if (gStr.includes('11°') || gStr.includes('2° Bach') || student.codigoGrado === '11') return '11'
-    if (gStr.includes('12°') || gStr.includes('3° Bach') || student.codigoGrado === '32') return '12'
-    if (gStr.includes('6°') || student.codigoGrado === '06') return '6'
+    const rawG = String(student.codigoGrado || student.grade || '').trim()
+    const num = parseInt(rawG.replace(/\D/g, ''), 10)
+    if (num >= 6 && num <= 12) return String(num)
+    const gStr = ((student.grade || '') + ' ' + (student.codigoGrado || '')).toLowerCase()
+    if (gStr.includes('6') || gStr.includes('6°')) return '6'
+    if (gStr.includes('7') || gStr.includes('7°')) return '7'
+    if (gStr.includes('8') || gStr.includes('8°')) return '8'
+    if (gStr.includes('9') || gStr.includes('9°')) return '9'
+    if (gStr.includes('10') || gStr.includes('1° bach')) return '10'
+    if (gStr.includes('11') || gStr.includes('2° bach')) return '11'
+    if (gStr.includes('12') || gStr.includes('3° bach') || student.codigoGrado === '32') return '12'
     return '7'
   })()
 
@@ -514,9 +517,52 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
   // Cálculos de progreso
   const totalCompletedCount = Object.keys(completedExams).length
   const progressPercent = examsList.length > 0 ? Math.round((totalCompletedCount / examsList.length) * 100) : 0
+  // Cálculo del nivel oficial y libro asignado idéntico al mensaje de Microsoft Teams
+  const studentPlacementDisplay = (() => {
+    const rawGradeNum = parseInt(String(student.codigoGrado || student.grade || '7').replace(/\D/g, ''), 10) || 7
+    let targetGradeKey = '7'
+    if (rawGradeNum === 6) targetGradeKey = '7'
+    else if (rawGradeNum === 7) targetGradeKey = '8'
+    else if (rawGradeNum === 8) targetGradeKey = '9'
+    else if (rawGradeNum === 9) targetGradeKey = '10'
+    else if (rawGradeNum === 10) targetGradeKey = '11'
+    else if (rawGradeNum === 11) targetGradeKey = student.especialidad === 'Técnico' ? '12' : '11'
+
+    const assignedCode = student.assignedGroup || (student.assignedLevel && student.assignedLevel.startsWith('L') ? student.assignedLevel : null) || 'L1-B'
+    const categoryEn = assignedCode.includes('-A') ? 'Basic' : assignedCode.includes('-B') ? 'Intermediate' : 'Advanced'
+    const categoryEs = assignedCode.includes('-A') ? 'Básico' : assignedCode.includes('-B') ? 'Intermedio' : 'Avanzado'
+    const cefr = student.assignedCefr || (categoryEn === 'Basic' ? 'A1' : categoryEn === 'Intermediate' ? 'A2' : 'B1')
+
+    const bookMap = {
+      'L1-A': 'Get Involved! Level 1 (Book 1 - Basic)',
+      'L1-B': 'Get Involved! Level 1 (Book 1 - Intermediate)',
+      'L2': 'Get Involved! Level 2 (Book 2 - Advanced)',
+      'L2-A': 'Get Involved! Level 2 (Book 2 - Basic)',
+      'L2-B': 'Get Involved! Level 2 (Book 2 - Intermediate)',
+      'L3': 'Get Involved! Level 3 (Book 3 - Advanced)',
+      'L3-A': 'Get Involved! Level 3 (Book 3 - Basic)',
+      'L3-B': 'Get Involved! Level 3 (Book 3 - Intermediate)',
+      'L4-A': 'Get Involved! Level 4 (Book 4)',
+      'L5-A': 'Get Involved! Level 5 (Book 5 - C1)',
+      'L5-B': 'Get Involved! Level 5 (Book 5 - C1+ Technical)'
+    }
+
+    const assignedBookLabel = bookMap[assignedCode] || (student.assignedBook ? `Get Involved! (${student.assignedBook})` : 'Get Involved! Curricular Series (Macmillan)')
+
+    return {
+      group: assignedCode,
+      categoryEn,
+      categoryEs,
+      cefr,
+      targetGradeLabel: `${targetGradeKey}th Grade`,
+      bookLabel: assignedBookLabel
+    }
+  })()
+
   const allTestsCompleted = examsList.length > 0 && totalCompletedCount >= examsList.length
-  // El nivel oficial solo es visible si está evaluado, si completó los exámenes Y si los docentes han habilitado la visibilidad para su grado
-  const isPlacementFullyConcluded = Boolean(student.assignedLevel) && allTestsCompleted && isLevelVisibleByTeacher
+
+  // El nivel oficial SOLO es visible si está evaluado, si completó los exámenes Y si los docentes han habilitado la visibilidad explícita para su grado
+  const isPlacementFullyConcluded = Boolean(student.assignedLevel || student.assignedGroup) && allTestsCompleted && isLevelVisibleByTeacher
 
   const isStudentAuthorizedForExam = (() => {
     if (isPlatformFinishedForStudent) return false
@@ -1728,32 +1774,63 @@ export default function StudentGamifiedExam({ student: propStudent, onLogout }) 
                 </p>
               </div>
 
-              {/* Si los exámenes y la entrevista concluyeron pero el docente aún no habilita la visualización */}
-              {!isPlacementFullyConcluded && Boolean(student.assignedLevel) && allTestsCompleted && !isLevelVisibleByTeacher && (
-                <div className="p-6 rounded-3xl bg-[#f8f7fc] border border-[#eceaf6] max-w-sm mx-auto space-y-2">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 mx-auto flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[20px]">lock_clock</span>
+              {/* Si los exámenes concluyeron o están en proceso pero el docente NO ha autorizado la visualización */}
+              {!isPlacementFullyConcluded && (
+                <div className="p-6 rounded-3xl bg-[#f8f7fc] border border-[#eceaf6] max-w-md mx-auto space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 mx-auto flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[24px]">lock_clock</span>
                   </div>
-                  <span className="text-xs font-black text-[#2d2c38] block">
-                    Under Teacher Final Verification
+                  <span className="text-sm font-black text-[#2d2c38] block">
+                    Resultados en Proceso de Consolidación
                   </span>
-                  <p className="text-[11px] text-[#8e8a9f] leading-relaxed">
-                    Official grouping and placement will be unlocked once the English department concludes the grade assessment cycle.
+                  <p className="text-xs text-[#7c9285] leading-relaxed">
+                    Tu nivel oficial y material curricular asignado se publicarán automáticamente en esta sección una vez que el equipo docente de inglés autorice la liberación para tu grado.
                   </p>
+                  <div className="pt-2 border-t border-[#eceaf6] text-[11px] font-semibold text-[#5446a8] flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-[15px]">verified_user</span>
+                    <span>Revisión docente institucional en curso</span>
+                  </div>
                 </div>
               )}
 
-              {isPlacementFullyConcluded && student.assignedLevel && (
-                <div className="p-6 rounded-3xl bg-gradient-to-br from-[#ebfbee] to-[#d7fbe8] border border-[#00875a]/30 max-w-sm mx-auto space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-[#00714d] tracking-wider block">
-                    Official Assigned Level
-                  </span>
-                  <h3 className="font-heading font-black text-4xl text-[#005a3c]">
-                    {student.assignedLevel}
-                  </h3>
-                  <span className="text-xs font-bold text-[#00875a] block">
-                    Curricular Series: Get Involved (Macmillan)
-                  </span>
+              {/* Si y solo si los docentes han autorizado la visibilidad de su grado */}
+              {isPlacementFullyConcluded && (
+                <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-[#ebfbee] via-[#e2faec] to-[#d7fbe8] border-2 border-[#00875a]/30 max-w-md mx-auto space-y-4 shadow-sm text-center">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00875a]/10 text-[#00714d] text-[11px] font-black uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-[15px]">military_tech</span>
+                    <span>Official Placement Result</span>
+                  </div>
+
+                  {/* Nivel Oficial Asignado (Formato Teams: L1-B con categoría y MCER) */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-[#4d6657] tracking-wider block">
+                      Official Assigned Level
+                    </span>
+                    <h3 className="font-heading font-black text-4xl sm:text-5xl text-[#005a3c] tracking-tight">
+                      {studentPlacementDisplay.group}
+                    </h3>
+                    <div className="flex items-center justify-center gap-2 text-xs font-bold text-[#00714d]">
+                      <span>{studentPlacementDisplay.categoryEn} ({studentPlacementDisplay.categoryEs})</span>
+                      <span>•</span>
+                      <span className="px-2 py-0.5 rounded-md bg-white/70 border border-[#00875a]/20 font-mono text-[11px]">
+                        MCER: {studentPlacementDisplay.cefr}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Libro y Serie Curricular Asignada */}
+                  <div className="pt-3 border-t border-[#00875a]/20 space-y-1 text-left bg-white/60 p-3.5 rounded-2xl">
+                    <span className="text-[10px] uppercase font-black text-[#00714d] tracking-wider block flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">menu_book</span>
+                      <span>Curricular Series & Textbook</span>
+                    </span>
+                    <p className="text-xs font-black text-[#1b382b]">
+                      {studentPlacementDisplay.bookLabel}
+                    </p>
+                    <span className="text-[10px] text-[#557362] font-semibold block">
+                      Target Grade: {studentPlacementDisplay.targetGradeLabel} • Editorial Macmillan
+                    </span>
+                  </div>
                 </div>
               )}
 
