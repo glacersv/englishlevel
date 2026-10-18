@@ -289,6 +289,7 @@ export default function OralInterviewExam({ student, teacher, onFinished, onCanc
           <div className="flex items-center gap-3 w-full md:w-auto justify-end">
             <audio
               controls
+              preload="none"
               src={currentLevel === 'A1' ? '/material_evaluaciones/A1_first_day_at_schoolA1.mp3' : '/material_evaluaciones/A2_giving_directionsA2.mp3'}
               className="h-8 max-w-xs w-full"
             >

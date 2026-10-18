@@ -390,7 +390,7 @@ export default function ExamBuilder({ onPublished }) {
                                   <span className="capitalize">{trackIdx + 1}. {track.prompt?.split('(')[1]?.split(')')[0] || filename}</span>
                                   <span className="text-[10px] text-indigo-600 font-mono">Nivel {track.level || ex.level || 'MP3'}</span>
                                 </div>
-                                <audio controls src={track.audioUrl} className="w-full h-8">
+                                <audio controls preload="none" src={track.audioUrl} className="w-full h-8">
                                   Tu navegador no soporta audio.
                                 </audio>
                               </div>
