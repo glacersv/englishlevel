@@ -10,6 +10,7 @@ import teacherAvatar from '../../assets/avatar_teacher.png'
 import AnalyticsDashboard from '../shared/AnalyticsDashboard'
 import FinalVerdictModal from './FinalVerdictModal'
 import OralObservationsViewer, { extractOralObservations } from './OralObservationsViewer'
+import { downloadActaOficialPDF } from '../../lib/actaPdfGenerator'
 import {
   getAllUsers,
   registerOrUpdateUser,
@@ -4321,11 +4322,21 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={triggerBrowserPrint}
+                          onClick={() => downloadActaOficialPDF(actaToPrint, getEvaluationPlacementData)}
                           className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-extrabold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="Generar y descargar archivo PDF oficial directamente"
                         >
-                          <span className="material-symbols-outlined text-[18px]">print</span>
-                          <span>Imprimir / Guardar PDF</span>
+                          <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                          <span>Descargar PDF</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={triggerBrowserPrint}
+                          className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="Abrir diálogo de impresión"
+                        >
+                          <span className="material-symbols-outlined text-[17px]">print</span>
+                          <span>Imprimir</span>
                         </button>
                         <button
                           type="button"
@@ -4473,11 +4484,19 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
 
                     {/* Footer del Modal (no se imprime) */}
-                    <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between no-print">
+                    <div className="p-4 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2 no-print">
                       <span className="text-xs text-gray-500">
-                        Presiona <strong>"Imprimir / Guardar PDF"</strong> para abrir el diálogo del navegador y guardar en formato PDF oficial.
+                        Usa <strong>"Descargar PDF"</strong> para bajar el archivo directamente o <strong>"Imprimir Acta"</strong> para imprimir.
                       </span>
                       <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => downloadActaOficialPDF(actaToPrint, getEvaluationPlacementData)}
+                          className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-extrabold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span className="material-symbols-outlined text-[17px]">picture_as_pdf</span>
+                          <span>Descargar PDF</span>
+                        </button>
                         <button
                           type="button"
                           onClick={triggerBrowserPrint}
