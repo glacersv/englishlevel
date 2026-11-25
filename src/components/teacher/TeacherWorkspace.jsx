@@ -353,11 +353,92 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
   }
 
   const triggerBrowserPrint = () => {
-    document.body.classList.add('printing-report')
-    window.print()
-    setTimeout(() => {
-      document.body.classList.remove('printing-report')
-    }, 500)
+    const printEl = document.querySelector('.print-container')
+    if (!printEl) {
+      document.body.classList.add('printing-report')
+      window.print()
+      setTimeout(() => {
+        document.body.classList.remove('printing-report')
+      }, 500)
+      return
+    }
+
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.setAttribute('aria-hidden', 'true')
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow.document
+    const stylesHtml = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(node => node.outerHTML)
+      .join('\n')
+
+    doc.open()
+    doc.write(`<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Acta Oficial de Ubicación y Evaluación 2026</title>
+    ${stylesHtml}
+    <style>
+      @page {
+        size: letter portrait;
+        margin: 12mm 14mm;
+      }
+      html, body {
+        background: #ffffff !important;
+        color: #1f2937 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .print-doc {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        background: #ffffff !important;
+      }
+      .print-doc .overflow-hidden {
+        overflow: visible !important;
+      }
+      .print-doc thead {
+        display: table-header-group;
+      }
+      .print-doc tr,
+      .print-doc .break-inside-avoid {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="print-doc font-sans text-gray-800">
+      ${printEl.innerHTML}
+    </div>
+  </body>
+</html>`)
+    doc.close()
+
+    const runPrint = () => {
+      try {
+        iframe.contentWindow.focus()
+        iframe.contentWindow.print()
+      } finally {
+        setTimeout(() => {
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe)
+        }, 1000)
+      }
+    }
+
+    setTimeout(runPrint, 300)
   }
 
   // Configuración de módulos activados desde el Admin
@@ -4363,7 +4444,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                       </div>
 
                       {/* Cláusula de Validez y Bloque de Firmas Oficiales */}
-                      <div className="mt-12 pt-6 border-t border-gray-300 text-xs text-gray-600">
+                      <div className="mt-12 pt-6 border-t border-gray-300 text-xs text-gray-600 break-inside-avoid">
                         <p className="text-center italic text-[11px] mb-12">
                           Se hace constar que los resultados anteriores corresponden a la evaluación diagnóstica estandarizada, aplicada conforme al Marco Común Europeo de Referencia (MCER).
                         </p>
