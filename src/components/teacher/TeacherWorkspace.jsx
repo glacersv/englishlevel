@@ -2573,16 +2573,32 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                                         <span>Veredicto</span>
                                       </button>
 
-                                      {/* BOTÓN VER DETALLES DE RÚBRICA */}
-                                      <button
-                                        type="button"
-                                        onClick={() => setSelectedEvaluationDetail(ev)}
-                                        className="px-3 py-1.5 rounded-xl bg-[#f4f1fd] hover:bg-[#e9e3ff] text-[#5446a8] font-bold text-xs border border-[#e2e0ed] transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-                                        title="Ver preguntas y desglose de rúbrica"
-                                      >
-                                        <span className="material-symbols-outlined text-[16px]">visibility</span>
-                                        <span>Detalles</span>
-                                      </button>
+                                      {/* BOTÓN VER DETALLES DE RÚBRICA (resaltado en ámbar si tiene observaciones) */}
+                                      {(() => {
+                                        const obsCount = extractOralObservations(ev).length
+                                        const hasObs = obsCount > 0
+                                        return (
+                                          <button
+                                            type="button"
+                                            onClick={() => setSelectedEvaluationDetail(ev)}
+                                            className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
+                                              hasObs
+                                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 ring-1 ring-amber-200/70'
+                                                : 'bg-[#f4f1fd] hover:bg-[#e9e3ff] text-[#5446a8] border-[#e2e0ed]'
+                                            }`}
+                                            title={
+                                              hasObs
+                                                ? `Tiene ${obsCount} observación(es) del docente — Ver preguntas y desglose de rúbrica`
+                                                : 'Ver preguntas y desglose de rúbrica'
+                                            }
+                                          >
+                                            <span className="material-symbols-outlined text-[16px]">
+                                              {hasObs ? 'speaker_notes' : 'visibility'}
+                                            </span>
+                                            <span>Detalles</span>
+                                          </button>
+                                        )
+                                      })()}
 
                                       {/* BOTÓN ELIMINAR EVALUACIÓN */}
                                       <button
