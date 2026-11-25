@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { extractOralObservations } from './OralObservationsViewer'
 
 /**
  * FinalVerdictModal:
@@ -338,6 +339,35 @@ export default function FinalVerdictModal({
               </div>
             </div>
           </div>
+
+          {/* OBSERVACIONES DE LA ENTREVISTA ORAL (SI EXISTEN) */}
+          {(() => {
+            const oralObservations = extractOralObservations(oralEvaluation)
+            if (oralObservations.length === 0) return null
+            return (
+              <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50/70 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px] text-amber-700">speaker_notes</span>
+                    <span>Observaciones de Entrevista Oral</span>
+                  </h4>
+                  {oralEvaluation?.teacherName && (
+                    <span className="text-[11px] font-semibold text-amber-800">
+                      Evaluó: {oralEvaluation.teacherName}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {oralObservations.map(obs => (
+                    <div key={obs.level} className="bg-white/90 border border-amber-200/80 rounded-xl p-2.5 text-xs text-amber-950">
+                      <span className="font-black text-amber-800 mr-1.5">[{obs.level}]</span>
+                      <span className="italic">"{obs.comments}"</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* CRUCE CON LA MATRIZ OFICIAL DE LIBROS Y GRUPOS */}
           <div className="space-y-3">

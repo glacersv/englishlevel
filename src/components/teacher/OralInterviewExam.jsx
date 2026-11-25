@@ -42,7 +42,7 @@ export default function OralInterviewExam({ student, teacher, onFinished, onCanc
     const q3 = getRandom3Questions(currentLevel, questionsBank)
     setLevelQuestions(q3)
     setActiveQuestionIndex(0)
-    setComments('')
+    setComments(evalRecord[currentLevel]?.comments || '')
   }, [currentLevel, questionsBank])
 
   // Timer activo durante la entrevista

@@ -9,6 +9,7 @@ import GradeDispatchHub from './GradeDispatchHub'
 import teacherAvatar from '../../assets/avatar_teacher.png'
 import AnalyticsDashboard from '../shared/AnalyticsDashboard'
 import FinalVerdictModal from './FinalVerdictModal'
+import OralObservationsViewer, { extractOralObservations } from './OralObservationsViewer'
 import {
   getAllUsers,
   registerOrUpdateUser,
@@ -742,6 +743,12 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     return Object.values(c).reduce((acc, x) => acc + (x.warningsCount || (x.incidents?.length || 0)), 0) > 0
   }).length
 
+  // Total de evaluaciones orales con observaciones escritas
+  const totalEvaluationsWithObservations = useMemo(
+    () => evaluations.filter(ev => extractOralObservations(ev).length > 0).length,
+    [evaluations]
+  )
+
   const isAnalyticsEnabled = coordinationModules?.analytics?.enabled !== false
 
   const menuItems = [
@@ -758,6 +765,7 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
     // 3. GRUPO: REPORTES
     { type: 'category', label: 'Reportes' },
     { key: 'results', label: 'Actas y Resultados', icon: 'military_tech', badge: `${evaluations.length}` },
+    { key: 'oral_observations', label: 'Observaciones Orales', icon: 'speaker_notes', badge: totalEvaluationsWithObservations > 0 ? `${totalEvaluationsWithObservations}` : null },
     ...(isAnalyticsEnabled ? [{ key: 'analytics', label: 'Analíticas', icon: 'analytics', badge: `${students.filter(s => Boolean(s.assignedLevel)).length} eval.` }] : []),
 
     // 4. GRUPO: CONFIGURACIÓN
@@ -2169,6 +2177,17 @@ export default function TeacherWorkspace({ user, onLogout, onSwitchToStudentView
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* SECCIÓN OBSERVACIONES DE ENTREVISTA ORAL */}
+              {currentSection === 'oral_observations' && (
+                <OralObservationsViewer
+                  evaluations={evaluations}
+                  students={students}
+                  academic={academic}
+                  onOpenDetail={(ev) => setSelectedEvaluationDetail(ev)}
+                  onOpenVerdict={(studentObj) => setSelectedVerdictStudent(studentObj)}
+                />
               )}
 
               {/* SECCIÓN ANALYTICS: DASHBOARD ANALÍTICO INSTITUCIONAL */}
